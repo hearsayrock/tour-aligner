@@ -8,14 +8,14 @@ export const metadata = { title: 'Admin' }
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   const [{ data: profile }, { count: pendingClaimsCount }] = await Promise.all([
     supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
     supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ])
 
-  if (!profile?.is_admin) redirect('/dashboard')
+  if (!profile?.is_admin) return redirect('/dashboard')
 
   return (
     <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">

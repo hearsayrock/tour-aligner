@@ -42,7 +42,7 @@ export default async function AdminUserDetailPage({
       .order('name'),
   ])
 
-  if (!profile) notFound()
+  if (!profile) return notFound()
 
   const toggleSuspend = suspendUser.bind(null, id, !profile.is_suspended)
 

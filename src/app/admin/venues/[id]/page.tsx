@@ -51,7 +51,7 @@ export default async function AdminVenueDetailPage({
       .maybeSingle(),
   ])
 
-  if (!venue) notFound()
+  if (!venue) return notFound()
 
   const v = venue as typeof venue & { profiles: { id: string; email: string | null; full_name: string | null } | null }
   const claimRow = claim as typeof claim & { profiles: { id: string; email: string | null; full_name: string | null } | null } | null

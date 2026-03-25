@@ -46,7 +46,7 @@ export default async function AdminBandDetailPage({
       .limit(20),
   ])
 
-  if (!band) notFound()
+  if (!band) return notFound()
 
   const b = band as typeof band & { profiles: { id: string; email: string | null; full_name: string | null } | null }
   const toggleActive = deactivateBand.bind(null, id, !b.is_active)

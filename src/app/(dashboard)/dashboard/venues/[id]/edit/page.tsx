@@ -12,7 +12,7 @@ export default async function EditVenuePage({
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   const [{ data: venue }, { data: genres }, { data: venueGenres }] = await Promise.all([
     supabase
@@ -25,7 +25,7 @@ export default async function EditVenuePage({
     supabase.from('venue_genres').select('genre_id').eq('venue_id', id),
   ])
 
-  if (!venue) notFound()
+  if (!venue) return notFound()
 
   return (
     <VenueEditForm

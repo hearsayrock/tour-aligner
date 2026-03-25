@@ -148,7 +148,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   const filters = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   const tab = filters.tab ?? 'directory'
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))

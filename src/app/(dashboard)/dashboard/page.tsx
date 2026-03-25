@@ -32,7 +32,7 @@ function formatDate(iso: string) {
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   // Parallel fetches: profile, bands, venues, pending claims
   const [{ data: profile }, { data: bands }, { data: venues }, { data: pendingClaims }] = await Promise.all([

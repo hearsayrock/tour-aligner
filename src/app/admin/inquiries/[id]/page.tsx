@@ -35,7 +35,7 @@ export default async function AdminInquiryDetailPage({
     .eq('id', id)
     .single()
 
-  if (!inq) notFound()
+  if (!inq) return notFound()
 
   const row = inq as typeof inq & {
     bands: { id: string; name: string; slug: string; user_id: string } | null

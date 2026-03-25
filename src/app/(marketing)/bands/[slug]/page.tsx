@@ -61,7 +61,7 @@ export default async function BandProfilePage({
     .eq('is_active', true)
     .single()
 
-  if (!band) notFound()
+  if (!band) return notFound()
 
   const [{ data: bandGenres }, { data: showDates }] = await Promise.all([
     supabase
@@ -76,8 +76,8 @@ export default async function BandProfilePage({
       .order('show_date'),
   ])
 
-  const genreNames = (bandGenres ?? [])
-    .map((bg: { genres: { name: string } | null }) => bg.genres?.name)
+  const genreNames = ((bandGenres ?? []) as unknown as { genres: { name: string } | null }[])
+    .map((bg) => bg.genres?.name)
     .filter(Boolean) as string[]
 
   const activeSocials = SOCIAL_LINKS.filter(

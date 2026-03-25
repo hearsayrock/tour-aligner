@@ -47,7 +47,7 @@ type InquiryWithJoins = {
 export default async function InquiriesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   // Fetch user's band IDs and venue IDs in parallel
   const [{ data: userBands }, { data: userVenues }] = await Promise.all([
@@ -69,7 +69,7 @@ export default async function InquiriesPage() {
     `)
     .order('created_at', { ascending: false })
 
-  const inquiries = (allInquiries ?? []) as InquiryWithJoins[]
+  const inquiries = (allInquiries ?? []) as unknown as InquiryWithJoins[]
 
   const sentInquiries = inquiries.filter(
     (i) => i.bands && userBandIds.includes(i.bands.id)

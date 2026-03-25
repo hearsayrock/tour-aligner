@@ -7,7 +7,7 @@ export const metadata = { title: 'Add a Band' }
 export default async function NewBandPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return redirect('/login')
 
   const { data: genres } = await supabase
     .from('genres')

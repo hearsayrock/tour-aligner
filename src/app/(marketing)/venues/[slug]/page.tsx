@@ -50,7 +50,7 @@ export default async function VenueDetailPage({
     supabase.auth.getUser(),
   ])
 
-  if (!venue) notFound()
+  if (!venue) return notFound()
 
   const [{ data: venueGenres }, { data: pendingClaim }] = await Promise.all([
     supabase.from('venue_genres').select('genre_id, genres(name)').eq('venue_id', venue.id),
@@ -65,8 +65,8 @@ export default async function VenueDetailPage({
       : Promise.resolve({ data: null }),
   ])
 
-  const genreNames = (venueGenres ?? [])
-    .map((vg: { genres: { name: string } | null }) => vg.genres?.name)
+  const genreNames = ((venueGenres ?? []) as unknown as { genres: { name: string } | null }[])
+    .map((vg) => vg.genres?.name)
     .filter(Boolean) as string[]
 
   const isClaimed = !!venue.claimed_by_user_id
