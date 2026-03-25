@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+
+  /* Brand palette */
+  --color-brand:        #FD6A2F;   /* orange — primary accent */
+  --color-brand-dim:    #E55A22;   /* hover state */
+  --color-brand-2:      #00bba5;   /* teal — secondary accent */
+  --color-surface:      #FFFFFF;   /* card / panel background */
+  --color-surface-2:    #F5F5F5;   /* elevated surface / input bg */
+  --color-border:       #E8E8E8;   /* subtle borders */
+  --color-muted:        #888888;   /* secondary text */
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #FAFAFA;
+  color: #252525;
+}
+
+/* Scroll indicator dot animation */
+@keyframes scroll-dot {
+  0%   { transform: translateY(0);   opacity: 1; }
+  80%  { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0);   opacity: 0; }
+}
+
+.animate-scroll-dot {
+  animation: scroll-dot 1.6s ease-in-out infinite;
+}
+
+/* Focus ring consistent with brand */
+:focus-visible {
+  outline: 2px solid #FD6A2F;
+  outline-offset: 2px;
+}
