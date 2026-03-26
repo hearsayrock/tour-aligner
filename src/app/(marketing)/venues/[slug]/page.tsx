@@ -23,12 +23,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const supabase = await createClient()
-  const { data: venue } = await supabase
+  const { data: rawVenueMeta } = await supabase
     .from('venues')
     .select('name, location_city, location_state')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
+  const venue = rawVenueMeta as { name: string; location_city: string; location_state: string } | null
 
   if (!venue) return {}
   return {
@@ -45,10 +46,11 @@ export default async function VenueDetailPage({
   const { slug } = await params
   const supabase = await createClient()
 
-  const [{ data: venue }, { data: { user } }] = await Promise.all([
+  const [{ data: rawVenue }, { data: { user } }] = await Promise.all([
     supabase.from('venues').select('*').eq('slug', slug).eq('is_active', true).single(),
     supabase.auth.getUser(),
   ])
+  const venue = rawVenue as import('@/types/database').Venue | null
 
   if (!venue) return notFound()
 
