@@ -1,7 +1,21 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { InquiryStatus } from '@/types/database'
+import type { InquiryStatus, VenueClaim } from '@/types/database'
+
+type SlimBand    = { id: string; name: string; slug: string }
+type SlimVenue   = { id: string; name: string; slug: string; location_city: string; location_state: string }
+type SlimProfile = { full_name: string | null }
+type PendingClaim = Pick<VenueClaim, 'id' | 'created_at'> & { venues: SlimVenue | null }
+type PendingInquiry = {
+  id: string; requested_date: string; message: string; expected_draw: number | null
+  status: InquiryStatus; created_at: string
+  bands: SlimBand | null; venues: { id: string; name: string; slug: string } | null
+}
+type RecentInquiry = {
+  id: string; requested_date: string; status: InquiryStatus; created_at: string
+  venues: SlimVenue | null; bands: { id: string; name: string } | null
+}
 
 export const metadata = { title: 'Dashboard' }
 
@@ -35,7 +49,7 @@ export default async function DashboardPage() {
   if (!user) return redirect('/login')
 
   // Parallel fetches: profile, bands, venues, pending claims
-  const [{ data: profile }, { data: bands }, { data: venues }, { data: pendingClaims }] = await Promise.all([
+  const [{ data: rawProfile }, { data: rawBands }, { data: rawVenues }, { data: rawPendingClaims }] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
     supabase.from('bands').select('id, name, slug').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('venues').select('id, name, slug, location_city, location_state').eq('claimed_by_user_id', user.id).order('name'),
@@ -46,12 +60,16 @@ export default async function DashboardPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
   ])
+  const profile       = rawProfile       as SlimProfile | null
+  const bands         = rawBands         as SlimBand[]  | null
+  const venues        = rawVenues        as SlimVenue[] | null
+  const pendingClaims = rawPendingClaims as unknown as PendingClaim[] | null
 
-  const bandIds = (bands ?? []).map((b) => b.id)
+  const bandIds  = (bands  ?? []).map((b) => b.id)
   const venueIds = (venues ?? []).map((v) => v.id)
 
   // Fetch inquiries: pending received + recent sent
-  const [{ data: pendingReceived }, { data: recentSent }] = await Promise.all([
+  const [{ data: rawPendingReceived }, { data: rawRecentSent }] = await Promise.all([
     venueIds.length > 0
       ? supabase
           .from('booking_inquiries')
@@ -69,6 +87,8 @@ export default async function DashboardPage() {
           .limit(5)
       : Promise.resolve({ data: [] }),
   ])
+  const pendingReceived = rawPendingReceived as unknown as PendingInquiry[] | null
+  const recentSent      = rawRecentSent      as unknown as RecentInquiry[]  | null
 
   const displayName = profile?.full_name?.split(' ')[0] ?? 'there'
   const bandCount = (bands ?? []).length
