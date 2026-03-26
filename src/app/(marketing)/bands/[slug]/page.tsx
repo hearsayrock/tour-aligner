@@ -65,7 +65,7 @@ export default async function BandProfilePage({
 
   if (!band) return notFound()
 
-  const [{ data: bandGenres }, { data: showDates }] = await Promise.all([
+  const [{ data: bandGenres }, { data: rawShowDates }] = await Promise.all([
     supabase
       .from('band_genres')
       .select('genre_id, genres(name)')
@@ -77,6 +77,8 @@ export default async function BandProfilePage({
       .gte('show_date', today)
       .order('show_date'),
   ])
+
+  const showDates = rawShowDates as import('@/types/database').BandShowDate[] | null
 
   const genreNames = ((bandGenres ?? []) as unknown as { genres: { name: string } | null }[])
     .map((bg) => bg.genres?.name)
