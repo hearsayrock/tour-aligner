@@ -163,11 +163,12 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
   // ── My Bands tab ───────────────────────────────────────────
   if (tab === 'mine') {
-    const { data: myBands } = await supabase
+    const { data: rawMyBands } = await supabase
       .from('bands')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+    const myBands = rawMyBands as Band[] | null
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
@@ -244,14 +245,16 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   if (filters.radius) baseQuery = baseQuery.eq('touring_radius', filters.radius)
   if (filters.artistType) baseQuery = baseQuery.eq('artist_type', filters.artistType)
   if (filters.genre) {
-    const { data: bandIds } = await supabase
+    const { data: rawBandIds } = await supabase
       .from('band_genres').select('band_id').eq('genre_id', filters.genre)
+    const bandIds = rawBandIds as { band_id: string }[] | null
     baseQuery = baseQuery.in('id', (bandIds ?? []).map((b) => b.band_id))
   }
 
   // Featured mode
   if (!fullListMode) {
-    const { data: allBands } = await baseQuery.order('created_at', { ascending: false })
+    const { data: rawBands } = await baseQuery.order('created_at', { ascending: false })
+    const allBands = rawBands as Band[] | null
     const total = allBands?.length ?? 0
     const featured = (allBands ?? []).slice(0, FEATURED_COUNT)
 
@@ -297,7 +300,8 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
     ? baseQuery.order('location_state').order('name')
     : baseQuery.order('name')
 
-  const { data: allBands } = await orderedQuery
+  const { data: rawOrderedBands } = await orderedQuery
+  const allBands = rawOrderedBands as Band[] | null
   const total = allBands?.length ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const pageBands = (allBands ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
