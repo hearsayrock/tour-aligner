@@ -16,11 +16,13 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const { data: profile } = await supabase
+  type ProfileRow = { full_name: string | null; avatar_url: string | null; primary_role: 'artist' | 'venue' | 'both' | null; phone: string | null; location_city: string | null; location_state: string | null }
+  const { data: rawProfile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
+  const profile = rawProfile as ProfileRow | null
 
   const name = profile?.full_name ?? user.email?.split('@')[0] ?? 'Your profile'
   const initials = name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
