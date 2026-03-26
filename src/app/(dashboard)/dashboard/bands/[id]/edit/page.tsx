@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BandForm } from '@/components/bands/BandForm'
-import type { Band } from '@/types/database'
+import type { Band, BandGenre, BandShowDate } from '@/types/database'
 
 export const metadata = { title: 'Edit Band' }
 
@@ -15,11 +15,13 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
 
   if (!band) return notFound()
 
-  const [{ data: genres }, { data: bandGenres }, { data: showDates }] = await Promise.all([
+  const [{ data: genres }, { data: rawBandGenres }, { data: rawShowDates }] = await Promise.all([
     supabase.from('genres').select('*').order('name'),
     supabase.from('band_genres').select('genre_id').eq('band_id', id),
     supabase.from('band_show_dates').select('*').eq('band_id', id).order('show_date'),
   ])
+  const bandGenres = rawBandGenres as Pick<BandGenre, 'genre_id'>[] | null
+  const showDates = rawShowDates as BandShowDate[] | null
 
   return (
     <BandForm
