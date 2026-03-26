@@ -30,12 +30,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const supabase = await createClient()
-  const { data: band } = await supabase
+  const { data: rawBandMeta } = await supabase
     .from('bands')
     .select('name, tagline')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
+  const band = rawBandMeta as { name: string; tagline: string | null } | null
 
   if (!band) return {}
   return {
@@ -54,12 +55,13 @@ export default async function BandProfilePage({
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: band } = await supabase
+  const { data: rawBand } = await supabase
     .from('bands')
     .select('*')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
+  const band = rawBand as import('@/types/database').Band | null
 
   if (!band) return notFound()
 
