@@ -180,11 +180,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   // ── My Venues tab ─────────────────────────────────────────
   if (tab === 'mine') {
-    const { data: myVenues } = await supabase
+    const { data: rawMyVenues } = await supabase
       .from('venues')
       .select('*')
       .eq('claimed_by_user_id', user.id)
       .order('name')
+    const myVenues = rawMyVenues as Venue[] | null
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
@@ -284,14 +285,16 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   }
   if (filters.age) baseQuery = baseQuery.eq('age_requirement', filters.age)
   if (filters.genre) {
-    const { data: venueIds } = await supabase
+    const { data: rawVenueIds } = await supabase
       .from('venue_genres').select('venue_id').eq('genre_id', filters.genre)
+    const venueIds = rawVenueIds as { venue_id: string }[] | null
     baseQuery = baseQuery.in('id', (venueIds ?? []).map((v) => v.venue_id))
   }
 
   // Featured mode (no filters, no view=all)
   if (!fullListMode) {
-    const { data: allVenues } = await baseQuery.order('name')
+    const { data: rawAllVenues } = await baseQuery.order('name')
+    const allVenues = rawAllVenues as Venue[] | null
     const total = allVenues?.length ?? 0
     const featured = (allVenues ?? []).slice(0, FEATURED_COUNT)
 
@@ -340,7 +343,8 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     ? baseQuery.order('location_state').order('name')
     : baseQuery.order('name')
 
-  const { data: allVenues } = await orderedQuery
+  const { data: rawOrderedVenues } = await orderedQuery
+  const allVenues = rawOrderedVenues as Venue[] | null
   const total = allVenues?.length ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const pageVenues = (allVenues ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
