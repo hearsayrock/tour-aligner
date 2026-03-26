@@ -12,11 +12,13 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    const [{ data: profile }, { data: ownedVenues }, { count: userPendingClaimCount }] = await Promise.all([
+    const [{ data: rawProfile }, { data: rawOwnedVenues }, { count: userPendingClaimCount }] = await Promise.all([
       supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
       supabase.from('venues').select('id').eq('claimed_by_user_id', user.id),
       supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'pending'),
     ])
+    const profile      = rawProfile      as { is_admin: boolean } | null
+    const ownedVenues  = rawOwnedVenues  as { id: string }[]     | null
 
     const ownedVenueIds = (ownedVenues ?? []).map((v) => v.id)
 
