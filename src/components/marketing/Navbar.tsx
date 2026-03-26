@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
+import { SignedOutMobileMenu } from '@/components/marketing/SignedOutMobileMenu'
 
 export async function Navbar() {
   const supabase = await createClient()
@@ -14,7 +15,8 @@ export async function Navbar() {
           <Image src="/logo.png" alt="TourAligner" width={140} height={36} priority />
         </Link>
 
-        <nav className="flex items-center gap-2">
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-2">
           <Link
             href="/venues"
             className="text-sm text-[#252525]/70 hover:text-[#252525] transition-colors px-3 py-1.5"
@@ -41,6 +43,9 @@ export async function Navbar() {
             </>
           )}
         </nav>
+
+        {/* Mobile nav — signed-out only */}
+        {!user && <SignedOutMobileMenu />}
       </div>
     </header>
   )
