@@ -50,10 +50,12 @@ export default async function InquiriesPage() {
   if (!user) return redirect('/login')
 
   // Fetch user's band IDs and venue IDs in parallel
-  const [{ data: userBands }, { data: userVenues }] = await Promise.all([
+  const [{ data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
     supabase.from('bands').select('id').eq('user_id', user.id),
     supabase.from('venues').select('id').eq('claimed_by_user_id', user.id),
   ])
+  const userBands = rawUserBands as { id: string }[] | null
+  const userVenues = rawUserVenues as { id: string }[] | null
 
   const userBandIds = (userBands ?? []).map((b) => b.id)
   const userVenueIds = (userVenues ?? []).map((v) => v.id)
