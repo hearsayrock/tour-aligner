@@ -150,14 +150,16 @@ export default async function VenuesPage({ searchParams }: PageProps) {
     query = query.eq('age_requirement', filters.age)
   }
   if (filters.genre) {
-    const { data: venueIds } = await supabase
+    const { data: rawVenueIds } = await supabase
       .from('venue_genres')
       .select('venue_id')
       .eq('genre_id', filters.genre)
+    const venueIds = rawVenueIds as { venue_id: string }[] | null
     query = query.in('id', (venueIds ?? []).map((v) => v.venue_id))
   }
 
-  const { data: venues } = await query
+  const { data: rawVenues } = await query
+  const venues = rawVenues as import('@/types/database').Venue[] | null
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
