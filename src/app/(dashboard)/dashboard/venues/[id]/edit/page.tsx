@@ -14,7 +14,7 @@ export default async function EditVenuePage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const [{ data: venue }, { data: genres }, { data: venueGenres }] = await Promise.all([
+  const [{ data: venue }, { data: genres }, { data: rawVenueGenres }] = await Promise.all([
     supabase
       .from('venues')
       .select('*')
@@ -24,6 +24,7 @@ export default async function EditVenuePage({
     supabase.from('genres').select('*').order('name'),
     supabase.from('venue_genres').select('genre_id').eq('venue_id', id),
   ])
+  const venueGenres = rawVenueGenres as { genre_id: string }[] | null
 
   if (!venue) return notFound()
 
