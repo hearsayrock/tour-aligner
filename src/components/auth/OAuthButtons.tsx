@@ -63,7 +63,7 @@ export function OAuthButtons({ next }: OAuthButtonsProps) {
           {icon}
           <span>{loading === id ? 'Redirecting…' : label}</span>
           {lastProvider === id && (
-            <span className="absolute right-3 text-[11px] font-normal text-[#888888] bg-[#EBEBEB] rounded px-1.5 py-0.5 leading-none">
+            <span className="absolute right-0 top-0 text-[11px] font-normal text-[#888888] bg-[#EBEBEB] rounded-tr-lg rounded-bl-lg px-1.5 py-0.5 leading-none">
               Last used
             </span>
           )}
