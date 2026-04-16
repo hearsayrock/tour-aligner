@@ -105,7 +105,7 @@ export default async function BandProfilePage({
     requested_date: string
     venues: { name: string; location_city: string; location_state: string } | null
   }
-  const shows = (rawShows ?? []) as ShowRow[]
+  const shows = (rawShows ?? []) as unknown as ShowRow[]
 
   const genreNames = (
     (bandGenres ?? []) as unknown as { genres: { name: string } | null }[]
