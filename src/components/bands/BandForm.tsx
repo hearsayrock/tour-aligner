@@ -42,6 +42,7 @@ interface BandFormInitial {
   showDates: ShowDateInput[]
   profile_photo_url: string
   cover_photo_url: string
+  featured_track_url: string
   artist_type: 'solo' | 'band' | ''
   set_length_min: string
 }
