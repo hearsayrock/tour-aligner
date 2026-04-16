@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BandForm } from '@/components/bands/BandForm'
 import type { Band, BandGenre, BandShowDate } from '@/types/database'
 
-export const metadata = { title: 'Edit Band' }
+export const metadata = { title: 'Edit Artist' }
 
 export default async function EditBandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -49,6 +49,7 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
         members: band.members ?? [],
         profile_photo_url: band.profile_photo_url ?? '',
         cover_photo_url: band.cover_photo_url ?? '',
+        featured_track_url: band.featured_track_url ?? '',
         artist_type: band.artist_type ?? '',
         set_length_min: band.set_length_min ? String(band.set_length_min) : '',
         selectedGenreIds: (bandGenres ?? []).map((g) => g.genre_id),

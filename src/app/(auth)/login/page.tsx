@@ -33,6 +33,21 @@ function LoginForm() {
     }
 
     localStorage.setItem('ta_last_auth_provider', 'email')
+
+    // Send new users (no primary_role set) to onboarding
+    if (redirectTo === '/dashboard') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('primary_role')
+        .eq('id', (await supabase.auth.getUser()).data.user!.id)
+        .single()
+      if (!profile?.primary_role) {
+        router.push('/onboarding')
+        router.refresh()
+        return
+      }
+    }
+
     router.push(redirectTo)
     router.refresh()
   }

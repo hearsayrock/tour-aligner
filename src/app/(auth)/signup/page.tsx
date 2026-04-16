@@ -39,7 +39,7 @@ export default function SignupPage() {
     // Auto-confirmed (e.g. email confirmation disabled in Supabase)
     if (data.session) {
       localStorage.setItem('ta_last_auth_provider', 'email')
-      router.push('/dashboard')
+      router.push('/onboarding')
       router.refresh()
       return
     }
@@ -95,7 +95,7 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm text-[#888888] mb-1.5">
-              Display name
+              Your name
             </label>
             <input
               id="name"
@@ -105,7 +105,7 @@ export default function SignupPage() {
               required
               autoComplete="name"
               className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
-              placeholder="Your name or band name"
+              placeholder="Enter your name"
             />
           </div>
 

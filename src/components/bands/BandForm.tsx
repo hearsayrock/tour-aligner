@@ -288,6 +288,9 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
     setRemoveCover(false)
   }
 
+  // Featured track
+  const [featuredTrackUrl, setFeaturedTrackUrl] = useState((initial as { featured_track_url?: string }).featured_track_url ?? '')
+
   // Social fields
   const [socials, setSocials] = useState<SocialFields>({
     website_url: initial.website_url ?? '',
@@ -373,6 +376,7 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
       soundcloud_url: socials.soundcloud_url.trim() || null,
       facebook_url: socials.facebook_url.trim() || null,
       twitter_url: socials.twitter_url.trim() || null,
+      featured_track_url: featuredTrackUrl.trim() || null,
       members: members.map((m) => m.trim()).filter(Boolean),
     }
 
@@ -472,7 +476,7 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          {mode === 'create' ? 'Add a band' : 'Edit band'}
+          {mode === 'create' ? 'Add an artist' : 'Edit artist'}
         </h1>
         <button
           type="submit"
@@ -522,30 +526,17 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
       <section>
         <SectionHeader>Basic Info</SectionHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Band name *</Label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className={inputClass}
-                placeholder="The Midnight"
-              />
-            </div>
-            <div>
-              <Label htmlFor="tagline">Tagline</Label>
-              <input
-                id="tagline"
-                type="text"
-                value={tagline}
-                onChange={(e) => setTagline(e.target.value)}
-                className={inputClass}
-                placeholder="A short phrase that captures your sound"
-              />
-            </div>
+          <div>
+            <Label htmlFor="name">Artist name *</Label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={inputClass}
+              placeholder="The Midnight"
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -665,6 +656,25 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
               })}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Featured Track */}
+      <section>
+        <SectionHeader>Featured Track</SectionHeader>
+        <div>
+          <Label htmlFor="featuredTrack">Spotify track, album, or playlist URL</Label>
+          <input
+            id="featuredTrack"
+            type="url"
+            value={featuredTrackUrl}
+            onChange={(e) => setFeaturedTrackUrl(e.target.value)}
+            className={inputClass}
+            placeholder="https://open.spotify.com/track/…"
+          />
+          <p className="text-xs text-[#AAAAAA] mt-1.5">
+            This will be embedded as a playable player on your public profile.
+          </p>
         </div>
       </section>
 

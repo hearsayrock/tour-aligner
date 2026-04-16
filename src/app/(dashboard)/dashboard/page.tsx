@@ -112,7 +112,7 @@ export default async function DashboardPage() {
           className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 hover:border-[#CCCCCC] transition-colors"
         >
           <p className="text-3xl font-bold">{bandCount}</p>
-          <p className="text-sm text-[#888888] mt-1">{bandCount === 1 ? 'Band' : 'Bands'}</p>
+          <p className="text-sm text-[#888888] mt-1">{bandCount === 1 ? 'Artist' : 'Artists'}</p>
         </Link>
 
         <Link
@@ -248,7 +248,7 @@ export default async function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                My bands
+                My Artists
               </h2>
               <Link href="/dashboard/bands" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
                 Manage →
@@ -290,7 +290,7 @@ export default async function DashboardPage() {
                 href="/dashboard/bands/new"
                 className="block text-center text-xs text-[#FD6A2F] hover:underline py-2"
               >
-                + Add band
+                + Add Artist
               </Link>
             </div>
           </section>

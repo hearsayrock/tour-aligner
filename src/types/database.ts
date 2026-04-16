@@ -112,6 +112,7 @@ export interface Database {
           members: string[]
           profile_photo_url: string | null
           cover_photo_url: string | null
+          featured_track_url: string | null
           artist_type: 'solo' | 'band' | null
           set_length_min: number | null
           is_active: boolean
@@ -141,6 +142,7 @@ export interface Database {
           members?: string[]
           profile_photo_url?: string | null
           cover_photo_url?: string | null
+          featured_track_url?: string | null
           artist_type?: 'solo' | 'band' | null
           set_length_min?: number | null
           is_active?: boolean
@@ -168,6 +170,7 @@ export interface Database {
           members?: string[]
           profile_photo_url?: string | null
           cover_photo_url?: string | null
+          featured_track_url?: string | null
           artist_type?: 'solo' | 'band' | null
           set_length_min?: number | null
           is_active?: boolean

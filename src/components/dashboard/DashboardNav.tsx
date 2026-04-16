@@ -14,7 +14,7 @@ interface Notifications {
 
 const NAV_LINKS = [
   { label: 'Dashboard',  href: '/dashboard' },
-  { label: 'Bands',      href: '/dashboard/bands' },
+  { label: 'Artists',    href: '/dashboard/bands' },
   { label: 'Venues',     href: '/dashboard/venues' },
   { label: 'Inquiries',  href: '/dashboard/inquiries' },
 ]

@@ -6,19 +6,11 @@ import type { Database } from '@/types/database'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  let next = searchParams.get('next') ?? '/dashboard'
-
-  if (!next.startsWith('/')) {
-    next = '/dashboard'
-  }
+  const explicitNext = searchParams.get('next')
+  let next = explicitNext && explicitNext.startsWith('/') ? explicitNext : '/dashboard'
 
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isLocalEnv = process.env.NODE_ENV === 'development'
-  const successRedirectUrl = isLocalEnv
-    ? `${origin}${next}`
-    : forwardedHost
-      ? `https://${forwardedHost}${next}`
-      : `${origin}${next}`
   const errorRedirectUrl = `${origin}/login?error=oauth`
 
   if (code) {
@@ -49,7 +41,28 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      const response = NextResponse.redirect(successRedirectUrl)
+      // If no explicit next param, check if this is a new user who needs onboarding
+      if (!explicitNext) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('primary_role')
+            .eq('id', user.id)
+            .single()
+          if (!profile?.primary_role) {
+            next = '/onboarding'
+          }
+        }
+      }
+
+      const redirectUrl = isLocalEnv
+        ? `${origin}${next}`
+        : forwardedHost
+          ? `https://${forwardedHost}${next}`
+          : `${origin}${next}`
+
+      const response = NextResponse.redirect(redirectUrl)
       cookiesToSet.forEach(({ name, value, options }) => {
         response.cookies.set(name, value, options)
       })

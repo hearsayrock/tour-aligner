@@ -381,7 +381,7 @@ function Tabs({ active, tabHref }: {
       <div className="flex items-center gap-1">
         {[
           { key: 'directory', label: 'Directory' },
-          { key: 'mine', label: 'My Bands' },
+          { key: 'mine', label: 'My Artists' },
         ].map(({ key, label }) => (
           <Link
             key={key}

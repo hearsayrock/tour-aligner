@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-inter);
+  --font-sans:   var(--font-inter);
+  --font-barlow: var(--font-barlow);
 
   /* Brand palette */
   --color-brand:        #FD6A2F;   /* orange — primary accent */
