@@ -18,30 +18,66 @@ export default async function DashboardLayout({
       status: ContactThreadStatus
       requested_by_side: ConversationSide | null
       last_message_at: string | null
-      band_last_read_at: string | null
-      venue_last_read_at: string | null
-      bands: { user_id: string } | null
-      venues: { claimed_by_user_id: string | null } | null
+      last_read_at: string | null
     }
 
-    const [{ data: rawProfile }, { count: userPendingClaimCount }, { data: rawThreads }] = await Promise.all([
+    const [
+      { data: rawProfile },
+      { count: userPendingClaimCount },
+      { data: rawBands },
+      { data: rawVenues },
+    ] = await Promise.all([
       supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
       supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'pending'),
-      supabase
-        .from('contact_threads')
-        .select(`
-          id,
-          status,
-          requested_by_side,
-          last_message_at,
-          band_last_read_at,
-          venue_last_read_at,
-          bands (user_id),
-          venues (claimed_by_user_id)
-        `),
+      supabase.from('bands').select('id').eq('user_id', user.id),
+      supabase.from('venues').select('id').eq('claimed_by_user_id', user.id),
     ])
     const profile = rawProfile as { is_admin: boolean } | null
-    const threads = rawThreads as unknown as NotificationThread[] | null
+    const bandIds = (rawBands ?? []).map((band) => band.id)
+    const venueIds = (rawVenues ?? []).map((venue) => venue.id)
+
+    const [rawBandThreads, rawVenueThreads] = await Promise.all([
+      bandIds.length > 0
+        ? supabase
+            .from('contact_threads')
+            .select('id, status, requested_by_side, last_message_at, band_last_read_at')
+            .in('band_id', bandIds)
+        : Promise.resolve({ data: [] }),
+      venueIds.length > 0
+        ? supabase
+            .from('contact_threads')
+            .select('id, status, requested_by_side, last_message_at, venue_last_read_at')
+            .in('venue_id', venueIds)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    const bandThreads = ((rawBandThreads.data ?? []) as Array<{
+      id: string
+      status: ContactThreadStatus
+      requested_by_side: ConversationSide | null
+      last_message_at: string | null
+      band_last_read_at: string | null
+    }>).map((thread) => ({
+      id: thread.id,
+      status: thread.status,
+      requested_by_side: thread.requested_by_side,
+      last_message_at: thread.last_message_at,
+      last_read_at: thread.band_last_read_at,
+    }))
+
+    const venueThreads = ((rawVenueThreads.data ?? []) as Array<{
+      id: string
+      status: ContactThreadStatus
+      requested_by_side: ConversationSide | null
+      last_message_at: string | null
+      venue_last_read_at: string | null
+    }>).map((thread) => ({
+      id: thread.id,
+      status: thread.status,
+      requested_by_side: thread.requested_by_side,
+      last_message_at: thread.last_message_at,
+      last_read_at: thread.venue_last_read_at,
+    }))
 
     const [adminClaimsResult] = await Promise.all([
       profile?.is_admin
@@ -49,29 +85,22 @@ export default async function DashboardLayout({
         : Promise.resolve({ count: 0 }),
     ])
 
-    const inboxHasNotification = (threads ?? []).some((thread) => {
-      const viewerSide =
-        thread.bands?.user_id === user.id
-          ? 'band'
-          : thread.venues?.claimed_by_user_id === user.id
-            ? 'venue'
-            : null
+    const hasNotification = (threads: NotificationThread[], viewerSide: ConversationSide) =>
+      threads.some((thread) => {
+        if (thread.status === 'pending' && thread.requested_by_side !== viewerSide) {
+          return true
+        }
 
-      if (!viewerSide) return false
+        if (!thread.last_message_at) return false
 
-      if (thread.status === 'pending' && thread.requested_by_side !== viewerSide) {
-        return true
-      }
+        if (!thread.last_read_at) return true
 
-      if (!thread.last_message_at) return false
+        return new Date(thread.last_message_at).getTime() > new Date(thread.last_read_at).getTime()
+      })
 
-      const lastReadAt =
-        viewerSide === 'band' ? thread.band_last_read_at : thread.venue_last_read_at
-
-      if (!lastReadAt) return true
-
-      return new Date(thread.last_message_at).getTime() > new Date(lastReadAt).getTime()
-    })
+    const inboxHasNotification =
+      hasNotification(bandThreads, 'band') ||
+      hasNotification(venueThreads, 'venue')
 
     const notifications = {
       inbox:        inboxHasNotification,

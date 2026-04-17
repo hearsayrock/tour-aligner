@@ -32,6 +32,21 @@ function revalidateInbox(threadId?: string) {
   }
 }
 
+async function findExistingThreadId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  bandId: string,
+  venueId: string
+) {
+  const { data } = await supabase
+    .from('contact_threads')
+    .select('id')
+    .eq('band_id', bandId)
+    .eq('venue_id', venueId)
+    .maybeSingle()
+
+  return data?.id ?? null
+}
+
 export async function requestContact(formData: {
   bandId: string
   venueId: string
@@ -55,7 +70,10 @@ export async function requestContact(formData: {
   })
 
   if (error) {
-    return { error: error.message }
+    return {
+      error: error.message,
+      threadId: await findExistingThreadId(supabase, formData.bandId, formData.venueId),
+    }
   }
 
   if (!isRpcPayload(data)) {

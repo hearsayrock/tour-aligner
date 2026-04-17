@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { markThreadRead } from '@/app/actions/contact'
 
 interface Props {
@@ -10,9 +9,6 @@ interface Props {
 }
 
 export function ThreadReadTracker({ threadId, shouldMark }: Props) {
-  const router = useRouter()
-  const [, startTransition] = useTransition()
-
   useEffect(() => {
     if (!shouldMark) return
 
@@ -20,16 +16,12 @@ export function ThreadReadTracker({ threadId, shouldMark }: Props) {
 
     markThreadRead(threadId).then((result) => {
       if (cancelled || result.error) return
-
-      startTransition(() => {
-        router.refresh()
-      })
     })
 
     return () => {
       cancelled = true
     }
-  }, [router, shouldMark, startTransition, threadId])
+  }, [shouldMark, threadId])
 
   return null
 }

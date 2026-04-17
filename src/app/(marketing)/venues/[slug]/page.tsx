@@ -4,7 +4,6 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { ClaimButton } from '@/components/venues/ClaimButton'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
-import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -77,18 +76,8 @@ export default async function VenueDetailPage({
   const hasPendingClaim = !!pendingClaim
   const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key as keyof typeof venue])
 
-  type ExistingThread = {
-    id: string
-    band_id: string
-    venue_id: string
-    status: ContactThreadStatus
-    requested_by_side: ConversationSide | null
-    blocked_by_side: ConversationSide | null
-  }
-
-  // Fetch the logged-in user's bands and any existing inbox threads (skip for venue owner)
+  // Fetch the logged-in user's bands (skip for venue owner)
   let userBands: { id: string; name: string }[] = []
-  let existingThreads: ExistingThread[] = []
   if (user && !isOwner) {
     const { data: bands } = await supabase
       .from('bands')
@@ -97,16 +86,6 @@ export default async function VenueDetailPage({
       .eq('is_active', true)
       .order('name')
     userBands = bands ?? []
-
-    if (userBands.length > 0) {
-      const { data: threads } = await supabase
-        .from('contact_threads')
-        .select('id, band_id, venue_id, status, requested_by_side, blocked_by_side')
-        .eq('venue_id', venue.id)
-        .in('band_id', userBands.map((band) => band.id))
-
-      existingThreads = (threads ?? []) as ExistingThread[]
-    }
   }
 
   return (
@@ -216,7 +195,6 @@ export default async function VenueDetailPage({
               initiatorSide="band"
               targetVenueId={venue.id}
               options={userBands}
-              existingThreads={existingThreads}
             />
           ) : user && userBands.length === 0 ? (
             <p className="text-sm text-[#888888]">

@@ -35,16 +35,18 @@ export function InboxRealtime({ threadId }: Props) {
       queueRefresh
     )
 
-    channel.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'contact_messages',
-        ...(threadId ? { filter: `thread_id=eq.${threadId}` } : {}),
-      },
-      queueRefresh
-    )
+    if (threadId) {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_messages',
+          filter: `thread_id=eq.${threadId}`,
+        },
+        queueRefresh
+      )
+    }
 
     channel.subscribe()
 

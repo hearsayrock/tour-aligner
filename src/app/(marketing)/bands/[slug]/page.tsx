@@ -5,7 +5,6 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { CoverBanner } from './CoverBanner'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
-import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -127,17 +126,7 @@ export default async function BandProfilePage({
   const socialLinks    = SOCIALS.filter(({ key })    => !!band[key as keyof typeof band])
   const isOwner = !!user && user.id === band.user_id
 
-  type ExistingThread = {
-    id: string
-    band_id: string
-    venue_id: string
-    status: ContactThreadStatus
-    requested_by_side: ConversationSide | null
-    blocked_by_side: ConversationSide | null
-  }
-
   let userVenues: { id: string; name: string }[] = []
-  let existingThreads: ExistingThread[] = []
 
   if (user && !isOwner) {
     const { data: venues } = await supabase
@@ -148,16 +137,6 @@ export default async function BandProfilePage({
       .order('name')
 
     userVenues = venues ?? []
-
-    if (userVenues.length > 0) {
-      const { data: threads } = await supabase
-        .from('contact_threads')
-        .select('id, band_id, venue_id, status, requested_by_side, blocked_by_side')
-        .eq('band_id', band.id)
-        .in('venue_id', userVenues.map((venue) => venue.id))
-
-      existingThreads = (threads ?? []) as ExistingThread[]
-    }
   }
 
   return (
@@ -494,7 +473,6 @@ export default async function BandProfilePage({
                   initiatorSide="venue"
                   targetBandId={band.id}
                   options={userVenues}
-                  existingThreads={existingThreads}
                 />
               ) : user ? (
                 <p className="text-sm text-[#777777] leading-relaxed">
