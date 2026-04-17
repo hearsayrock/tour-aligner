@@ -6,10 +6,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
 
 const ACCOUNT_LINKS = [
-  { label: 'View Profile',      href: '/dashboard/profile' },
-  { label: 'Edit Profile',      href: '/dashboard/profile/edit' },
-  { label: 'Account Settings',  href: '/dashboard/settings' },
-  { label: 'Notifications',     href: '/dashboard/notifications' },
+  { label: 'Account', href: '/dashboard/account' },
 ]
 
 const itemClass =
@@ -23,9 +20,13 @@ interface Notifications {
 export function NavAccountMenu({
   isAdmin = false,
   notifications,
+  hasBands = false,
+  hasVenues = false,
 }: {
   isAdmin?: boolean
   notifications?: Notifications
+  hasBands?: boolean
+  hasVenues?: boolean
 }) {
   const pathname = usePathname()
   const [openPath, setOpenPath] = useState<string | null>(null)
@@ -74,6 +75,16 @@ export function NavAccountMenu({
               {link.label}
             </Link>
           ))}
+          {hasBands && (
+            <Link href="/dashboard/bands?tab=mine" className={itemClass}>
+              My Artists
+            </Link>
+          )}
+          {hasVenues && (
+            <Link href="/dashboard/venues?tab=mine" className={itemClass}>
+              My Venues
+            </Link>
+          )}
           {isAdmin && (
             <Link href="/admin" className={itemClass}>
               Admin panel

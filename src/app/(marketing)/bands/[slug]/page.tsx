@@ -143,10 +143,8 @@ export default async function BandProfilePage({
     <div className="pt-14">
 
       {/* ── Cover photo — full-bleed ── */}
-      {hasCover ? (
+      {hasCover && (
         <CoverBanner coverUrl={band.cover_photo_url!} bandName={band.name} />
-      ) : (
-        <div className="h-48 bg-gradient-to-br from-[#2a2a2a] to-[#111111]" />
       )}
 
       {/* ── Identity section — sits on white, below cover ── */}

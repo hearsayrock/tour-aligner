@@ -150,7 +150,12 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const tab = filters.tab ?? 'directory'
+  const { count: myBandCount } = await supabase
+    .from('bands')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  const tab = filters.tab ?? ((myBandCount ?? 0) > 0 ? 'mine' : 'directory')
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.genre || filters.radius || filters.artistType)
   const fullListMode = hasFilters || filters.view === 'all'
@@ -172,7 +177,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
 
         {!myBands || myBands.length === 0 ? (
           <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
@@ -260,7 +265,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
         <Suspense>
           <DashboardBandFilters genres={allGenres ?? []} />
         </Suspense>
@@ -325,7 +330,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
       <Suspense>
         <DashboardBandFilters genres={allGenres ?? []} />
       </Suspense>
@@ -372,16 +377,21 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   )
 }
 
-function Tabs({ active, tabHref }: {
+function Tabs({ active, tabHref, hasMine }: {
   active: string
   tabHref: (t: string) => string
+  hasMine: boolean
 }) {
+  if (!hasMine) {
+    return <h1 className="text-2xl font-bold mb-6">Artist Directory</h1>
+  }
+
   return (
     <div className="flex items-center justify-between mb-6 border-b border-[#E8E8E8]">
       <div className="flex items-center gap-1">
         {[
-          { key: 'directory', label: 'Directory' },
           { key: 'mine', label: 'My Artists' },
+          { key: 'directory', label: 'Directory' },
         ].map(({ key, label }) => (
           <Link
             key={key}
@@ -400,7 +410,7 @@ function Tabs({ active, tabHref }: {
         href="/dashboard/bands/new"
         className="mb-px text-sm font-semibold bg-[#FD6A2F] text-white rounded-lg px-4 py-1.5 hover:bg-[#E55A22] transition-colors"
       >
-        + Add band
+        + Add Artist
       </Link>
     </div>
   )

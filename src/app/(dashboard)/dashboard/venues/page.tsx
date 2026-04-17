@@ -167,7 +167,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const tab = filters.tab ?? 'directory'
+  const { count: myVenueCount } = await supabase
+    .from('venues')
+    .select('id', { count: 'exact', head: true })
+    .eq('claimed_by_user_id', user.id)
+
+  const tab = filters.tab ?? ((myVenueCount ?? 0) > 0 ? 'mine' : 'directory')
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
   const fullListMode = hasFilters || filters.view === 'all'
@@ -189,7 +194,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
 
         {!myVenues || myVenues.length === 0 ? (
           <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
@@ -300,7 +305,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
         <Suspense>
           <DashboardVenueFilters genres={allGenres ?? []} />
         </Suspense>
@@ -368,7 +373,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
       <Suspense>
         <DashboardVenueFilters genres={allGenres ?? []} />
       </Suspense>
@@ -421,12 +426,16 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   )
 }
 
-function Tabs({ active, tabHref }: { active: string; tabHref: (t: string) => string }) {
+function Tabs({ active, tabHref, hasMine }: { active: string; tabHref: (t: string) => string; hasMine: boolean }) {
+  if (!hasMine) {
+    return <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
+  }
+
   return (
     <div className="flex items-center gap-1 mb-6 border-b border-[#E8E8E8]">
       {[
-        { key: 'directory', label: 'Directory' },
         { key: 'mine', label: 'My Venues' },
+        { key: 'directory', label: 'Directory' },
       ].map(({ key, label }) => (
         <Link
           key={key}

@@ -1,4 +1,4 @@
-import { Navbar } from '@/components/marketing/Navbar'
+import { AppNav } from '@/components/layout/AppNav'
 import { Footer } from '@/components/marketing/Footer'
 
 export default function MarketingLayout({
@@ -8,7 +8,7 @@ export default function MarketingLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <AppNav />
       <main>{children}</main>
       <Footer />
     </>

@@ -37,9 +37,13 @@ function Dot() {
 export function DashboardNav({
   isAdmin = false,
   notifications,
+  hasBands = false,
+  hasVenues = false,
 }: {
   isAdmin?: boolean
   notifications?: Notifications
+  hasBands?: boolean
+  hasVenues?: boolean
 }) {
   const pathname = usePathname()
   const [navOpenPath, setNavOpenPath] = useState<string | null>(null)
@@ -105,6 +109,8 @@ export function DashboardNav({
           <NavAccountMenu
             isAdmin={isAdmin}
             notifications={{ any: hasAnyNotification, adminClaims: notifications?.adminClaims ?? false }}
+            hasBands={hasBands}
+            hasVenues={hasVenues}
           />
 
           {/* Hamburger — mobile only */}
