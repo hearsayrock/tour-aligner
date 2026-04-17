@@ -158,6 +158,7 @@ interface PageProps {
     age?: string
     page?: string
     view?: string
+    submitted?: string
   }>
 }
 
@@ -167,15 +168,24 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const { count: myVenueCount } = await supabase
-    .from('venues')
-    .select('id', { count: 'exact', head: true })
-    .eq('claimed_by_user_id', user.id)
+  const [{ count: myVenueCount }, { count: pendingClaimCount }] = await Promise.all([
+    supabase
+      .from('venues')
+      .select('id', { count: 'exact', head: true })
+      .eq('claimed_by_user_id', user.id),
+    supabase
+      .from('venue_claims')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'pending'),
+  ])
 
-  const tab = filters.tab ?? ((myVenueCount ?? 0) > 0 ? 'mine' : 'directory')
+  const hasMine = (myVenueCount ?? 0) > 0 || (pendingClaimCount ?? 0) > 0
+  const tab = filters.tab ?? (hasMine ? 'mine' : 'directory')
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
   const fullListMode = hasFilters || filters.view === 'all'
+  const showSubmittedBanner = filters.submitted === '1'
 
   const { data: allGenres } = await supabase.from('genres').select('id, name').order('name')
 
@@ -185,20 +195,88 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   // ── My Venues tab ─────────────────────────────────────────
   if (tab === 'mine') {
-    const { data: rawMyVenues } = await supabase
-      .from('venues')
-      .select('*')
-      .eq('claimed_by_user_id', user.id)
-      .order('name')
+    const [{ data: rawMyVenues }, { data: rawPendingClaims }] = await Promise.all([
+      supabase
+        .from('venues')
+        .select('*')
+        .eq('claimed_by_user_id', user.id)
+        .order('name'),
+      supabase
+        .from('venue_claims')
+        .select('id, created_at, venues(id, name, slug, location_city, location_state)')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false }),
+    ])
     const myVenues = rawMyVenues as Venue[] | null
+    const pendingClaims = ((rawPendingClaims ?? []) as Array<{
+      id: string
+      created_at: string
+      venues: {
+        id: string
+        name: string
+        slug: string
+        location_city: string
+        location_state: string
+      }[] | null
+    }>).map((claim) => ({
+      ...claim,
+      venues: Array.isArray(claim.venues) ? (claim.venues[0] ?? null) : null,
+    }))
+    const hasPendingClaims = pendingClaims.length > 0
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} />
+
+        {showSubmittedBanner && (
+          <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
+            <p className="text-sm font-medium text-yellow-800">
+              Venue submitted for approval.
+            </p>
+            <p className="mt-1 text-sm text-yellow-700">
+              Your venue is now in the admin review queue. Once approved, it will appear in My Venues and be claimable to your account.
+            </p>
+          </div>
+        )}
+
+        {hasPendingClaims && (
+          <section className="mb-8">
+            <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
+              Pending Approval
+            </h2>
+            <div className="space-y-3">
+              {pendingClaims.map((claim) => {
+                if (!claim.venues) return null
+
+                return (
+                  <div
+                    key={claim.id}
+                    className="bg-white border border-yellow-200 rounded-xl p-5 flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{claim.venues.name}</p>
+                      <p className="text-sm text-[#888888] mt-0.5">
+                        {claim.venues.location_city}, {claim.venues.location_state}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5 shrink-0">
+                      Awaiting admin approval
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {!myVenues || myVenues.length === 0 ? (
           <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
-            <p className="text-[#888888] mb-4">You haven&apos;t claimed any venues yet.</p>
+            <p className="text-[#888888] mb-4">
+              {hasPendingClaims
+                ? "You don&apos;t have any approved venues yet."
+                : "You haven&apos;t claimed any venues yet."}
+            </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/dashboard/venues?tab=directory"
@@ -305,7 +383,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
         <Suspense>
           <DashboardVenueFilters genres={allGenres ?? []} />
         </Suspense>
@@ -373,7 +451,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={(myVenueCount ?? 0) > 0} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
       <Suspense>
         <DashboardVenueFilters genres={allGenres ?? []} />
       </Suspense>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { requestContact } from '@/app/actions/contact'
 import type { ConversationSide } from '@/types/database'
@@ -16,6 +16,7 @@ interface Props {
   options: ContactOption[]
   targetBandId?: string
   targetVenueId?: string
+  initialShowDate?: string
 }
 
 export function RequestContactForm({
@@ -23,10 +24,12 @@ export function RequestContactForm({
   options,
   targetBandId,
   targetVenueId,
+  initialShowDate = '',
 }: Props) {
   const router = useRouter()
   const [selectedId, setSelectedId] = useState(options[0]?.id ?? '')
   const [message, setMessage] = useState('')
+  const [showDate, setShowDate] = useState(initialShowDate)
   const [error, setError] = useState<string | null>(null)
   const [threadIdHint, setThreadIdHint] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -36,6 +39,10 @@ export function RequestContactForm({
     const venueId = initiatorSide === 'venue' ? selectedId : targetVenueId ?? ''
     return { bandId, venueId }
   }, [initiatorSide, selectedId, targetBandId, targetVenueId])
+
+  useEffect(() => {
+    setShowDate(initialShowDate)
+  }, [initialShowDate])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -53,6 +60,7 @@ export function RequestContactForm({
         venueId: currentPair.venueId,
         initiatorSide,
         message,
+        showDate: showDate || null,
       })
 
       if (result.error) {
@@ -86,6 +94,16 @@ export function RequestContactForm({
           </select>
         </div>
       )}
+
+      <div>
+        <label className="block text-sm text-[#888888] mb-1.5">Suggested date</label>
+        <input
+          type="date"
+          value={showDate}
+          onChange={(event) => setShowDate(event.target.value)}
+          className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F] transition-colors"
+        />
+      </div>
 
       <div>
         <label className="block text-sm text-[#888888] mb-1.5">Intro note</label>

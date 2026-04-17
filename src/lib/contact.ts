@@ -1,4 +1,11 @@
-import type { ContactMessage, ContactThread, ContactThreadStatus, ConversationSide } from '@/types/database'
+import type {
+  Booking,
+  ContactMessage,
+  ContactThread,
+  ContactThreadStatus,
+  ConversationSide,
+  VenueBookingDate,
+} from '@/types/database'
 
 export type ContactBandSummary = {
   id: string
@@ -14,6 +21,7 @@ export type ContactVenueSummary = {
   location_city: string
   location_state: string
   claimed_by_user_id: string | null
+  default_bill_cap: number
 }
 
 export type InboxThread = ContactThread & {
@@ -23,6 +31,10 @@ export type InboxThread = ContactThread & {
 
 export type InboxMessage = ContactMessage & {
   profiles: { full_name: string | null } | null
+}
+
+export type ThreadBookingSummary = Booking & {
+  venue_booking_dates: VenueBookingDate | null
 }
 
 export const THREAD_STATUS_LABELS: Record<ContactThreadStatus, string> = {
@@ -89,5 +101,16 @@ export function formatInboxDate(iso: string | null) {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+  })
+}
+
+export function formatShowDate(isoDate: string | null) {
+  if (!isoDate) return ''
+
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   })
 }

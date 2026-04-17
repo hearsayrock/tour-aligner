@@ -3,7 +3,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { ClaimButton } from '@/components/venues/ClaimButton'
-import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
+import { getVenueCalendarRange } from '@/lib/venue-calendar'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -45,6 +46,8 @@ export default async function VenueDetailPage({
 }) {
   const { slug } = await params
   const supabase = await createClient()
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const calendarRange = getVenueCalendarRange(todayIso, 6)
 
   const [{ data: rawVenue }, { data: { user } }] = await Promise.all([
     supabase.from('venues').select('*').eq('slug', slug).eq('is_active', true).single(),
@@ -54,7 +57,7 @@ export default async function VenueDetailPage({
 
   if (!venue) return notFound()
 
-  const [{ data: venueGenres }, { data: pendingClaim }] = await Promise.all([
+  const [{ data: venueGenres }, { data: pendingClaim }, { data: rawBookingDates }, { data: rawBookings }] = await Promise.all([
     supabase.from('venue_genres').select('genre_id, genres(name)').eq('venue_id', venue.id),
     user
       ? supabase
@@ -65,6 +68,18 @@ export default async function VenueDetailPage({
           .eq('status', 'pending')
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from('venue_booking_dates')
+      .select('id, show_date, bill_cap, is_closed_to_more_bands')
+      .eq('venue_id', venue.id)
+      .gte('show_date', calendarRange.rangeStart)
+      .lte('show_date', calendarRange.rangeEnd)
+      .order('show_date'),
+    supabase
+      .from('bookings')
+      .select('venue_booking_date_id, status')
+      .eq('venue_id', venue.id)
+      .eq('status', 'confirmed')
   ])
 
   const genreNames = ((venueGenres ?? []) as unknown as { genres: { name: string } | null }[])
@@ -75,6 +90,16 @@ export default async function VenueDetailPage({
   const isOwner = !!user && user.id === venue.claimed_by_user_id
   const hasPendingClaim = !!pendingClaim
   const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key as keyof typeof venue])
+  const bookingDates = (rawBookingDates ?? []) as Array<{
+    id: string
+    show_date: string
+    bill_cap: number
+    is_closed_to_more_bands: boolean
+  }>
+  const bookings = (rawBookings ?? []) as Array<{
+    venue_booking_date_id: string
+    status: 'confirmed' | 'cancelled'
+  }>
 
   // Fetch the logged-in user's bands (skip for venue owner)
   let userBands: { id: string; name: string }[] = []
@@ -184,35 +209,16 @@ export default async function VenueDetailPage({
         )}
       </div>
 
-      {/* Contact request */}
       {!isOwner && (
-        <section className="border-t border-[#E8E8E8] pt-8 mb-8">
-          <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-            Request contact
-          </h2>
-          {user && userBands.length > 0 ? (
-            <RequestContactForm
-              initiatorSide="band"
-              targetVenueId={venue.id}
-              options={userBands}
-            />
-          ) : user && userBands.length === 0 ? (
-            <p className="text-sm text-[#888888]">
-              You need an artist profile to request contact.{' '}
-              <Link href="/dashboard/bands/new" className="text-[#FD6A2F] hover:underline">
-                Create one
-              </Link>
-              .
-            </p>
-          ) : (
-            <p className="text-sm text-[#888888]">
-              <Link href={`/login?redirectTo=/venues/${venue.slug}`} className="text-[#FD6A2F] hover:underline">
-                Sign in
-              </Link>{' '}
-              to request contact.
-            </p>
-          )}
-        </section>
+        <PublicVenueBookingPanel
+          todayIso={todayIso}
+          bookingDates={bookingDates}
+          bookings={bookings}
+          venueId={venue.id}
+          venueSlug={venue.slug}
+          userBands={userBands}
+          isSignedIn={!!user}
+        />
       )}
 
       {/* Claim / Owner actions */}

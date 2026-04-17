@@ -96,18 +96,18 @@ export default async function BandProfilePage({
       .select('genre_id, genres(name)')
       .eq('band_id', band.id),
     supabase
-      .from('booking_inquiries')
-      .select('id, requested_date, venues(name, location_city, location_state)')
+      .from('bookings')
+      .select('id, show_date, venues(name, location_city, location_state)')
       .eq('band_id', band.id)
-      .eq('status', 'accepted')
-      .gte('requested_date', today)
-      .order('requested_date')
+      .eq('status', 'confirmed')
+      .gte('show_date', today)
+      .order('show_date')
       .limit(8),
   ])
 
   type ShowRow = {
     id: string
-    requested_date: string
+    show_date: string
     venues: { name: string; location_city: string; location_state: string } | null
   }
   const shows = (rawShows ?? []) as unknown as ShowRow[]
@@ -235,7 +235,7 @@ export default async function BandProfilePage({
               {shows.length > 0 ? (
                 <div className="divide-y divide-[#F0F0F0]">
                   {shows.map((show) => {
-                    const d     = new Date(show.requested_date + 'T00:00:00')
+                    const d     = new Date(show.show_date + 'T00:00:00')
                     const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
                     const day   = d.getDate()
                     const v     = show.venues

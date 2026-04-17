@@ -49,6 +49,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
   const [state, setState] = useState('')
   const [zip, setZip] = useState('')
   const [capacity, setCapacity] = useState('')
+  const [defaultBillCap, setDefaultBillCap] = useState('4')
   const [ageRequirement, setAgeRequirement] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
@@ -103,6 +104,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
         location_address: address.trim() || null,
         location_zip: zip.trim() || null,
         capacity: capacity ? parseInt(capacity, 10) : null,
+        default_bill_cap: defaultBillCap ? parseInt(defaultBillCap, 10) : 4,
         age_requirement: (ageRequirement || null) as 'all_ages' | '18_plus' | '21_plus' | null,
         description: description.trim() || null,
         website_url: websiteUrl.trim() || null,
@@ -119,10 +121,10 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
       return
     }
 
-    // Claim the venue (status defaults to 'approved'; trigger sets claimed_by_user_id)
+    // New venues always enter the admin review queue before they can be claimed.
     const { error: claimError } = await supabase
       .from('venue_claims')
-      .insert({ venue_id: venue.id, user_id: userId })
+      .insert({ venue_id: venue.id, user_id: userId, status: 'pending' })
 
     if (claimError) {
       setError(claimError.message)
@@ -140,7 +142,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
       )
     }
 
-    router.push('/dashboard/venues')
+    router.push('/dashboard/venues?tab=mine&submitted=1')
     router.refresh()
   }
 
@@ -150,7 +152,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
         <div>
           <h1 className="text-2xl font-bold">Add your venue</h1>
           <p className="text-sm text-[#888888] mt-0.5">
-            It will be added to the directory and claimed to your account.
+            It will be added to the directory and sent to admin for claim approval.
           </p>
         </div>
         <button
@@ -158,7 +160,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
           disabled={loading}
           className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Adding…' : 'Add venue'}
+          {loading ? 'Submitting…' : 'Submit venue'}
         </button>
       </div>
 
@@ -254,6 +256,18 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
               onChange={(e) => setCapacity(e.target.value)}
               className={inputClass}
               placeholder="500"
+            />
+          </div>
+          <div>
+            <Label htmlFor="default-bill-cap">Default bill cap</Label>
+            <input
+              id="default-bill-cap"
+              type="number"
+              min={1}
+              value={defaultBillCap}
+              onChange={(e) => setDefaultBillCap(e.target.value)}
+              className={inputClass}
+              placeholder="4"
             />
           </div>
           <div>

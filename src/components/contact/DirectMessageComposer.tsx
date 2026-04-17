@@ -33,24 +33,26 @@ export function DirectMessageComposer({ threadId }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <textarea
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        rows={4}
-        required
-        placeholder="Write a message..."
-        className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-xl px-4 py-3 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors resize-none"
-      />
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={isPending || !message.trim()}
-          className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isPending ? 'Sending...' : 'Send message'}
-        </button>
+      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3 shadow-sm">
+        <textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          rows={3}
+          required
+          placeholder="Message…"
+          className="w-full resize-none border-0 bg-transparent px-1 py-1 text-sm placeholder-[#AAAAAA] focus:outline-none"
+        />
+        <div className="mt-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={isPending || !message.trim()}
+            className="rounded-full bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isPending ? 'Sending…' : 'Send'}
+          </button>
+        </div>
       </div>
+      {error && <p className="text-sm text-red-500">{error}</p>}
     </form>
   )
 }

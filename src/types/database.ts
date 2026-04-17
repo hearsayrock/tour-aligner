@@ -236,6 +236,7 @@ export interface Database {
           phone: string | null
           booking_email: string | null
           claimed_by_user_id: string | null
+          default_bill_cap: number
           age_requirement: 'all_ages' | '18_plus' | '21_plus' | null
           is_active: boolean
           is_unlisted: boolean
@@ -257,6 +258,7 @@ export interface Database {
           phone?: string | null
           booking_email?: string | null
           claimed_by_user_id?: string | null
+          default_bill_cap?: number
           age_requirement?: 'all_ages' | '18_plus' | '21_plus' | null
           is_active?: boolean
           is_unlisted?: boolean
@@ -277,6 +279,7 @@ export interface Database {
           phone?: string | null
           booking_email?: string | null
           claimed_by_user_id?: string | null
+          default_bill_cap?: number
           age_requirement?: 'all_ages' | '18_plus' | '21_plus' | null
           is_active?: boolean
           is_unlisted?: boolean
@@ -368,6 +371,7 @@ export interface Database {
           requested_by_side: 'band' | 'venue' | null
           blocked_by_side: 'band' | 'venue' | null
           accepted_at: string | null
+          working_date: string | null
           last_message_at: string | null
           band_last_read_at: string | null
           venue_last_read_at: string | null
@@ -382,6 +386,7 @@ export interface Database {
           requested_by_side?: 'band' | 'venue' | null
           blocked_by_side?: 'band' | 'venue' | null
           accepted_at?: string | null
+          working_date?: string | null
           last_message_at?: string | null
           band_last_read_at?: string | null
           venue_last_read_at?: string | null
@@ -395,9 +400,70 @@ export interface Database {
           requested_by_side?: 'band' | 'venue' | null
           blocked_by_side?: 'band' | 'venue' | null
           accepted_at?: string | null
+          working_date?: string | null
           last_message_at?: string | null
           band_last_read_at?: string | null
           venue_last_read_at?: string | null
+          updated_at?: string
+        }
+      }
+      venue_booking_dates: {
+        Row: {
+          id: string
+          venue_id: string
+          show_date: string
+          bill_cap: number
+          is_closed_to_more_bands: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          show_date: string
+          bill_cap: number
+          is_closed_to_more_bands?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          show_date?: string
+          bill_cap?: number
+          is_closed_to_more_bands?: boolean
+          updated_at?: string
+        }
+      }
+      bookings: {
+        Row: {
+          id: string
+          thread_id: string
+          band_id: string
+          venue_id: string
+          show_date: string
+          venue_booking_date_id: string
+          status: 'confirmed' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          band_id: string
+          venue_id: string
+          show_date: string
+          venue_booking_date_id: string
+          status?: 'confirmed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          thread_id?: string
+          band_id?: string
+          venue_id?: string
+          show_date?: string
+          venue_booking_date_id?: string
+          status?: 'confirmed' | 'cancelled'
           updated_at?: string
         }
       }
@@ -438,6 +504,7 @@ export interface Database {
           p_venue_id: string
           p_initiator_side: 'band' | 'venue'
           p_body: string
+          p_show_date?: string | null
         }
         Returns: Json
       }
@@ -475,6 +542,22 @@ export interface Database {
         }
         Returns: undefined
       }
+      set_contact_thread_working_date: {
+        Args: {
+          p_thread_id: string
+          p_show_date?: string | null
+        }
+        Returns: Json
+      }
+      confirm_contact_booking: {
+        Args: {
+          p_thread_id: string
+          p_show_date?: string | null
+          p_bill_cap?: number | null
+          p_close_bill?: boolean
+        }
+        Returns: Json
+      }
     }
     Enums: Record<string, never>
   }
@@ -493,6 +576,8 @@ export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']
 export type BookingInquiry = Database['public']['Tables']['booking_inquiries']['Row']
 export type ContactThread  = Database['public']['Tables']['contact_threads']['Row']
+export type VenueBookingDate = Database['public']['Tables']['venue_booking_dates']['Row']
+export type Booking = Database['public']['Tables']['bookings']['Row']
 export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
 
 export type InquiryStatus = BookingInquiry['status']
@@ -501,3 +586,4 @@ export type TouringRadius = NonNullable<Band['touring_radius']>
 export type ContactThreadStatus = ContactThread['status']
 export type ConversationSide = NonNullable<ContactThread['requested_by_side']>
 export type ContactMessageKind = ContactMessage['kind']
+export type BookingStatus = Booking['status']

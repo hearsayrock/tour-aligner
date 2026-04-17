@@ -41,6 +41,7 @@ export function VenueEditForm({ venue, genres, selectedGenreIds }: VenueEditForm
   const [state, setState] = useState(venue.location_state)
   const [zip, setZip] = useState(venue.location_zip ?? '')
   const [capacity, setCapacity] = useState(venue.capacity?.toString() ?? '')
+  const [defaultBillCap, setDefaultBillCap] = useState(venue.default_bill_cap.toString())
   const [ageRequirement, setAgeRequirement] = useState(venue.age_requirement ?? '')
   const [websiteUrl, setWebsiteUrl] = useState(venue.website_url ?? '')
   const [instagramUrl, setInstagramUrl] = useState(venue.instagram_url ?? '')
@@ -74,6 +75,7 @@ export function VenueEditForm({ venue, genres, selectedGenreIds }: VenueEditForm
         location_state: state.trim(),
         location_zip: zip.trim() || null,
         capacity: capacity ? parseInt(capacity, 10) : null,
+        default_bill_cap: defaultBillCap ? parseInt(defaultBillCap, 10) : venue.default_bill_cap,
         age_requirement: (ageRequirement || null) as Venue['age_requirement'],
         website_url: websiteUrl.trim() || null,
         instagram_url: instagramUrl.trim() || null,
@@ -193,6 +195,18 @@ export function VenueEditForm({ venue, genres, selectedGenreIds }: VenueEditForm
               onChange={(e) => setCapacity(e.target.value)}
               className={inputClass}
               placeholder="500"
+            />
+          </div>
+          <div>
+            <Label htmlFor="default-bill-cap">Default bill cap</Label>
+            <input
+              id="default-bill-cap"
+              type="number"
+              min={1}
+              value={defaultBillCap}
+              onChange={(e) => setDefaultBillCap(e.target.value)}
+              className={inputClass}
+              placeholder="4"
             />
           </div>
           <div>

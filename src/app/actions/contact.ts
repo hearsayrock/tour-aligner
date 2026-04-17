@@ -52,6 +52,7 @@ export async function requestContact(formData: {
   venueId: string
   initiatorSide: ConversationSide
   message: string
+  showDate?: string | null
 }) {
   const supabase = await createClient()
   const {
@@ -67,6 +68,7 @@ export async function requestContact(formData: {
     p_venue_id: formData.venueId,
     p_initiator_side: formData.initiatorSide,
     p_body: formData.message,
+    p_show_date: formData.showDate ?? null,
   })
 
   if (error) {
@@ -246,4 +248,77 @@ export async function markThreadRead(threadId: string) {
 
   revalidateInbox(threadId)
   return { success: true as const }
+}
+
+export async function updateThreadWorkingDate(threadId: string, showDate: string | null) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('set_contact_thread_working_date', {
+    p_thread_id: threadId,
+    p_show_date: showDate,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while updating the working date.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function confirmContactBooking(formData: {
+  threadId: string
+  showDate: string | null
+  billCap: number | null
+  closeBill: boolean
+}) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('confirm_contact_booking', {
+    p_thread_id: formData.threadId,
+    p_show_date: formData.showDate,
+    p_bill_cap: formData.billCap,
+    p_close_bill: formData.closeBill,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while confirming the booking.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
 }

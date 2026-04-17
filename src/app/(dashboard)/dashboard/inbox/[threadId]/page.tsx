@@ -3,17 +3,19 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DirectMessageComposer } from '@/components/contact/DirectMessageComposer'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
-import { InboxThreadActions } from '@/components/contact/InboxThreadActions'
+import { BlockContactControl, InboxThreadActions } from '@/components/contact/InboxThreadActions'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
 import { ThreadReadTracker } from '@/components/contact/ThreadReadTracker'
 import {
   formatInboxDate,
+  formatShowDate,
   getPartnerHref,
   getPartnerLabel,
   getPartnerMeta,
   getViewerSide,
   hasUnread,
   type InboxMessage,
+  type ThreadBookingSummary,
   type InboxThread,
   THREAD_STATUS_LABELS,
 } from '@/lib/contact'
@@ -25,6 +27,7 @@ const STATUS_STYLES = {
   accepted: 'text-[#0c7c71] bg-[#00bba5]/10 border-[#00bba5]/20',
   declined: 'text-[#666666] bg-[#F5F5F5] border-[#E8E8E8]',
   blocked: 'text-red-600 bg-red-50 border-red-200',
+  confirmed: 'text-[#14584E] bg-[#F3FBF8] border-[#CBEAE2]',
 } as const
 
 function MessageBubble({
@@ -49,13 +52,13 @@ function MessageBubble({
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+        className={`max-w-[78%] px-4 py-3 ${
           isOwnMessage
-            ? 'bg-[#FD6A2F] text-white'
-            : 'bg-white border border-[#E8E8E8] text-[#252525]'
+            ? 'rounded-[20px] rounded-br-md bg-[#FD6A2F] text-white'
+            : 'rounded-[20px] rounded-bl-md border border-[#E8E8E8] bg-white text-[#252525]'
         }`}
       >
-        <p className={`text-[11px] uppercase tracking-widest mb-2 ${isOwnMessage ? 'text-white/75' : 'text-[#AAAAAA]'}`}>
+        <p className={`mb-2 text-[11px] font-medium ${isOwnMessage ? 'text-white/75' : 'text-[#8E8E93]'}`}>
           {isOwnMessage ? 'You' : message.sender_side === 'band' ? 'Artist' : 'Venue'}
         </p>
         <LinkifiedText
@@ -69,7 +72,7 @@ function MessageBubble({
               : 'text-[#FD6A2F] hover:underline break-all'
           }
         />
-        <p className={`text-[11px] mt-2 ${isOwnMessage ? 'text-white/75' : 'text-[#AAAAAA]'}`}>
+        <p className={`mt-2 text-[11px] ${isOwnMessage ? 'text-white/75' : 'text-[#AAAAAA]'}`}>
           {formatInboxDate(message.created_at)}
         </p>
       </div>
@@ -90,7 +93,7 @@ export default async function InboxThreadPage({
 
   if (!user) return redirect('/login')
 
-  const [{ data: rawThread }, { data: rawMessages }] = await Promise.all([
+  const [{ data: rawThread }, { data: rawMessages }, { data: rawBooking }] = await Promise.all([
     supabase
       .from('contact_threads')
       .select(`
@@ -101,13 +104,14 @@ export default async function InboxThreadPage({
         requested_by_side,
         blocked_by_side,
         accepted_at,
+        working_date,
         last_message_at,
         band_last_read_at,
         venue_last_read_at,
         created_at,
         updated_at,
         bands (id, name, slug, user_id),
-        venues (id, name, slug, location_city, location_state, claimed_by_user_id)
+        venues (id, name, slug, location_city, location_state, claimed_by_user_id, default_bill_cap)
       `)
       .eq('id', threadId)
       .single(),
@@ -125,6 +129,31 @@ export default async function InboxThreadPage({
       `)
       .eq('thread_id', threadId)
       .order('created_at'),
+    supabase
+      .from('bookings')
+      .select(`
+        id,
+        thread_id,
+        band_id,
+        venue_id,
+        show_date,
+        venue_booking_date_id,
+        status,
+        created_at,
+        updated_at,
+        venue_booking_dates (
+          id,
+          venue_id,
+          show_date,
+          bill_cap,
+          is_closed_to_more_bands,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('thread_id', threadId)
+      .eq('status', 'confirmed')
+      .maybeSingle(),
   ])
 
   const thread = rawThread as unknown as InboxThread | null
@@ -136,6 +165,31 @@ export default async function InboxThreadPage({
   const messages = (rawMessages ?? []) as unknown as InboxMessage[]
   const unread = hasUnread(thread, viewerSide)
   const partnerHref = getPartnerHref(thread, viewerSide)
+  const rawBookingRecord = rawBooking as
+    | ({
+        venue_booking_dates?: ThreadBookingSummary['venue_booking_dates'][] | ThreadBookingSummary['venue_booking_dates'] | null
+      } & Record<string, unknown>)
+    | null
+  const booking = rawBookingRecord
+    ? ({
+        ...rawBookingRecord,
+        venue_booking_dates: Array.isArray(rawBookingRecord.venue_booking_dates)
+          ? (rawBookingRecord.venue_booking_dates[0] ?? null)
+          : (rawBookingRecord.venue_booking_dates ?? null),
+      } as unknown as ThreadBookingSummary)
+    : null
+  const confirmedBandCount =
+    booking?.venue_booking_dates
+      ? (
+          await supabase
+            .from('bookings')
+            .select('id', { count: 'exact', head: true })
+            .eq('venue_booking_date_id', booking.venue_booking_dates.id)
+            .eq('status', 'confirmed')
+        ).count ?? 0
+      : 0
+  const displayStatusLabel = booking ? 'Confirmed' : THREAD_STATUS_LABELS[thread.status]
+  const displayStatusStyle = booking ? STATUS_STYLES.confirmed : STATUS_STYLES[thread.status]
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
@@ -158,21 +212,41 @@ export default async function InboxThreadPage({
               <p className="text-sm text-[#888888] mt-1">
                 {getPartnerMeta(thread, viewerSide) || 'Conversation'}
               </p>
-              {partnerHref && (
-                <Link href={partnerHref} className="inline-block mt-2 text-sm text-[#FD6A2F] hover:underline">
-                  View profile
-                </Link>
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                {partnerHref && (
+                  <Link
+                    href={partnerHref}
+                    className="inline-flex items-center rounded-lg border border-[#E8E8E8] bg-white px-3 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
+                  >
+                    View profile
+                  </Link>
+                )}
+                <BlockContactControl
+                  threadId={thread.id}
+                  status={thread.status}
+                  viewerSide={viewerSide}
+                  blockedBySide={thread.blocked_by_side}
+                />
+              </div>
+              {thread.working_date && !booking && (
+                <p className="mt-3 inline-flex rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#666666]">
+                  Working date: {formatShowDate(thread.working_date)}
+                </p>
+              )}
+              {booking?.venue_booking_dates && (
+                <p className="mt-3 inline-flex rounded-full border border-[#CBEAE2] bg-[#F3FBF8] px-3 py-1 text-xs font-medium text-[#14584E]">
+                  Confirmed date: {formatShowDate(booking.venue_booking_dates.show_date)}
+                </p>
               )}
             </div>
-            <div className="text-right">
+            <div className="flex flex-col items-end gap-3">
               <span
-                className={`inline-flex text-xs font-medium px-2 py-0.5 rounded border ${
-                  STATUS_STYLES[thread.status]
+                className={`inline-flex text-xs font-medium px-2 py-0.5 rounded border ${displayStatusStyle}
                 }`}
               >
-                {THREAD_STATUS_LABELS[thread.status]}
+                {displayStatusLabel}
               </span>
-              <p className="text-xs text-[#AAAAAA] mt-2">
+              <p className="text-xs text-[#AAAAAA]">
                 Updated {formatInboxDate(thread.last_message_at ?? thread.updated_at)}
               </p>
             </div>
@@ -188,6 +262,10 @@ export default async function InboxThreadPage({
             viewerSide={viewerSide}
             requestedBySide={thread.requested_by_side}
             blockedBySide={thread.blocked_by_side}
+            workingDate={thread.working_date}
+            defaultBillCap={thread.venues?.default_bill_cap ?? 4}
+            booking={booking}
+            confirmedBandCount={confirmedBandCount}
           />
         </div>
 
@@ -197,7 +275,7 @@ export default async function InboxThreadPage({
               No messages yet.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} viewerSide={viewerSide} />
               ))}
