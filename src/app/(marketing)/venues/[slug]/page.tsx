@@ -3,7 +3,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { ClaimButton } from '@/components/venues/ClaimButton'
-import { InquiryForm } from '@/components/venues/InquiryForm'
+import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -76,8 +77,18 @@ export default async function VenueDetailPage({
   const hasPendingClaim = !!pendingClaim
   const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key as keyof typeof venue])
 
-  // Fetch the logged-in user's bands for the inquiry form (skip for venue owner)
+  type ExistingThread = {
+    id: string
+    band_id: string
+    venue_id: string
+    status: ContactThreadStatus
+    requested_by_side: ConversationSide | null
+    blocked_by_side: ConversationSide | null
+  }
+
+  // Fetch the logged-in user's bands and any existing inbox threads (skip for venue owner)
   let userBands: { id: string; name: string }[] = []
+  let existingThreads: ExistingThread[] = []
   if (user && !isOwner) {
     const { data: bands } = await supabase
       .from('bands')
@@ -86,6 +97,16 @@ export default async function VenueDetailPage({
       .eq('is_active', true)
       .order('name')
     userBands = bands ?? []
+
+    if (userBands.length > 0) {
+      const { data: threads } = await supabase
+        .from('contact_threads')
+        .select('id, band_id, venue_id, status, requested_by_side, blocked_by_side')
+        .eq('venue_id', venue.id)
+        .in('band_id', userBands.map((band) => band.id))
+
+      existingThreads = (threads ?? []) as ExistingThread[]
+    }
   }
 
   return (
@@ -184,17 +205,22 @@ export default async function VenueDetailPage({
         )}
       </div>
 
-      {/* Booking inquiry */}
+      {/* Contact request */}
       {!isOwner && (
         <section className="border-t border-[#E8E8E8] pt-8 mb-8">
           <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-            Send a booking inquiry
+            Request contact
           </h2>
           {user && userBands.length > 0 ? (
-            <InquiryForm venueId={venue.id} bands={userBands} />
+            <RequestContactForm
+              initiatorSide="band"
+              targetVenueId={venue.id}
+              options={userBands}
+              existingThreads={existingThreads}
+            />
           ) : user && userBands.length === 0 ? (
             <p className="text-sm text-[#888888]">
-              You need a band profile to send an inquiry.{' '}
+              You need an artist profile to request contact.{' '}
               <Link href="/dashboard/bands/new" className="text-[#FD6A2F] hover:underline">
                 Create one
               </Link>
@@ -205,7 +231,7 @@ export default async function VenueDetailPage({
               <Link href={`/login?redirectTo=/venues/${venue.slug}`} className="text-[#FD6A2F] hover:underline">
                 Sign in
               </Link>{' '}
-              to send a booking inquiry.
+              to request contact.
             </p>
           )}
         </section>
@@ -228,7 +254,7 @@ export default async function VenueDetailPage({
         ) : (
           <div>
             <p className="text-sm text-[#888888] mb-3">
-              Is this your venue? Claim it to manage your profile and receive booking inquiries.
+              Is this your venue? Claim it to manage your profile and receive contact requests.
             </p>
             <ClaimButton
               venueId={venue.id}

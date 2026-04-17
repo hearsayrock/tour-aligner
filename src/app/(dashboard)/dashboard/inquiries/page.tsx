@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { InquiryActions } from '@/components/inquiries/InquiryActions'
-import type { InquiryStatus } from '@/types/database'
 
+export default function InquiriesRedirectPage() {
+  redirect('/dashboard/inbox')
+}
+
+/*
 export const metadata = { title: 'Inquiries' }
 
 const STATUS_BADGE: Record<InquiryStatus, { label: string; className: string }> = {
@@ -21,6 +22,7 @@ function StatusBadge({ status }: { status: InquiryStatus }) {
     </span>
   )
 }
+* /
 
 function formatDate(iso: string) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
@@ -100,7 +102,7 @@ export default async function InquiriesPage() {
         </div>
       )}
 
-      {/* Received (venue owner view) */}
+      {/* Received (venue owner view) * /}
       {hasReceived && (
         <section className="mb-12">
           <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest mb-4">
@@ -144,7 +146,7 @@ export default async function InquiriesPage() {
         </section>
       )}
 
-      {/* Sent (band owner view) */}
+      {/* Sent (band owner view) * /}
       {hasSent && (
         <section>
           <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest mb-4">
@@ -207,3 +209,4 @@ export default async function InquiriesPage() {
     </div>
   )
 }
+*/

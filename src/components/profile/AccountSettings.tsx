@@ -134,8 +134,8 @@ export function AccountSettings({ profile, userId }: AccountSettingsProps) {
       {/* Notifications */}
       <Section title="Notifications">
         <SettingRow
-          label="New booking inquiry"
-          description="Get notified when a band sends your venue an inquiry"
+          label="New contact request"
+          description="Get notified when an artist or venue reaches out in your inbox"
         >
           <Toggle
             checked={notifNewInquiry}
@@ -143,8 +143,8 @@ export function AccountSettings({ profile, userId }: AccountSettingsProps) {
           />
         </SettingRow>
         <SettingRow
-          label="Inquiry response"
-          description="Get notified when a venue responds to your inquiry"
+          label="Inbox activity"
+          description="Get notified when a request is accepted or a new message arrives"
         >
           <Toggle
             checked={notifResponse}

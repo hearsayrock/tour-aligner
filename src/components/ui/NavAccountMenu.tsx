@@ -27,16 +27,15 @@ export function NavAccountMenu({
   isAdmin?: boolean
   notifications?: Notifications
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
-
-  useEffect(() => { setOpen(false) }, [pathname])
+  const [openPath, setOpenPath] = useState<string | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
+  const open = openPath === pathname
 
   useEffect(() => {
     if (!open) return
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpenPath(null)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -46,7 +45,7 @@ export function NavAccountMenu({
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpenPath((current) => (current === pathname ? null : pathname))}
         aria-label="Account menu"
         className={`relative w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
           open ? 'bg-black/10' : 'hover:bg-black/5'

@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -347,7 +349,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
             <h1 className="text-2xl font-bold text-[#252525] mb-1">
               Welcome{firstName !== 'there' ? `, ${firstName}` : ''}!
             </h1>
-            <p className="text-sm text-[#888888]">Let's get your profile set up.</p>
+            <p className="text-sm text-[#888888]">Let&apos;s get your profile set up.</p>
           </div>
 
           {/* Intent toggle — always at the top */}
@@ -390,9 +392,9 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </div>
-              <h2 className="text-lg font-bold text-[#252525] mb-2">Let's find your venue</h2>
+              <h2 className="text-lg font-bold text-[#252525] mb-2">Let&apos;s find your venue</h2>
               <p className="text-sm text-[#888888] mb-6 max-w-sm mx-auto">
-                Browse the venue directory and claim your venue. Once claimed, you'll be able to receive and manage booking inquiries.
+                Browse the venue directory and claim your venue. Once claimed, you&apos;ll be able to receive and manage inbox contact requests.
               </p>
               <button
                 type="button"
@@ -530,7 +532,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                   <div className="p-6 sm:p-8 space-y-7">
                     <div>
                       <h2 className="text-lg font-bold text-[#252525] mb-0.5">Your sound & reach</h2>
-                      <p className="text-sm text-[#888888]">Help venues understand your music and how far you're willing to travel.</p>
+                      <p className="text-sm text-[#888888]">Help venues understand your music and how far you&apos;re willing to travel.</p>
                     </div>
 
                     {/* Genres */}

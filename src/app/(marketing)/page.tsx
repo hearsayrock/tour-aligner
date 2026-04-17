@@ -66,7 +66,7 @@ const FEATURES = [
   {
     icon: Zap,
     title: 'Book Shows Faster',
-    body: 'Send and manage booking requests in one place, with clear status and next steps.',
+    body: 'Send contact requests and manage conversations in one place, with clear status and next steps.',
   },
   {
     icon: UserX,
@@ -76,7 +76,7 @@ const FEATURES = [
   {
     icon: CalendarCheck,
     title: 'Stay Organized',
-    body: 'Keep track of inquiries, responses, and confirmed shows without juggling emails and spreadsheets.',
+    body: 'Keep track of contact requests, replies, and active conversations without juggling emails and spreadsheets.',
   },
   {
     icon: ShieldCheck,
@@ -136,13 +136,13 @@ const STEPS = [
   },
   {
     number: '02',
-    title: 'Send an inquiry',
-    body: 'Reach out directly with your dates, draw, and other details. No phone tag, no cold emails into the void.',
+    title: 'Request contact',
+    body: 'Reach out directly inside the app with a short intro note. No phone tag, no cold emails into the void.',
   },
   {
     number: '03',
-    title: 'Get booked',
-    body: 'Venues accept or decline on their own timeline. Track every inquiry from your tour dashboard.',
+    title: 'Start the conversation',
+    body: 'Once the other side accepts, continue the conversation in your inbox and work out the details together.',
   },
 ]
 

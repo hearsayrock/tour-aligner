@@ -359,9 +359,123 @@ export interface Database {
           updated_at?: string
         }
       }
+      contact_threads: {
+        Row: {
+          id: string
+          band_id: string
+          venue_id: string
+          status: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_side: 'band' | 'venue' | null
+          blocked_by_side: 'band' | 'venue' | null
+          accepted_at: string | null
+          last_message_at: string | null
+          band_last_read_at: string | null
+          venue_last_read_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          band_id: string
+          venue_id: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_side?: 'band' | 'venue' | null
+          blocked_by_side?: 'band' | 'venue' | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          band_last_read_at?: string | null
+          venue_last_read_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          band_id?: string
+          venue_id?: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_side?: 'band' | 'venue' | null
+          blocked_by_side?: 'band' | 'venue' | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          band_last_read_at?: string | null
+          venue_last_read_at?: string | null
+          updated_at?: string
+        }
+      }
+      contact_messages: {
+        Row: {
+          id: string
+          thread_id: string
+          sender_side: 'band' | 'venue' | null
+          sender_user_id: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          sender_side?: 'band' | 'venue' | null
+          sender_user_id?: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at?: string
+        }
+        Update: {
+          thread_id?: string
+          sender_side?: 'band' | 'venue' | null
+          sender_user_id?: string | null
+          kind?: 'request' | 'message' | 'system'
+          body?: string
+          created_at?: string
+        }
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      request_contact: {
+        Args: {
+          p_band_id: string
+          p_venue_id: string
+          p_initiator_side: 'band' | 'venue'
+          p_body: string
+        }
+        Returns: Json
+      }
+      respond_to_contact_request: {
+        Args: {
+          p_thread_id: string
+          p_action: 'accept' | 'decline_retry_later' | 'decline_and_block'
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      unblock_contact_thread: {
+        Args: {
+          p_thread_id: string
+        }
+        Returns: Json
+      }
+      block_contact_thread: {
+        Args: {
+          p_thread_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      send_contact_message: {
+        Args: {
+          p_thread_id: string
+          p_body: string
+        }
+        Returns: Json
+      }
+      mark_contact_thread_read: {
+        Args: {
+          p_thread_id: string
+        }
+        Returns: undefined
+      }
+    }
     Enums: Record<string, never>
   }
 }
@@ -378,7 +492,12 @@ export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']
 export type BookingInquiry = Database['public']['Tables']['booking_inquiries']['Row']
+export type ContactThread  = Database['public']['Tables']['contact_threads']['Row']
+export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
 
 export type InquiryStatus = BookingInquiry['status']
 export type ClaimStatus   = VenueClaim['status']
 export type TouringRadius = NonNullable<Band['touring_radius']>
+export type ContactThreadStatus = ContactThread['status']
+export type ConversationSide = NonNullable<ContactThread['requested_by_side']>
+export type ContactMessageKind = ContactMessage['kind']

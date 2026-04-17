@@ -1,8 +1,11 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { CoverBanner } from './CoverBanner'
+import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -75,12 +78,15 @@ export default async function BandProfilePage({
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: rawBand } = await supabase
-    .from('bands')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single()
+  const [{ data: rawBand }, { data: { user } }] = await Promise.all([
+    supabase
+      .from('bands')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single(),
+    supabase.auth.getUser(),
+  ])
 
   const band = rawBand as import('@/types/database').Band | null
   if (!band) return notFound()
@@ -119,6 +125,40 @@ export default async function BandProfilePage({
 
   const streamingLinks = STREAMING.filter(({ key }) => !!band[key as keyof typeof band])
   const socialLinks    = SOCIALS.filter(({ key })    => !!band[key as keyof typeof band])
+  const isOwner = !!user && user.id === band.user_id
+
+  type ExistingThread = {
+    id: string
+    band_id: string
+    venue_id: string
+    status: ContactThreadStatus
+    requested_by_side: ConversationSide | null
+    blocked_by_side: ConversationSide | null
+  }
+
+  let userVenues: { id: string; name: string }[] = []
+  let existingThreads: ExistingThread[] = []
+
+  if (user && !isOwner) {
+    const { data: venues } = await supabase
+      .from('venues')
+      .select('id, name')
+      .eq('claimed_by_user_id', user.id)
+      .eq('is_active', true)
+      .order('name')
+
+    userVenues = venues ?? []
+
+    if (userVenues.length > 0) {
+      const { data: threads } = await supabase
+        .from('contact_threads')
+        .select('id, band_id, venue_id, status, requested_by_side, blocked_by_side')
+        .eq('band_id', band.id)
+        .in('venue_id', userVenues.map((venue) => venue.id))
+
+      existingThreads = (threads ?? []) as ExistingThread[]
+    }
+  }
 
   return (
     <div className="pt-14">
@@ -320,12 +360,12 @@ export default async function BandProfilePage({
                   <p className="text-sm text-[#888888] mt-1 max-w-[200px] leading-relaxed">
                     No upcoming shows… yet.<br />Book some.
                   </p>
-                  <a
+                  <Link
                     href="/venues"
                     className="mt-3 text-sm font-semibold text-[#FD6A2F] hover:underline"
                   >
                     Find venues →
-                  </a>
+                  </Link>
                 </div>
               )}
             </section>
@@ -443,18 +483,35 @@ export default async function BandProfilePage({
                 className="font-barlow font-medium uppercase text-[#1A1A1A] mb-2"
                 style={{ fontSize: '22px' }}
               >
-                Book Us
+                Request Contact
               </h3>
-              <p className="text-sm text-[#777777] leading-relaxed mb-4">
-                {`Interested in booking ${band.name}? We'd love to hear from you.`}
-              </p>
-              <button
-                disabled
-                className="w-full bg-[#FD6A2F] text-white font-semibold rounded-xl py-2.5 text-sm cursor-default"
-                title="Messaging coming soon"
-              >
-                Contact Us
-              </button>
+              {isOwner ? (
+                <p className="text-sm text-[#777777] leading-relaxed">
+                  This is your artist profile.
+                </p>
+              ) : user && userVenues.length > 0 ? (
+                <RequestContactForm
+                  initiatorSide="venue"
+                  targetBandId={band.id}
+                  options={userVenues}
+                  existingThreads={existingThreads}
+                />
+              ) : user ? (
+                <p className="text-sm text-[#777777] leading-relaxed">
+                  Claim a venue to start contacting artists from inside the app.{' '}
+                  <Link href="/dashboard/venues" className="text-[#FD6A2F] hover:underline">
+                    Manage venues
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <p className="text-sm text-[#777777] leading-relaxed">
+                  <Link href={`/login?redirectTo=/bands/${band.slug}`} className="text-[#FD6A2F] hover:underline">
+                    Sign in
+                  </Link>{' '}
+                  and claim a venue to request contact.
+                </p>
+              )}
             </section>
 
           </div>

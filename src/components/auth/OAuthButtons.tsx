@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const LAST_PROVIDER_KEY = 'ta_last_auth_provider'
@@ -36,12 +36,11 @@ interface OAuthButtonsProps {
 }
 
 export function OAuthButtons({ next }: OAuthButtonsProps) {
-  const [lastProvider, setLastProvider] = useState<string | null>(null)
+  const [lastProvider] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(LAST_PROVIDER_KEY)
+  })
   const [loading, setLoading] = useState<Provider | null>(null)
-
-  useEffect(() => {
-    setLastProvider(localStorage.getItem(LAST_PROVIDER_KEY))
-  }, [])
 
   async function handleOAuth(provider: Provider) {
     setLoading(provider)

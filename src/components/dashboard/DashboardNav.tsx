@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 
 interface Notifications {
-  inquiries: boolean
+  inbox: boolean
   pendingClaims: boolean
   adminClaims: boolean
 }
@@ -16,7 +16,7 @@ const NAV_LINKS = [
   { label: 'Dashboard',  href: '/dashboard' },
   { label: 'Artists',    href: '/dashboard/bands' },
   { label: 'Venues',     href: '/dashboard/venues' },
-  { label: 'Inquiries',  href: '/dashboard/inquiries' },
+  { label: 'Inbox',      href: '/dashboard/inbox' },
 ]
 
 const dropdownClass =
@@ -42,18 +42,17 @@ export function DashboardNav({
   notifications?: Notifications
 }) {
   const pathname = usePathname()
-  const [navOpen, setNavOpen] = useState(false)
+  const [navOpenPath, setNavOpenPath] = useState<string | null>(null)
   const navRef = useRef<HTMLDivElement>(null)
+  const navOpen = navOpenPath === pathname
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false)
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpenPath(null)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
-
-  useEffect(() => { setNavOpen(false) }, [pathname])
 
   function isActive(href: string) {
     return href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href)
@@ -61,13 +60,13 @@ export function DashboardNav({
 
   function dotForLink(href: string) {
     if (!notifications) return false
-    if (href === '/dashboard/inquiries') return notifications.inquiries
+    if (href === '/dashboard/inbox') return notifications.inbox
     if (href === '/dashboard/venues') return notifications.pendingClaims
     return false
   }
 
   const hasAnyNotification = !!(
-    notifications?.inquiries ||
+    notifications?.inbox ||
     notifications?.pendingClaims ||
     notifications?.adminClaims
   )
@@ -112,7 +111,7 @@ export function DashboardNav({
           <div ref={navRef} className="sm:hidden relative">
             <button
               type="button"
-              onClick={() => setNavOpen((v) => !v)}
+              onClick={() => setNavOpenPath((current) => (current === pathname ? null : pathname))}
               aria-label={navOpen ? 'Close menu' : 'Open menu'}
               className="w-8 h-8 flex flex-col items-center justify-center gap-[5px] focus-visible:outline-none"
             >
