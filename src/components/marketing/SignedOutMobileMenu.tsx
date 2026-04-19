@@ -10,14 +10,14 @@ export function SignedOutMobileMenu() {
     <div className="flex items-center gap-2 md:hidden">
       <Link
         href="/signup"
-        className="text-sm font-semibold bg-[#FD6A2F] text-white rounded-lg px-4 py-1.5 hover:bg-[#E55A22] transition-colors"
+        className="rounded-xl bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
       >
-        Get started
+        Start free
       </Link>
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="p-2 rounded-lg hover:bg-black/5 transition-colors"
+        className="rounded-xl p-2 transition-colors hover:bg-black/5"
         aria-label="Menu"
       >
         {open ? (
@@ -32,18 +32,39 @@ export function SignedOutMobileMenu() {
       </button>
 
       {open && (
-        <div className="absolute top-14 inset-x-0 bg-white border-b border-[#E8E8E8] shadow-sm py-2">
+        <div className="absolute inset-x-0 top-16 border-b border-[#E8E8E8] bg-white/95 py-2 shadow-sm backdrop-blur-xl">
+          <Link
+            href="/#product"
+            onClick={() => setOpen(false)}
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
+          >
+            Why
+          </Link>
+          <Link
+            href="/#workflow"
+            onClick={() => setOpen(false)}
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
+          >
+            How it works
+          </Link>
+          <Link
+            href="/#audiences"
+            onClick={() => setOpen(false)}
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
+          >
+            Who it's for
+          </Link>
           <Link
             href="/venues"
             onClick={() => setOpen(false)}
-            className="block px-6 py-3 text-sm text-[#252525] hover:bg-[#F5F5F5] transition-colors"
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
           >
-            Browse venues
+            Venues
           </Link>
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="block px-6 py-3 text-sm text-[#252525] hover:bg-[#F5F5F5] transition-colors"
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
           >
             Sign in
           </Link>

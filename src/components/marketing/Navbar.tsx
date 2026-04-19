@@ -9,19 +9,36 @@ export async function Navbar() {
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-white/30 bg-white/60 backdrop-blur-md">
-      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/75 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         <Link href={user ? '/dashboard' : '/'} className="flex items-center">
           <Image src="/logo.png" alt="TourAligner" width={140} height={36} priority />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-2">
+        <nav className="hidden items-center gap-1 md:flex">
+          <Link
+            href="/#product"
+            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
+          >
+            Why
+          </Link>
+          <Link
+            href="/#workflow"
+            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
+          >
+            How it works
+          </Link>
+          <Link
+            href="/#audiences"
+            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
+          >
+            Who it's for
+          </Link>
           <Link
             href="/venues"
-            className="text-sm text-[#252525]/70 hover:text-[#252525] transition-colors px-3 py-1.5"
+            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
           >
-            Browse venues
+            Venues
           </Link>
 
           {user ? (
@@ -30,21 +47,20 @@ export async function Navbar() {
             <>
               <Link
                 href="/login"
-                className="text-sm text-[#252525]/70 hover:text-[#252525] transition-colors px-3 py-1.5"
+                className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
-                className="text-sm font-semibold bg-[#FD6A2F] text-white rounded-lg px-4 py-1.5 hover:bg-[#E55A22] transition-colors"
+                className="rounded-xl bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
               >
-                Get started
+                Start free
               </Link>
             </>
           )}
         </nav>
 
-        {/* Mobile nav — signed-out only */}
         {!user && <SignedOutMobileMenu />}
       </div>
     </header>

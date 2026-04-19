@@ -15,11 +15,11 @@ const barlowCondensed = Barlow_Condensed({
 
 export const metadata: Metadata = {
   title: {
-    default: 'TourAligner - Book Smarter. Tour Further.',
+    default: 'TourAligner',
     template: '%s | TourAligner',
   },
   description:
-    'TourAligner connects independent artists with music venues across the US. Discover venues, request contact, and manage tour conversations without the middleman.',
+    'TourAligner is the modern operating system for booking live shows, built for artists, venues, agents, and managers.',
   openGraph: {
     siteName: 'TourAligner',
     type: 'website',
