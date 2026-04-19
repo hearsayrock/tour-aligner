@@ -13,35 +13,6 @@ const barlowCondensed = Barlow_Condensed({
   variable: '--font-barlow',
 })
 
-/* export const metadata: Metadata = {
-  title: {
-    default: 'TourAligner — Book Smarter. Tour Further.',
-    template: '%s | TourAligner',
-  },
-  description:
-    'TourAligner connects independent artists with music venues across the US. Discover venues, send booking inquiries, and manage your tour — no booking agent required.',
-  // Legacy description retained below until inbox copy fully replaced:
-  // description:
-    'TourAligner connects independent artists with music venues across the US. Discover venues, request contact, and manage tour conversations without the middleman.',
-  openGraph: {
-    siteName: 'TourAligner',
-    type: 'website',
-  },
-} */
-
-/* export const metadata: Metadata = {
-  title: {
-    default: 'TourAligner â€” Book Smarter. Tour Further.',
-    template: '%s | TourAligner',
-  },
-  description:
-    'TourAligner connects independent artists with music venues across the US. Discover venues, request contact, and manage tour conversations without the middleman.',
-  openGraph: {
-    siteName: 'TourAligner',
-    type: 'website',
-  },
-} */
-
 export const metadata: Metadata = {
   title: {
     default: 'TourAligner - Book Smarter. Tour Further.',

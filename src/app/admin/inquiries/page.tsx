@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { InquiryStatus } from '@/types/database'
 
-export const metadata = { title: 'Admin — Inquiries' }
+export const metadata = { title: 'Admin — Legacy Inquiries' }
 
 const STATUS_BADGE: Record<InquiryStatus, { label: string; className: string }> = {
   pending:   { label: 'Pending',   className: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
@@ -39,8 +39,15 @@ export default async function AdminInquiriesPage({
   return (
     <div className="px-6 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#252525]">Inquiries</h1>
+        <h1 className="text-xl font-bold text-[#252525]">Legacy Inquiries</h1>
         <span className="text-sm text-[#888888]">{inquiries?.length ?? 0} shown</span>
+      </div>
+
+      <div className="mb-5 rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] px-4 py-3">
+        <p className="text-sm text-[#666666]">
+          These records are from the pre-inbox inquiry system. Active outreach now lives in inbox
+          threads and bookings.
+        </p>
       </div>
 
       {/* Status filter */}
@@ -121,7 +128,7 @@ export default async function AdminInquiriesPage({
           </tbody>
         </table>
         {(inquiries ?? []).length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-[#888888]">No inquiries found.</p>
+          <p className="px-4 py-8 text-center text-sm text-[#888888]">No legacy inquiries found.</p>
         )}
       </div>
     </div>

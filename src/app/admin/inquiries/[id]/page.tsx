@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import type { InquiryStatus } from '@/types/database'
 
+export const metadata = { title: 'Admin — Legacy Inquiry' }
+
 const STATUS_BADGE: Record<InquiryStatus, { label: string; className: string }> = {
   pending:   { label: 'Pending',   className: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
   accepted:  { label: 'Accepted',  className: 'text-[#00bba5] bg-[#00bba5]/10 border-[#00bba5]/20' },
@@ -47,14 +49,21 @@ export default async function AdminInquiryDetailPage({
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
       <Link href="/admin/inquiries" className="text-sm text-[#888888] hover:text-[#252525] transition-colors">
-        ← Inquiries
+        ← Legacy Inquiries
       </Link>
 
       <div className="flex items-start justify-between mt-4 mb-6">
-        <h1 className="text-xl font-bold text-[#252525]">Inquiry</h1>
+        <h1 className="text-xl font-bold text-[#252525]">Legacy Inquiry</h1>
         <span className={`text-xs font-medium px-2 py-1 rounded border ${badge.className}`}>
           {badge.label}
         </span>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] px-4 py-3">
+        <p className="text-sm text-[#666666]">
+          This record is from the pre-inbox inquiry system. Active outreach now lives in inbox
+          threads and bookings.
+        </p>
       </div>
 
       <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 space-y-5 mb-6">

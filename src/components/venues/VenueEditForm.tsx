@@ -9,6 +9,8 @@ interface VenueEditFormProps {
   venue: Venue
   genres: Genre[]
   selectedGenreIds: string[]
+  showHeader?: boolean
+  className?: string
 }
 
 const inputClass =
@@ -30,7 +32,13 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function VenueEditForm({ venue, genres, selectedGenreIds }: VenueEditFormProps) {
+export function VenueEditForm({
+  venue,
+  genres,
+  selectedGenreIds,
+  showHeader = true,
+  className = 'max-w-2xl mx-auto px-6 py-10 space-y-12',
+}: VenueEditFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -106,20 +114,22 @@ export function VenueEditForm({ venue, genres, selectedGenreIds }: VenueEditForm
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-6 py-10 space-y-12">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{venue.name}</h1>
-          <p className="text-sm text-[#888888] mt-0.5">Edit venue info</p>
+    <form onSubmit={handleSubmit} className={className}>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{venue.name}</h1>
+            <p className="text-sm text-[#888888] mt-0.5">Edit venue info</p>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving…' : 'Save changes'}
+          </button>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Saving…' : 'Save changes'}
-        </button>
-      </div>
+      )}
 
       {error && (
         <p className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">

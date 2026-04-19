@@ -2,9 +2,21 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { CoverBanner } from './CoverBanner'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
+
+export const revalidate = 60
+
+export async function generateStaticParams() {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const { data } = await supabase.from('bands').select('slug').eq('is_active', true)
+  return (data ?? []).map(({ slug }) => ({ slug }))
+}
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -99,7 +111,7 @@ export default async function BandProfilePage({
       .from('bookings')
       .select('id, show_date, venues(name, location_city, location_state)')
       .eq('band_id', band.id)
-      .eq('status', 'confirmed')
+      .in('status', ['confirmed', 'cancellation_requested'])
       .gte('show_date', today)
       .order('show_date')
       .limit(8),

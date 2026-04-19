@@ -69,12 +69,6 @@ export function DashboardNav({
     return false
   }
 
-  const hasAnyNotification = !!(
-    notifications?.inbox ||
-    notifications?.pendingClaims ||
-    notifications?.adminClaims
-  )
-
   return (
     <header className="relative border-b border-[#E8E8E8] bg-[#FAFAFA]">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -108,7 +102,7 @@ export function DashboardNav({
           {/* Account menu */}
           <NavAccountMenu
             isAdmin={isAdmin}
-            notifications={{ any: hasAnyNotification, adminClaims: notifications?.adminClaims ?? false }}
+            notifications={{ adminClaims: notifications?.adminClaims ?? false }}
             hasBands={hasBands}
             hasVenues={hasVenues}
           />

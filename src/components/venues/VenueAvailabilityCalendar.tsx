@@ -2,56 +2,93 @@
 
 import { useMemo, useState } from 'react'
 import { buildVenueCalendarMonths, type VenueCalendarMonth } from '@/lib/venue-calendar'
+import { getVenueShowTypeLabel } from '@/lib/venue-booking-date'
 import type { Booking, VenueBookingDate } from '@/types/database'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const STATUS_STYLES = {
-  open: 'border-[#E8E8E8] bg-white text-[#666666]',
-  partial: 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]',
-  full: 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]',
+  open: 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]',
+  partial: 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]',
+  full: 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]',
+  unavailable: 'border-[#D8D8D8] bg-[#F4F4F4] text-[#666666]',
 } as const
 
 function DayCell({
   day,
   isSelected,
   onSelect,
+  selectedDates,
 }: {
   day: VenueCalendarMonth['cells'][number]
   isSelected?: boolean
   onSelect?: (date: string) => void
+  selectedDates?: string[]
 }) {
   const isInteractive = !!onSelect
+  const isMultiSelected = selectedDates?.includes(day.date) ?? false
+  const showsMobileCount = !day.isUnavailable && day.status !== 'full' && !!day.billCap
+  const todayStyles = day.isToday ? `bg-[#F0F0F0] ${isInteractive ? 'hover:bg-[#F0F0F0]' : ''}` : ''
+  const selectionRing = (isSelected || isMultiSelected)
+    ? day.isToday
+      ? 'ring-2 ring-[#252525]'
+      : 'ring-2 ring-[rgb(80,128,190)]'
+    : day.isToday
+      ? 'ring-1 ring-[#252525]'
+      : ''
 
   return (
     <button
       type="button"
       onClick={() => onSelect?.(day.date)}
-      className={`min-h-[86px] w-full rounded-xl border p-2 text-left transition-colors ${STATUS_STYLES[day.status]} ${
+      style={day.isToday ? { backgroundColor: '#F0F0F0' } : undefined}
+      className={`min-h-[68px] sm:min-h-[86px] w-full rounded-xl border p-2 text-left transition-colors ${STATUS_STYLES[day.status]} ${
         day.inCurrentMonth ? '' : 'opacity-45'
-      } ${day.isToday ? 'ring-1 ring-[#FD6A2F]' : ''} ${isSelected ? 'ring-2 ring-[#252525]' : ''} ${
-        isInteractive ? 'cursor-pointer hover:border-[#252525]' : 'cursor-default'
-      }`}
+      } ${selectionRing} ${todayStyles} ${isInteractive ? 'cursor-pointer hover:border-[#252525]' : 'cursor-default'}`}
       aria-pressed={isSelected}
       disabled={!isInteractive}
     >
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-semibold">{day.dayOfMonth}</span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest">
-          {day.status === 'open' ? 'Open' : day.status === 'partial' ? 'Partial' : 'Full'}
-        </span>
+      <div className="grid min-h-[40px] grid-rows-[auto_1fr_auto] px-[1px] pt-[3px] pb-[2px] sm:min-h-[38px] sm:block sm:px-0 sm:pt-0 sm:pb-0">
+        <span className="self-start text-sm font-semibold leading-none">{day.dayOfMonth}</span>
+        <div aria-hidden className="sm:hidden" />
+        <div className="self-end text-[11px] leading-none sm:hidden">
+          {showsMobileCount ? (
+            <p className="block">
+              {day.confirmedCount}/{day.billCap}
+            </p>
+          ) : (
+            <p className="invisible block">0/0</p>
+          )}
+        </div>
       </div>
       <div className="mt-3 text-[11px] leading-relaxed">
-        {day.billCap ? (
-          <p>
-            {day.confirmedCount}/{day.billCap} billed
-          </p>
-        ) : (
-          <p>No bill cap</p>
-        )}
-        {day.isClosedToMoreBands && (
-          <p className="mt-1">Closed to more bands</p>
-        )}
+        <div className="hidden sm:block">
+          {day.isUnavailable ? (
+            <p>Unavailable</p>
+          ) : day.status === 'full' ? (
+            <p>All booked up</p>
+          ) : day.billCap ? (
+            <>
+              <p>
+                {day.confirmedCount}/{day.billCap} filled
+              </p>
+              {(day.showType || day.genreFocus) && (
+                <p className="mt-1 truncate opacity-80">
+                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p>No bill cap</p>
+              {(day.showType || day.genreFocus) && (
+                <p className="mt-1 truncate opacity-80">
+                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </button>
   )
@@ -61,19 +98,27 @@ export function VenueAvailabilityCalendar({
   todayIso,
   bookingDates,
   bookings,
+  defaultBillCap,
+  automatedGenreFocusByBookingDateId,
   title = 'Availability Calendar',
   intro,
   selectedDate,
   onDateSelect,
+  selectedDates,
+  headerActions,
   monthCount = 6,
 }: {
   todayIso: string
-  bookingDates: Array<Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands'>>
+  bookingDates: Array<Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>>
   bookings: Array<Pick<Booking, 'venue_booking_date_id' | 'status'>>
+  defaultBillCap?: number | null
+  automatedGenreFocusByBookingDateId?: Record<string, string | null>
   title?: string
   intro?: string
   selectedDate?: string
   onDateSelect?: (date: string) => void
+  selectedDates?: string[]
+  headerActions?: React.ReactNode
   monthCount?: number
 }) {
   const months = useMemo(
@@ -83,8 +128,10 @@ export function VenueAvailabilityCalendar({
         bookingDates,
         bookings,
         monthCount,
+        defaultBillCap,
+        automatedGenreFocusByBookingDateId,
       }),
-    [todayIso, bookingDates, bookings, monthCount]
+    [todayIso, bookingDates, bookings, monthCount, defaultBillCap, automatedGenreFocusByBookingDateId]
   )
   const initialMonthIndex = useMemo(() => {
     if (!selectedDate) return 0
@@ -123,7 +170,7 @@ export function VenueAvailabilityCalendar({
               <button
                 type="button"
                 onClick={jumpToToday}
-                className="rounded-md border border-[#E8E8E8] px-2.5 py-1.5 text-xs font-medium text-[#555555] transition-colors hover:border-[#252525] hover:text-[#252525]"
+                className="rounded-md border border-[#D8D8D8] px-2.5 py-1.5 text-xs font-medium text-[#252525] transition-colors hover:bg-[#F0F0F0]"
               >
                 Today
               </button>
@@ -150,19 +197,8 @@ export function VenueAvailabilityCalendar({
               <h3 className="text-base font-semibold text-[#252525]">{visibleMonth.label}</h3>
             </div>
 
-            <div className="flex flex-wrap justify-end gap-2 text-xs">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[#666666]">
-                <span className="w-2 h-2 rounded-full bg-white border border-[#D7D7D7]" />
-                Open
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#F1CABD] bg-[#FFF5F1] px-3 py-1 text-[#9A4A2C]">
-                <span className="w-2 h-2 rounded-full bg-[#FD6A2F]" />
-                Partially filled
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#CBEAE2] bg-[#F3FBF8] px-3 py-1 text-[#14584E]">
-                <span className="w-2 h-2 rounded-full bg-[#0C7C71]" />
-                Full
-              </span>
+            <div className="flex flex-wrap items-center justify-end gap-3 text-xs">
+              {headerActions}
             </div>
           </div>
           <div className="grid grid-cols-7 gap-2 mb-2">
@@ -174,13 +210,14 @@ export function VenueAvailabilityCalendar({
           </div>
           <div className="grid grid-cols-7 gap-2">
             {visibleMonth.cells.map((day) => (
-              <DayCell
-                key={day.date}
-                day={day}
-                isSelected={selectedDate === day.date}
-                onSelect={onDateSelect}
-              />
-            ))}
+                <DayCell
+                  key={day.date}
+                  day={day}
+                  isSelected={selectedDate === day.date}
+                  onSelect={onDateSelect}
+                  selectedDates={selectedDates}
+                />
+              ))}
           </div>
         </div>
       )}

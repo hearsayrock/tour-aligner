@@ -13,7 +13,6 @@ const itemClass =
   'flex items-center justify-between w-full text-left text-sm px-4 py-2.5 text-[#333333] hover:bg-[#F5F5F5] transition-colors'
 
 interface Notifications {
-  any: boolean
   adminClaims: boolean
 }
 
@@ -57,9 +56,6 @@ export function NavAccountMenu({
           <circle cx="12" cy="9" r="3" />
           <path d="M6.168 18.849A4 4 0 0 1 10 16h4a4 4 0 0 1 3.832 2.849" />
         </svg>
-        {notifications?.any && (
-          <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full ring-[1.5px] ring-white" />
-        )}
       </button>
 
       <div

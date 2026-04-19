@@ -114,10 +114,10 @@ export default async function AdminBandDetailPage({
         </div>
       </div>
 
-      {/* Inquiries */}
+      {/* Legacy inquiries */}
       <div>
         <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest mb-3">
-          Inquiries ({inquiries?.length ?? 0})
+          Legacy Inquiries ({inquiries?.length ?? 0})
         </h2>
         {(inquiries ?? []).length > 0 ? (
           <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
@@ -157,7 +157,7 @@ export default async function AdminBandDetailPage({
             </table>
           </div>
         ) : (
-          <p className="text-sm text-[#888888]">No inquiries.</p>
+          <p className="text-sm text-[#888888]">No legacy inquiries.</p>
         )}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardBandFilters } from '@/components/bands/DashboardBandFilters'
+import { sortItemsByRank } from '@/lib/fuzzy-search'
 import type { Band } from '@/types/database'
 
 export const metadata = { title: 'Bands' }
@@ -242,10 +243,19 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
     .select('*')
     .eq('is_active', true)
 
+  let fuzzyMatches: Array<{ id: string; rank: number }> | null = null
   if (filters.q) {
-    baseQuery = baseQuery.or(
-      `name.ilike.%${filters.q}%,tagline.ilike.%${filters.q}%,location_city.ilike.%${filters.q}%`
-    )
+    const { data } = await supabase.rpc('search_bands_fuzzy', {
+      p_query: filters.q,
+    })
+
+    fuzzyMatches = ((data ?? []) as Array<{ id: string; rank: number }>).filter((match) => !!match.id)
+
+    if (fuzzyMatches.length === 0) {
+      baseQuery = baseQuery.in('id', ['00000000-0000-0000-0000-000000000000'])
+    } else {
+      baseQuery = baseQuery.in('id', fuzzyMatches.map((match) => match.id))
+    }
   }
   if (filters.radius) baseQuery = baseQuery.eq('touring_radius', filters.radius)
   if (filters.artistType) baseQuery = baseQuery.eq('artist_type', filters.artistType)
@@ -306,7 +316,9 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
     : baseQuery.order('name')
 
   const { data: rawOrderedBands } = await orderedQuery
-  const allBands = rawOrderedBands as Band[] | null
+  const allBands = ((filters.q && fuzzyMatches)
+    ? sortItemsByRank((rawOrderedBands as Band[] | null) ?? [], fuzzyMatches)
+    : ((rawOrderedBands as Band[] | null) ?? []))
   const total = allBands?.length ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const pageBands = (allBands ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

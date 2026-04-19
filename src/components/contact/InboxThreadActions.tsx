@@ -3,14 +3,19 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  archiveContactThread,
   blockContactThread,
+  cancelConfirmedBooking,
   confirmContactBooking,
+  requestBookingCancellation,
   requestContact,
+  resolveBookingCancellation,
   respondToContactRequest,
+  unarchiveContactThread,
   unblockContactThread,
   updateThreadWorkingDate,
 } from '@/app/actions/contact'
-import { formatShowDate, type ThreadBookingSummary } from '@/lib/contact'
+import { BOOKING_STATUS_LABELS, formatShowDate, type ThreadBookingSummary } from '@/lib/contact'
 import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 interface ActionProps {
@@ -23,8 +28,8 @@ interface ActionProps {
   blockedBySide: ConversationSide | null
   workingDate: string | null
   defaultBillCap: number
-  booking: ThreadBookingSummary | null
-  confirmedBandCount: number
+  bookings: ThreadBookingSummary[]
+  bookingCountByDateId: Record<string, number>
 }
 
 interface BlockProps {
@@ -33,6 +38,47 @@ interface BlockProps {
   viewerSide: ConversationSide
   blockedBySide: ConversationSide | null
 }
+
+export function ArchiveThreadControl({
+  threadId,
+  archived,
+}: {
+  threadId: string
+  archived: boolean
+}) {
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  function run(task: () => Promise<{ error?: string }>) {
+    setError(null)
+
+    startTransition(async () => {
+      const result = await task()
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      router.refresh()
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => run(() => (archived ? unarchiveContactThread(threadId) : archiveContactThread(threadId)))}
+        disabled={isPending}
+        className="inline-flex items-center rounded-lg border border-[#E8E8E8] bg-white px-3 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
+      >
+        {isPending ? (archived ? 'Unarchiving…' : 'Archiving…') : archived ? 'Unarchive' : 'Archive'}
+      </button>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+type BookingModal = 'confirm' | 'request-cancel' | 'cancel' | null
 
 function Modal({
   title,
@@ -59,6 +105,28 @@ function Modal({
         <div className="mt-5">{children}</div>
       </div>
     </div>
+  )
+}
+
+function RecommendedTag() {
+  return (
+    <span className="inline-flex rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-2 py-0.5 text-[11px] font-medium text-[#777777]">
+      Recommended
+    </span>
+  )
+}
+
+function BookingBadge({ status }: { status: ThreadBookingSummary['status'] }) {
+  const styles = {
+    confirmed: 'text-[#14584E] bg-[#F3FBF8] border-[#CBEAE2]',
+    cancellation_requested: 'text-[#8A5A12] bg-[#FFF7E8] border-[#F2D7A6]',
+    cancelled: 'text-[#666666] bg-[#F5F5F5] border-[#E8E8E8]',
+  } as const
+
+  return (
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
+      {BOOKING_STATUS_LABELS[status]}
+    </span>
   )
 }
 
@@ -179,24 +247,29 @@ export function InboxThreadActions({
   blockedBySide,
   workingDate,
   defaultBillCap,
-  booking,
-  confirmedBandCount,
+  bookings,
+  bookingCountByDateId,
 }: ActionProps) {
   const router = useRouter()
   const [note, setNote] = useState('')
+  const [modalNote, setModalNote] = useState('')
   const [workingDateDraft, setWorkingDateDraft] = useState(workingDate ?? '')
   const [confirmDate, setConfirmDate] = useState(workingDate ?? '')
-  const [billCap, setBillCap] = useState(String(booking?.venue_booking_dates?.bill_cap ?? defaultBillCap))
-  const [closeBill, setCloseBill] = useState(booking?.venue_booking_dates?.is_closed_to_more_bands ?? false)
+  const [billCap, setBillCap] = useState(String(defaultBillCap))
+  const [closeBill, setCloseBill] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [activeModal, setActiveModal] = useState<BookingModal>(null)
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  const selectedBooking =
+    selectedBookingId ? bookings.find((booking) => booking.id === selectedBookingId) ?? null : null
   const isIncomingPending = status === 'pending' && requestedBySide !== viewerSide
   const isOutgoingPending = status === 'pending' && requestedBySide === viewerSide
-  const canSetWorkingDate = status === 'accepted' && !booking
-  const canConfirmBooking = status === 'accepted' && viewerSide === 'venue' && !booking
   const canUnblock = status === 'blocked' && blockedBySide === viewerSide
+  const hasPendingCancellation = bookings.some((booking) => booking.status === 'cancellation_requested')
+  const canSetWorkingDate = status === 'accepted' && !hasPendingCancellation
+  const canConfirmBooking = status === 'accepted' && viewerSide === 'venue' && !hasPendingCancellation
 
   const bannerText = useMemo(() => {
     if (isIncomingPending) return 'This contact request is waiting for your response.'
@@ -204,8 +277,17 @@ export function InboxThreadActions({
     if (status === 'declined') return 'This request was declined. You can send a new request when you are ready.'
     if (canUnblock) return 'You blocked this contact. Unblock to allow future requests or messages.'
     if (status === 'blocked') return 'This conversation is blocked.'
+    if (hasPendingCancellation && viewerSide === 'venue') {
+      return 'There is a booking cancellation request waiting on this thread.'
+    }
     return ''
-  }, [canUnblock, isIncomingPending, isOutgoingPending, status])
+  }, [canUnblock, hasPendingCancellation, isIncomingPending, isOutgoingPending, status, viewerSide])
+
+  function resetModal() {
+    setActiveModal(null)
+    setSelectedBookingId(null)
+    setModalNote('')
+  }
 
   function runAction(task: () => Promise<{ error?: string }>, onSuccess?: () => void) {
     setError(null)
@@ -220,9 +302,12 @@ export function InboxThreadActions({
 
       setNote('')
       onSuccess?.()
+      resetModal()
       router.refresh()
     })
   }
+
+  const sortedBookings = [...bookings].sort((a, b) => a.show_date.localeCompare(b.show_date))
 
   return (
     <div className="space-y-4">
@@ -301,100 +386,154 @@ export function InboxThreadActions({
 
       {status === 'accepted' && (
         <section className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] p-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">
-                Booking
-              </p>
-              {booking ? (
-                <>
-                  <h2 className="mt-2 text-lg font-semibold text-[#252525]">
-                    Confirmed for {formatShowDate(booking.venue_booking_dates?.show_date ?? workingDate)}
-                  </h2>
-                  <p className="mt-1 text-sm text-[#777777]">
-                    This conversation stays open for logistics and follow-up.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h2 className="mt-2 text-lg font-semibold text-[#252525]">
-                    {workingDate ? formatShowDate(workingDate) : 'Set a working date'}
-                  </h2>
-                  <p className="mt-1 text-sm text-[#777777]">
-                    Keep one working date on the thread so both sides know which show they are discussing.
-                  </p>
-                </>
-              )}
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Current booking</p>
+          <h2 className="mt-2 text-lg font-semibold text-[#252525]">
+            {workingDate ? formatShowDate(workingDate) : 'Set a working date'}
+          </h2>
+          <p className="mt-1 text-sm text-[#777777]">
+            Use the working date to line up the next show you are discussing in this thread.
+          </p>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="sm:max-w-[220px]">
+              <label className="mb-1.5 block text-sm text-[#777777]">Working date</label>
+              <input
+                type="date"
+                value={workingDateDraft}
+                onChange={(event) => {
+                  const value = event.target.value
+                  setWorkingDateDraft(value)
+                  setConfirmDate(value)
+                }}
+                className="w-full rounded-xl border border-[#E8E8E8] bg-white px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
+              />
             </div>
 
-            {booking && booking.venue_booking_dates && (
-              <div className="rounded-xl border border-[#D8EEE8] bg-[#F3FBF8] px-4 py-3 text-sm text-[#14584E]">
-                <p>
-                  {confirmedBandCount} of {booking.venue_booking_dates.bill_cap} billed
-                </p>
-                <p className="mt-1 text-xs text-[#2B7569]">
-                  {booking.venue_booking_dates.is_closed_to_more_bands
-                    ? 'This date is capped and closed to more bands.'
-                    : 'This date can still accept more bands if slots remain.'}
-                </p>
-              </div>
+            {canSetWorkingDate && (
+              <button
+                type="button"
+                onClick={() =>
+                  runAction(
+                    () => updateThreadWorkingDate(threadId, workingDateDraft || null),
+                    () => setConfirmDate(workingDateDraft)
+                  )
+                }
+                disabled={isPending}
+                className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
+              >
+                {workingDate ? 'Update date' : 'Save date'}
+              </button>
+            )}
+
+            {canConfirmBooking && (
+              <button
+                type="button"
+                onClick={() => setActiveModal('confirm')}
+                disabled={!confirmDate}
+                className="rounded-lg bg-[#0C7C71] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0A695F] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Confirm booking
+              </button>
             )}
           </div>
+        </section>
+      )}
 
-          {!booking && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="sm:max-w-[220px]">
-                <label className="mb-1.5 block text-sm text-[#777777]">Working date</label>
-                <input
-                  type="date"
-                  value={workingDateDraft}
-                  onChange={(event) => {
-                    const value = event.target.value
-                    setWorkingDateDraft(value)
-                    setConfirmDate(value)
-                  }}
-                  className="w-full rounded-xl border border-[#E8E8E8] bg-white px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
-                />
-              </div>
-
-              {canSetWorkingDate && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    runAction(
-                      () => updateThreadWorkingDate(threadId, workingDateDraft || null),
-                      () => setConfirmDate(workingDateDraft)
-                    )
-                  }
-                  disabled={isPending}
-                  className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
-                >
-                  {workingDate ? 'Update date' : 'Save date'}
-                </button>
-              )}
-
-              {canConfirmBooking && (
-                <button
-                  type="button"
-                  onClick={() => setIsConfirmOpen(true)}
-                  disabled={!confirmDate}
-                  className="rounded-lg bg-[#0C7C71] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0A695F] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Confirm booking
-                </button>
-              )}
+      {sortedBookings.length > 0 && (
+        <section className="rounded-2xl border border-[#E8E8E8] bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Confirmed bookings</p>
+              <p className="mt-1 text-sm text-[#777777]">
+                Keep all confirmed and past dates together in one relationship thread.
+              </p>
             </div>
-          )}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {sortedBookings.map((booking) => {
+              const bookingCount = booking.venue_booking_dates?.id
+                ? bookingCountByDateId[booking.venue_booking_dates.id] ?? 0
+                : 0
+              const canRequestCancellation = booking.status === 'confirmed' && viewerSide === 'band'
+              const canKeepBooking = booking.status === 'cancellation_requested' && viewerSide === 'venue'
+              const canCancelBooking =
+                (booking.status === 'confirmed' || booking.status === 'cancellation_requested') &&
+                viewerSide === 'venue'
+
+              return (
+                <div
+                  key={booking.id}
+                  className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-semibold text-[#252525]">
+                          {formatShowDate(booking.show_date)}
+                        </h3>
+                        <BookingBadge status={booking.status} />
+                      </div>
+                      {booking.venue_booking_dates && booking.status !== 'cancelled' && (
+                        <p className="mt-2 text-sm text-[#666666]">
+                          {bookingCount} of {booking.venue_booking_dates.bill_cap} filled
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canRequestCancellation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBookingId(booking.id)
+                            setActiveModal('request-cancel')
+                          }}
+                          className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
+                        >
+                          Request cancellation
+                        </button>
+                      )}
+
+                      {canKeepBooking && (
+                        <button
+                          type="button"
+                          onClick={() => runAction(() => resolveBookingCancellation(booking.id, 'keep', ''))}
+                          disabled={isPending}
+                          className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
+                        >
+                          Keep booking
+                        </button>
+                      )}
+
+                      {canCancelBooking && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBookingId(booking.id)
+                            setActiveModal('cancel')
+                          }}
+                          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
+                        >
+                          Cancel booking
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </section>
       )}
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {isConfirmOpen && (
+      {activeModal === 'confirm' && (
         <Modal
           title="Confirm booking"
           description="This will turn the working date into a confirmed show and make it available for public artist pages and the venue calendar."
-          onClose={() => setIsConfirmOpen(false)}
+          onClose={resetModal}
         >
           <div className="space-y-4">
             <div>
@@ -416,9 +555,6 @@ export function InboxThreadActions({
                 onChange={(event) => setBillCap(event.target.value)}
                 className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
               />
-              <p className="mt-1.5 text-xs text-[#888888]">
-                Starts from the venue default, but you can override it for this date.
-              </p>
             </div>
 
             <label className="flex items-start gap-3 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3">
@@ -429,9 +565,7 @@ export function InboxThreadActions({
                 className="mt-0.5 h-4 w-4 rounded border-[#CCCCCC] text-[#FD6A2F] focus:ring-[#FD6A2F]"
               />
               <span>
-                <span className="block text-sm font-medium text-[#252525]">
-                  Close this bill after confirming
-                </span>
+                <span className="block text-sm font-medium text-[#252525]">Close this bill after confirming</span>
                 <span className="mt-0.5 block text-xs text-[#888888]">
                   Use this when the lineup is full or you do not want to add more bands to the date.
                 </span>
@@ -443,7 +577,7 @@ export function InboxThreadActions({
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setIsConfirmOpen(false)}
+                onClick={resetModal}
                 className="rounded-lg px-3 py-2 text-sm text-[#777777] transition-colors hover:text-[#252525]"
               >
                 Cancel
@@ -458,14 +592,104 @@ export function InboxThreadActions({
                         showDate: confirmDate || null,
                         billCap: billCap ? parseInt(billCap, 10) : null,
                         closeBill,
-                      }),
-                    () => setIsConfirmOpen(false)
+                      })
                   )
                 }
                 disabled={isPending || !confirmDate}
                 className="rounded-lg bg-[#0C7C71] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0A695F] disabled:opacity-50"
               >
                 {isPending ? 'Confirming…' : 'Confirm booking'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === 'request-cancel' && selectedBooking && (
+        <Modal
+          title="Request cancellation"
+          description={`This sends the venue a cancellation request for ${formatShowDate(selectedBooking.show_date)}.`}
+          onClose={resetModal}
+        >
+          <div className="space-y-4">
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <label className="block text-sm text-[#777777]">Add a note</label>
+                <RecommendedTag />
+              </div>
+              <textarea
+                value={modalNote}
+                onChange={(event) => setModalNote(event.target.value)}
+                rows={4}
+                placeholder="Let them know what changed."
+                className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm placeholder-[#AAAAAA] transition-colors focus:outline-none focus:border-[#FD6A2F]"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={resetModal}
+                className="rounded-lg px-3 py-2 text-sm text-[#777777] transition-colors hover:text-[#252525]"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => runAction(() => requestBookingCancellation(selectedBooking.id, modalNote))}
+                disabled={isPending}
+                className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
+              >
+                {isPending ? 'Sending…' : 'Request cancellation'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === 'cancel' && selectedBooking && (
+        <Modal
+          title="Cancel booking"
+          description={`This will cancel the booking for ${formatShowDate(selectedBooking.show_date)}.`}
+          onClose={resetModal}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm text-[#777777]">Add a note (optional)</label>
+              <textarea
+                value={modalNote}
+                onChange={(event) => setModalNote(event.target.value)}
+                rows={4}
+                placeholder="Optional note"
+                className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm placeholder-[#AAAAAA] transition-colors focus:outline-none focus:border-[#FD6A2F]"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={resetModal}
+                className="rounded-lg px-3 py-2 text-sm text-[#777777] transition-colors hover:text-[#252525]"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  runAction(() =>
+                    selectedBooking.status === 'cancellation_requested'
+                      ? resolveBookingCancellation(selectedBooking.id, 'cancel', modalNote)
+                      : cancelConfirmedBooking(selectedBooking.id, modalNote)
+                  )
+                }
+                disabled={isPending}
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+              >
+                {isPending ? 'Cancelling…' : 'Cancel booking'}
               </button>
             </div>
           </div>

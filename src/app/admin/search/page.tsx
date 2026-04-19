@@ -57,7 +57,7 @@ export default async function AdminSearchPage({
           <input
             name="q"
             defaultValue={query}
-            placeholder="Search users, bands, venues, inquiries…"
+            placeholder="Search users, bands, venues, legacy inquiries…"
             autoFocus
             className="flex-1 bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-4 py-2.5 text-sm text-[#252525] placeholder-[#888888] focus:outline-none focus:border-[#FD6A2F] transition-colors"
           />
@@ -169,11 +169,11 @@ export default async function AdminSearchPage({
             </section>
           )}
 
-          {/* Inquiries */}
+          {/* Legacy inquiries */}
           {(inquiries.data?.length ?? 0) > 0 && (
             <section>
               <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
-                Inquiries ({inquiries.data!.length})
+                Legacy Inquiries ({inquiries.data!.length})
               </h2>
               <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
                 {inquiries.data!.map((inq, i) => {

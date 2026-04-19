@@ -1,10 +1,27 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+
+export const revalidate = 60
+
+export async function generateStaticParams() {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const { data } = await supabase
+    .from('venues')
+    .select('slug')
+    .eq('is_active', true)
+    .eq('is_unlisted', false)
+  return (data ?? []).map(({ slug }) => ({ slug }))
+}
 import { ClaimButton } from '@/components/venues/ClaimButton'
 import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
 import { getVenueCalendarRange } from '@/lib/venue-calendar'
+import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -29,6 +46,7 @@ export async function generateMetadata({
     .select('name, location_city, location_state')
     .eq('slug', slug)
     .eq('is_active', true)
+    .eq('is_unlisted', false)
     .single()
   const venue = rawVenueMeta as { name: string; location_city: string; location_state: string } | null
 
@@ -41,16 +59,19 @@ export async function generateMetadata({
 
 export default async function VenueDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ selectedDate?: string }>
 }) {
   const { slug } = await params
+  const { selectedDate: selectedDateParam } = await searchParams
   const supabase = await createClient()
   const todayIso = new Date().toISOString().slice(0, 10)
   const calendarRange = getVenueCalendarRange(todayIso, 6)
 
   const [{ data: rawVenue }, { data: { user } }] = await Promise.all([
-    supabase.from('venues').select('*').eq('slug', slug).eq('is_active', true).single(),
+    supabase.from('venues').select('*').eq('slug', slug).eq('is_active', true).eq('is_unlisted', false).single(),
     supabase.auth.getUser(),
   ])
   const venue = rawVenue as import('@/types/database').Venue | null
@@ -70,16 +91,16 @@ export default async function VenueDetailPage({
       : Promise.resolve({ data: null }),
     supabase
       .from('venue_booking_dates')
-      .select('id, show_date, bill_cap, is_closed_to_more_bands')
+      .select('id, show_date, bill_cap, is_closed_to_more_bands, is_unavailable, show_type, genre_focus')
       .eq('venue_id', venue.id)
       .gte('show_date', calendarRange.rangeStart)
       .lte('show_date', calendarRange.rangeEnd)
       .order('show_date'),
     supabase
       .from('bookings')
-      .select('venue_booking_date_id, status')
+      .select('venue_booking_date_id, status, bands:band_id ( band_genres ( genres ( name ) ) )')
       .eq('venue_id', venue.id)
-      .eq('status', 'confirmed')
+      .in('status', ['confirmed', 'cancellation_requested'])
   ])
 
   const genreNames = ((venueGenres ?? []) as unknown as { genres: { name: string } | null }[])
@@ -95,22 +116,49 @@ export default async function VenueDetailPage({
     show_date: string
     bill_cap: number
     is_closed_to_more_bands: boolean
+    is_unavailable: boolean
+    show_type: import('@/types/database').VenueBookingDate['show_type']
+    genre_focus: string | null
   }>
   const bookings = (rawBookings ?? []) as Array<{
     venue_booking_date_id: string
-    status: 'confirmed' | 'cancelled'
+    status: 'confirmed' | 'cancellation_requested' | 'cancelled'
+    bands?:
+      | {
+          band_genres?: Array<{ genres?: { name: string | null } | null }> | null
+        }
+      | null
   }>
+  const automatedGenreFocusByBookingDateId = Object.fromEntries(buildVenueDateGenreFocusMap(bookings))
+  const initialSelectedDate =
+    selectedDateParam &&
+    /^\d{4}-\d{2}-\d{2}$/.test(selectedDateParam) &&
+    bookingDates.some((entry) => entry.show_date === selectedDateParam)
+      ? selectedDateParam
+      : todayIso
 
   // Fetch the logged-in user's bands (skip for venue owner)
-  let userBands: { id: string; name: string }[] = []
+  let userBands: { id: string; name: string; genres?: string[] }[] = []
   if (user && !isOwner) {
     const { data: bands } = await supabase
       .from('bands')
-      .select('id, name')
+      .select('id, name, band_genres ( genres ( name ) )')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('name')
-    userBands = bands ?? []
+    userBands =
+      ((bands ?? []) as unknown as Array<{
+        id: string
+        name: string
+        band_genres?: Array<{ genres?: Array<{ name: string | null }> | { name: string | null } | null }> | null
+      }>).map((band) => ({
+        id: band.id,
+        name: band.name,
+        genres: (band.band_genres ?? [])
+          .flatMap((entry) => (Array.isArray(entry.genres) ? entry.genres : entry.genres ? [entry.genres] : []))
+          .map((genre) => genre.name?.trim() ?? null)
+          .filter((value): value is string => !!value),
+      }))
   }
 
   return (
@@ -214,10 +262,13 @@ export default async function VenueDetailPage({
           todayIso={todayIso}
           bookingDates={bookingDates}
           bookings={bookings}
+          automatedGenreFocusByBookingDateId={automatedGenreFocusByBookingDateId}
+          defaultBillCap={venue.default_bill_cap}
           venueId={venue.id}
           venueSlug={venue.slug}
           userBands={userBands}
           isSignedIn={!!user}
+          initialSelectedDate={initialSelectedDate}
         />
       )}
 

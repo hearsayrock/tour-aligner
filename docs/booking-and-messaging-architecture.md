@@ -13,7 +13,8 @@ Those concepts are related, but they are not the same thing.
 
 - `contact_threads` are the communication channel between one band and one venue.
 - `contact_messages` are the messages inside that channel.
-- `booking_inquiries` are the structured booking objects tied to dates, status, and eventual booking intent.
+- `bookings` are now the live structured booking objects.
+- `booking_inquiries` are legacy records kept mainly for admin/history.
 
 The app is currently messaging-first in the UI, but booking still needs a stronger structured lifecycle.
 
@@ -37,7 +38,7 @@ This layer currently handles:
 
 This is the app's main day-to-day workflow today.
 
-### Structured booking layer
+### Legacy inquiry layer
 
 `booking_inquiries` still exists and is not purely dead code.
 
@@ -51,7 +52,7 @@ It currently stores things like:
 - `status`
 - `response_message`
 
-This is closer to a real booking object than a freeform thread, but it is not yet the app's primary UX.
+This used to be the main structured booking object, but it is no longer the primary product flow.
 
 ### Why the model feels blurry
 
@@ -123,14 +124,9 @@ That covers:
 
 ### Booking flow
 
-Use `booking_inquiries` when the conversation becomes a real booking request.
+Do not use `booking_inquiries` for new active user workflows.
 
-That covers:
-
-- proposed date
-- proposed terms or details
-- structured response state
-- future booking confirmation
+Use `bookings` plus the inbox thread flow instead.
 
 ## Status Guidance
 
@@ -152,7 +148,7 @@ Interpretation:
 
 These are relationship statuses, not booking statuses.
 
-### Inquiry statuses
+### Legacy inquiry statuses
 
 Current inquiry statuses:
 
@@ -161,24 +157,7 @@ Current inquiry statuses:
 - `declined`
 - `cancelled`
 
-These are not expressive enough long term.
-
-The likely future direction should be something like:
-
-- `draft`
-- `sent`
-- `in_discussion`
-- `accepted`
-- `declined`
-- `confirmed`
-- `cancelled`
-
-Important distinction:
-
-- `accepted` should mean "this inquiry is moving forward"
-- `confirmed` should mean "this show is booked"
-
-That distinction matters because a conversation can be positive without the show actually being locked in.
+These statuses are legacy and should not be treated as the forward-looking booking lifecycle.
 
 ## What Should Be Public
 
@@ -208,7 +187,7 @@ The better public-facing source is likely:
 When changing this area, follow these rules:
 
 1. Do not treat `contact_threads` as a substitute for structured booking data.
-2. Do not treat `booking_inquiries` as just chat metadata.
+2. Do not build new user-facing workflow on top of `booking_inquiries`.
 3. Do not use private inquiry records as the long-term public show source.
 4. Keep relationship state and booking state conceptually separate.
 5. Prefer adding explicit states like `confirmed` over overloading `accepted`.
@@ -218,25 +197,26 @@ When changing this area, follow these rules:
 ### Near term
 
 - keep the inbox as the primary outreach UI
-- stop using `booking_inquiries` as the public upcoming-show source
-- document in code where `booking_inquiries` are still intentionally used
+- keep `booking_inquiries` contained to legacy/admin history use
+- document clearly that `bookings`, not `booking_inquiries`, own active booking state
 
 ### Medium term
 
-- link `booking_inquiries` more explicitly to `contact_threads`
-- design a clear "create booking request from conversation" UX
-- define what fields are required before an inquiry becomes confirmable
+- migrate remaining dashboard/admin reporting toward `contact_threads` and `bookings`
+- design a clear reschedule flow inside the booking lifecycle
+- decide later whether `booking_inquiries` should remain archived or be retired
 
 ### Later
 
-- add a true confirmed booking model
 - decide whether confirmed shows should live in `band_show_dates`, `bookings`, or both
-- add automated coverage around inquiry lifecycle and permissions
+- retire or archive `booking_inquiries` fully once admin/reporting no longer depends on it
+- add automated coverage around booking lifecycle and permissions
 
 ## Decision Summary
 
 If there is ever a question about which system should own what:
 
 - conversation belongs to `contact_threads`
-- booking intent belongs to `booking_inquiries`
+- live booking state belongs to `bookings`
+- `booking_inquiries` are legacy records, not the future booking model
 - public show history belongs to a public show/bookings source, not the inbox

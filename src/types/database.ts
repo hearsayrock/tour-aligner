@@ -31,6 +31,7 @@ export interface Database {
           is_admin: boolean
           is_suspended: boolean
           email: string | null
+          last_active_at: string | null
           created_at: string
           updated_at: string
         }
@@ -49,6 +50,7 @@ export interface Database {
           is_admin?: boolean
           is_suspended?: boolean
           email?: string | null
+          last_active_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -67,6 +69,7 @@ export interface Database {
           is_admin?: boolean
           is_suspended?: boolean
           email?: string | null
+          last_active_at?: string | null
           updated_at?: string
         }
       }
@@ -375,6 +378,8 @@ export interface Database {
           last_message_at: string | null
           band_last_read_at: string | null
           venue_last_read_at: string | null
+          band_archived_at: string | null
+          venue_archived_at: string | null
           created_at: string
           updated_at: string
         }
@@ -390,6 +395,8 @@ export interface Database {
           last_message_at?: string | null
           band_last_read_at?: string | null
           venue_last_read_at?: string | null
+          band_archived_at?: string | null
+          venue_archived_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -404,6 +411,8 @@ export interface Database {
           last_message_at?: string | null
           band_last_read_at?: string | null
           venue_last_read_at?: string | null
+          band_archived_at?: string | null
+          venue_archived_at?: string | null
           updated_at?: string
         }
       }
@@ -414,6 +423,9 @@ export interface Database {
           show_date: string
           bill_cap: number
           is_closed_to_more_bands: boolean
+          is_unavailable: boolean
+          show_type: 'open_bill' | 'touring_package' | 'local_showcase' | 'festival' | 'private_event' | 'special_event' | null
+          genre_focus: string | null
           created_at: string
           updated_at: string
         }
@@ -423,6 +435,9 @@ export interface Database {
           show_date: string
           bill_cap: number
           is_closed_to_more_bands?: boolean
+          is_unavailable?: boolean
+          show_type?: 'open_bill' | 'touring_package' | 'local_showcase' | 'festival' | 'private_event' | 'special_event' | null
+          genre_focus?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -431,6 +446,9 @@ export interface Database {
           show_date?: string
           bill_cap?: number
           is_closed_to_more_bands?: boolean
+          is_unavailable?: boolean
+          show_type?: 'open_bill' | 'touring_package' | 'local_showcase' | 'festival' | 'private_event' | 'special_event' | null
+          genre_focus?: string | null
           updated_at?: string
         }
       }
@@ -442,7 +460,11 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
-          status: 'confirmed' | 'cancelled'
+          status: 'confirmed' | 'cancellation_requested' | 'cancelled'
+          cancellation_requested_by_side: 'band' | 'venue' | null
+          cancellation_requested_at: string | null
+          cancelled_by_side: 'band' | 'venue' | null
+          cancelled_at: string | null
           created_at: string
           updated_at: string
         }
@@ -453,7 +475,11 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
-          status?: 'confirmed' | 'cancelled'
+          status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
+          cancellation_requested_by_side?: 'band' | 'venue' | null
+          cancellation_requested_at?: string | null
+          cancelled_by_side?: 'band' | 'venue' | null
+          cancelled_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -463,7 +489,11 @@ export interface Database {
           venue_id?: string
           show_date?: string
           venue_booking_date_id?: string
-          status?: 'confirmed' | 'cancelled'
+          status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
+          cancellation_requested_by_side?: 'band' | 'venue' | null
+          cancellation_requested_at?: string | null
+          cancelled_by_side?: 'band' | 'venue' | null
+          cancelled_at?: string | null
           updated_at?: string
         }
       }
@@ -557,6 +587,58 @@ export interface Database {
           p_close_bill?: boolean
         }
         Returns: Json
+      }
+      request_booking_cancellation: {
+        Args: {
+          p_booking_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      resolve_booking_cancellation: {
+        Args: {
+          p_booking_id: string
+          p_action: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      cancel_confirmed_booking: {
+        Args: {
+          p_booking_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      archive_contact_thread: {
+        Args: {
+          p_thread_id: string
+        }
+        Returns: Json
+      }
+      unarchive_contact_thread: {
+        Args: {
+          p_thread_id: string
+        }
+        Returns: Json
+      }
+      search_bands_fuzzy: {
+        Args: {
+          p_query: string
+        }
+        Returns: {
+          id: string
+          rank: number
+        }[]
+      }
+      search_venues_fuzzy: {
+        Args: {
+          p_query: string
+        }
+        Returns: {
+          id: string
+          rank: number
+        }[]
       }
     }
     Enums: Record<string, never>

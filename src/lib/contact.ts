@@ -37,11 +37,35 @@ export type ThreadBookingSummary = Booking & {
   venue_booking_dates: VenueBookingDate | null
 }
 
+export type ThreadBookingState = Booking['status'] | ContactThreadStatus
+
 export const THREAD_STATUS_LABELS: Record<ContactThreadStatus, string> = {
   pending: 'Pending',
-  accepted: 'Active',
+  accepted: 'In discussion',
   declined: 'Declined',
   blocked: 'Blocked',
+}
+
+export const BOOKING_STATUS_LABELS: Record<Booking['status'], string> = {
+  confirmed: 'Confirmed',
+  cancellation_requested: 'Cancellation requested',
+  cancelled: 'Cancelled',
+}
+
+export function getThreadDisplayStatus(
+  threadStatus: ContactThreadStatus,
+  bookingStatus?: Booking['status'] | null
+): ThreadBookingState {
+  return bookingStatus ?? threadStatus
+}
+
+export function getThreadBookingStatus(
+  bookingStatuses: Array<Booking['status'] | null | undefined>
+): Booking['status'] | null {
+  if (bookingStatuses.some((status) => status === 'cancellation_requested')) return 'cancellation_requested'
+  if (bookingStatuses.some((status) => status === 'confirmed')) return 'confirmed'
+  if (bookingStatuses.some((status) => status === 'cancelled')) return 'cancelled'
+  return null
 }
 
 export function getViewerSide(thread: InboxThread, userId: string): ConversationSide | null {
@@ -72,6 +96,10 @@ export function hasUnread(thread: InboxThread, viewerSide: ConversationSide) {
   return new Date(thread.last_message_at).getTime() > new Date(lastReadAt).getTime()
 }
 
+export function isThreadArchived(thread: InboxThread, viewerSide: ConversationSide) {
+  return viewerSide === 'band' ? !!thread.band_archived_at : !!thread.venue_archived_at
+}
+
 export function getPartnerLabel(thread: InboxThread, viewerSide: ConversationSide) {
   return viewerSide === 'band' ? thread.venues?.name ?? 'Unknown venue' : thread.bands?.name ?? 'Unknown artist'
 }
@@ -82,6 +110,10 @@ export function getPartnerHref(thread: InboxThread, viewerSide: ConversationSide
   }
 
   return thread.bands ? `/bands/${thread.bands.slug}` : null
+}
+
+export function getPartnerUserId(thread: InboxThread, viewerSide: ConversationSide) {
+  return viewerSide === 'band' ? thread.venues?.claimed_by_user_id ?? null : thread.bands?.user_id ?? null
 }
 
 export function getPartnerMeta(thread: InboxThread, viewerSide: ConversationSide) {
@@ -113,4 +145,55 @@ export function formatShowDate(isoDate: string | null) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+export function isSameCalendarDay(a: string, b: string) {
+  const aDate = new Date(a)
+  const bDate = new Date(b)
+
+  return (
+    aDate.getFullYear() === bDate.getFullYear() &&
+    aDate.getMonth() === bDate.getMonth() &&
+    aDate.getDate() === bDate.getDate()
+  )
+}
+
+export function formatChatDateDivider(iso: string) {
+  const date = new Date(iso)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (isSameCalendarDay(date.toISOString(), today.toISOString())) return 'Today'
+  if (isSameCalendarDay(date.toISOString(), yesterday.toISOString())) return 'Yesterday'
+
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+export function formatChatClusterTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+export function isRecentlyActive(lastActiveAt: string | null, hours = 12) {
+  if (!lastActiveAt) return false
+
+  const elapsed = Date.now() - new Date(lastActiveAt).getTime()
+  return elapsed <= hours * 60 * 60 * 1000
+}
+
+export function getPresenceLabel(lastActiveAt: string | null) {
+  if (!lastActiveAt) return null
+
+  const elapsed = Date.now() - new Date(lastActiveAt).getTime()
+  if (elapsed <= 5 * 60 * 1000) return 'Active now'
+  if (elapsed <= 12 * 60 * 60 * 1000) return 'Active today'
+
+  return null
 }

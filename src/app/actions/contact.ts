@@ -2,11 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ContactThreadStatus, ConversationSide, Json } from '@/types/database'
+import type { ConversationSide, Json } from '@/types/database'
 
 type RpcPayload = {
   thread_id: string
-  status: ContactThreadStatus
+  status: string
   action: string
 }
 
@@ -25,7 +25,6 @@ function isRpcPayload(value: Json | null): value is RpcPayload {
 function revalidateInbox(threadId?: string) {
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/inbox')
-  revalidatePath('/dashboard/inquiries')
 
   if (threadId) {
     revalidatePath(`/dashboard/inbox/${threadId}`)
@@ -311,6 +310,174 @@ export async function confirmContactBooking(formData: {
 
   if (!isRpcPayload(data)) {
     return { error: 'Unexpected response while confirming the booking.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function requestBookingCancellation(bookingId: string, note: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('request_booking_cancellation', {
+    p_booking_id: bookingId,
+    p_note: note || null,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while requesting cancellation.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function resolveBookingCancellation(
+  bookingId: string,
+  action: 'keep' | 'cancel',
+  note: string
+) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('resolve_booking_cancellation', {
+    p_booking_id: bookingId,
+    p_action: action,
+    p_note: note || null,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while resolving cancellation.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function cancelConfirmedBooking(bookingId: string, note: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('cancel_confirmed_booking', {
+    p_booking_id: bookingId,
+    p_note: note || null,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while cancelling the booking.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function archiveContactThread(threadId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('archive_contact_thread', {
+    p_thread_id: threadId,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while archiving the conversation.' }
+  }
+
+  revalidateInbox(data.thread_id)
+
+  return {
+    success: true as const,
+    threadId: data.thread_id,
+    status: data.status,
+    action: data.action,
+  }
+}
+
+export async function unarchiveContactThread(threadId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'You must be signed in.' }
+  }
+
+  const { data, error } = await supabase.rpc('unarchive_contact_thread', {
+    p_thread_id: threadId,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (!isRpcPayload(data)) {
+    return { error: 'Unexpected response while unarchiving the conversation.' }
   }
 
   revalidateInbox(data.thread_id)

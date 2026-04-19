@@ -1,6 +1,6 @@
 import type { Booking, VenueBookingDate } from '@/types/database'
 
-export type VenueCalendarStatus = 'open' | 'partial' | 'full'
+export type VenueCalendarStatus = 'open' | 'partial' | 'full' | 'unavailable'
 
 export type VenueCalendarCell = {
   date: string
@@ -11,6 +11,9 @@ export type VenueCalendarCell = {
   confirmedCount: number
   billCap: number | null
   isClosedToMoreBands: boolean
+  isUnavailable: boolean
+  showType: VenueBookingDate['show_type']
+  genreFocus: string | null
 }
 
 export type VenueCalendarMonth = {
@@ -19,7 +22,7 @@ export type VenueCalendarMonth = {
   cells: VenueCalendarCell[]
 }
 
-type BookingDateSummary = Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands'>
+type BookingDateSummary = Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>
 type BookingSummary = Pick<Booking, 'venue_booking_date_id' | 'status'>
 
 function dateFromParts(year: number, monthIndex: number, day: number) {
@@ -82,8 +85,17 @@ export function buildVenueCalendarMonths(args: {
   monthCount?: number
   bookingDates: BookingDateSummary[]
   bookings: BookingSummary[]
+  defaultBillCap?: number | null
+  automatedGenreFocusByBookingDateId?: Record<string, string | null>
 }) {
-  const { todayIso, bookingDates, bookings, monthCount = 6 } = args
+  const {
+    todayIso,
+    bookingDates,
+    bookings,
+    monthCount = 6,
+    defaultBillCap = null,
+    automatedGenreFocusByBookingDateId = {},
+  } = args
   const today = parseIsoDate(todayIso)
   const months: VenueCalendarMonth[] = []
 
@@ -91,7 +103,7 @@ export function buildVenueCalendarMonths(args: {
   const bookingCountMap = new Map<string, number>()
 
   for (const booking of bookings) {
-    if (booking.status !== 'confirmed') continue
+    if (booking.status !== 'confirmed' && booking.status !== 'cancellation_requested') continue
     bookingCountMap.set(
       booking.venue_booking_date_id,
       (bookingCountMap.get(booking.venue_booking_date_id) ?? 0) + 1
@@ -109,15 +121,16 @@ export function buildVenueCalendarMonths(args: {
       const bookingDate = bookingDateMap.get(iso)
       const confirmedCount = bookingDate ? (bookingCountMap.get(bookingDate.id) ?? 0) : 0
       const isClosedToMoreBands = bookingDate?.is_closed_to_more_bands ?? false
-      const billCap = bookingDate?.bill_cap ?? null
+      const isUnavailable = bookingDate?.is_unavailable ?? false
+      const billCap = bookingDate?.bill_cap ?? defaultBillCap
 
       let status: VenueCalendarStatus = 'open'
-      if (bookingDate) {
-        if (isClosedToMoreBands || (billCap !== null && confirmedCount >= billCap)) {
-          status = 'full'
-        } else if (confirmedCount > 0) {
-          status = 'partial'
-        }
+      if (isUnavailable) {
+        status = 'unavailable'
+      } else if (isClosedToMoreBands || (billCap !== null && confirmedCount >= billCap)) {
+        status = 'full'
+      } else if (confirmedCount > 0) {
+        status = 'partial'
       }
 
       cells.push({
@@ -129,6 +142,11 @@ export function buildVenueCalendarMonths(args: {
         confirmedCount,
         billCap,
         isClosedToMoreBands,
+        isUnavailable,
+        showType: bookingDate?.show_type ?? null,
+        genreFocus: bookingDate
+          ? bookingDate.genre_focus ?? automatedGenreFocusByBookingDateId[bookingDate.id] ?? null
+          : null,
       })
     }
 

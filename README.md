@@ -67,7 +67,7 @@ The current messaging layer. This is the primary conversation workflow between a
 
 ### `booking_inquiries`
 
-A legacy-but-still-relevant structured booking table. The app is currently messaging-first, but this table still exists and likely becomes important again when booking confirmation is formalized.
+A legacy inquiry table kept mainly for admin/history surfaces. Active user workflows now run through `contact_threads`, `contact_messages`, and `bookings`.
 
 ## Important Current Behavior
 
@@ -194,9 +194,9 @@ Current repo quality signals:
 
 ## Known Follow-Up Areas
 
-- Formalize the relationship between `booking_inquiries` and `contact_threads`
-- Add a real confirmed/booked workflow instead of stopping at accepted conversations
-- Move public upcoming-show rendering away from `booking_inquiries`
+- Migrate remaining admin/reporting surfaces away from `booking_inquiries`
+- Add a true reschedule flow on top of the existing booking lifecycle
+- Expand recurring venue availability controls
 - Replace remaining placeholder/project-scaffold traces
 - Add automated coverage for claim approval, public profile visibility, and inbox permissions
 

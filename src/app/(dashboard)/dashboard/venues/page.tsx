@@ -3,6 +3,13 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardVenueFilters } from '@/components/venues/DashboardVenueFilters'
+import {
+  buildVenueDateGenreFocusMap,
+  getEffectiveVenueDateGenreFocus,
+  getGenreOverlapMatches,
+} from '@/lib/venue-booking-date'
+import { getVenueCalendarRange } from '@/lib/venue-calendar'
+import { sortItemsByRank } from '@/lib/fuzzy-search'
 import type { Venue } from '@/types/database'
 
 export const metadata = { title: 'Venues' }
@@ -48,10 +55,34 @@ const AGE_LABELS: Record<string, string> = {
   '21_plus': '21+',
 }
 
-function VenueCard({ venue }: { venue: Venue }) {
+type VenueRecommendation = {
+  title: string
+  detail: string
+  tone: 'open_date' | 'venue_genre'
+  recommendedDate?: string
+}
+
+function formatRecommendationDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+function VenueCard({
+  venue,
+  recommendation,
+}: {
+  venue: Venue
+  recommendation?: VenueRecommendation | null
+}) {
   return (
     <Link
-      href={`/venues/${venue.slug}`}
+      href={
+        recommendation?.recommendedDate
+          ? `/venues/${venue.slug}?selectedDate=${recommendation.recommendedDate}`
+          : `/venues/${venue.slug}`
+      }
       className="flex flex-col gap-2 bg-white border border-[#E8E8E8] rounded-xl p-5 hover:border-[#CCCCCC] hover:shadow-sm transition-all"
     >
       <div className="flex items-center justify-between gap-2">
@@ -65,6 +96,20 @@ function VenueCard({ venue }: { venue: Venue }) {
           <span className="text-xs font-medium text-[#FD6A2F] shrink-0">Unclaimed</span>
         )}
       </div>
+      {recommendation && (
+        <div
+          className={`rounded-lg border px-3 py-2 ${
+            recommendation.tone === 'open_date'
+              ? 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'
+              : 'border-[#E8E8E8] bg-[#FAFAFA] text-[#555555]'
+          }`}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
+            {recommendation.title}
+          </p>
+          <p className="mt-1 text-sm leading-snug">{recommendation.detail}</p>
+        </div>
+      )}
       <p className="font-bold text-[#252525] leading-snug">{venue.name}</p>
       {venue.description && (
         <p className="text-sm text-[#777777] leading-relaxed line-clamp-2">{venue.description}</p>
@@ -148,6 +193,92 @@ function Pagination({ page, totalPages, searchParams }: {
   )
 }
 
+function buildVenueRecommendations(args: {
+  venues: Venue[]
+  userBands: Array<{ name: string; genres: string[] }>
+  venueGenreNamesByVenueId: Record<string, string[]>
+  bookingDatesByVenueId: Record<
+    string,
+      Array<{
+        id: string
+        bill_cap: number | null
+        is_closed_to_more_bands: boolean
+        is_unavailable: boolean
+        genre_focus: string | null
+        show_date: string
+      }>
+  >
+  bookingCountByDateId: Record<string, number>
+  automatedGenreFocusByBookingDateId: Record<string, string | null>
+}) {
+  const recommendations = new Map<string, VenueRecommendation>()
+
+  for (const venue of args.venues) {
+    let bestRecommendation: VenueRecommendation | null = null
+
+    const bookingDates = args.bookingDatesByVenueId[venue.id] ?? []
+    for (const band of args.userBands) {
+      for (const bookingDate of bookingDates) {
+        const confirmedCount = args.bookingCountByDateId[bookingDate.id] ?? 0
+        const billCap = bookingDate.bill_cap ?? venue.default_bill_cap
+        const isOpen =
+          !bookingDate.is_unavailable &&
+          !bookingDate.is_closed_to_more_bands &&
+          !(billCap !== null && confirmedCount >= billCap)
+
+        if (!isOpen) continue
+
+        const effectiveGenreFocus = getEffectiveVenueDateGenreFocus(
+          bookingDate.genre_focus,
+          args.automatedGenreFocusByBookingDateId[bookingDate.id]
+        )
+        if (!effectiveGenreFocus) continue
+
+        const matches = getGenreOverlapMatches(
+          band.genres,
+          effectiveGenreFocus
+            .toLowerCase()
+            .replace(/\s+leaning$/i, '')
+            .split(/[\/,]/)
+            .map((part) => part.trim())
+            .filter(Boolean)
+        )
+
+        if (matches.length > 0) {
+          bestRecommendation = {
+            title: `Recommended for ${band.name}`,
+            detail: `${formatRecommendationDate(bookingDate.show_date)} is still open and leans ${effectiveGenreFocus}.`,
+            tone: 'open_date',
+            recommendedDate: bookingDate.show_date,
+          }
+          break
+        }
+      }
+
+      if (bestRecommendation) break
+
+      const venueGenreMatches = getGenreOverlapMatches(
+        band.genres,
+        args.venueGenreNamesByVenueId[venue.id] ?? []
+      )
+
+      if (venueGenreMatches.length > 0) {
+        bestRecommendation = {
+          title: `Good fit for ${band.name}`,
+          detail: `Venue profile overlaps with your genres: ${venueGenreMatches.slice(0, 2).join(' / ')}.`,
+          tone: 'venue_genre',
+        }
+      }
+    }
+
+    if (bestRecommendation) {
+      recommendations.set(venue.id, bestRecommendation)
+    }
+  }
+
+  return recommendations
+}
+
 interface PageProps {
   searchParams: Promise<{
     tab?: string
@@ -156,6 +287,7 @@ interface PageProps {
     capacity?: string
     genre?: string
     age?: string
+    recommendBand?: string
     page?: string
     view?: string
     submitted?: string
@@ -182,15 +314,134 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   const hasMine = (myVenueCount ?? 0) > 0 || (pendingClaimCount ?? 0) > 0
   const tab = filters.tab ?? (hasMine ? 'mine' : 'directory')
+  const selectedRecommendationBandId = filters.recommendBand ?? ''
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
   const fullListMode = hasFilters || filters.view === 'all'
   const showSubmittedBanner = filters.submitted === '1'
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const calendarRange = getVenueCalendarRange(todayIso, 6)
 
   const { data: allGenres } = await supabase.from('genres').select('id, name').order('name')
+  const { data: rawUserBands } = await supabase
+    .from('bands')
+    .select('id, name, band_genres ( genres ( name ) )')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .order('name')
+
+  const userBands = ((rawUserBands ?? []) as unknown as Array<{
+    id: string
+    name: string
+    band_genres?: Array<{ genres?: Array<{ name: string | null }> | { name: string | null } | null }> | null
+  }>).map((band) => ({
+    id: band.id,
+    name: band.name,
+    genres: (band.band_genres ?? [])
+      .flatMap((entry) => (Array.isArray(entry.genres) ? entry.genres : entry.genres ? [entry.genres] : []))
+      .map((genre) => genre.name?.trim() ?? null)
+      .filter((value): value is string => !!value),
+  }))
 
   function tabHref(t: string) {
     return `/dashboard/venues?tab=${t}`
+  }
+
+  async function fetchVenueRecommendations(venuesToScore: Venue[]) {
+    const recommendationBands = selectedRecommendationBandId
+      ? userBands.filter((band) => band.id === selectedRecommendationBandId)
+      : userBands
+
+    if (venuesToScore.length === 0 || recommendationBands.length === 0) {
+      return new Map<string, VenueRecommendation>()
+    }
+
+    const venueIds = venuesToScore.map((venue) => venue.id)
+
+    const [{ data: rawVenueGenres }, { data: rawBookingDates }, { data: rawBookings }] = await Promise.all([
+      supabase
+        .from('venue_genres')
+        .select('venue_id, genres ( name )')
+        .in('venue_id', venueIds),
+      supabase
+        .from('venue_booking_dates')
+        .select('id, venue_id, bill_cap, is_closed_to_more_bands, is_unavailable, genre_focus, show_date')
+        .in('venue_id', venueIds)
+        .gte('show_date', calendarRange.rangeStart)
+        .lte('show_date', calendarRange.rangeEnd),
+      supabase
+        .from('bookings')
+        .select('venue_id, venue_booking_date_id, status, bands:band_id ( band_genres ( genres ( name ) ) )')
+        .in('venue_id', venueIds)
+        .in('status', ['confirmed', 'cancellation_requested']),
+    ])
+
+    const venueGenreNamesByVenueId: Record<string, string[]> = {}
+    for (const row of ((rawVenueGenres ?? []) as unknown as Array<{
+      venue_id: string
+      genres?: Array<{ name: string | null }> | { name: string | null } | null
+    }>)) {
+      const genres = Array.isArray(row.genres) ? row.genres : row.genres ? [row.genres] : []
+      venueGenreNamesByVenueId[row.venue_id] = [
+        ...(venueGenreNamesByVenueId[row.venue_id] ?? []),
+        ...genres.map((genre) => genre.name?.trim() ?? null).filter((value): value is string => !!value),
+      ]
+    }
+
+    const bookingDatesByVenueId: Record<
+      string,
+      Array<{
+        id: string
+        bill_cap: number | null
+        is_closed_to_more_bands: boolean
+        is_unavailable: boolean
+        genre_focus: string | null
+        show_date: string
+      }>
+    > = {}
+
+    for (const bookingDate of ((rawBookingDates ?? []) as Array<{
+      id: string
+      venue_id: string
+      bill_cap: number | null
+      is_closed_to_more_bands: boolean
+      is_unavailable: boolean
+      genre_focus: string | null
+      show_date: string
+    }>)) {
+      bookingDatesByVenueId[bookingDate.venue_id] = [
+        ...(bookingDatesByVenueId[bookingDate.venue_id] ?? []),
+        bookingDate,
+      ]
+    }
+
+    const bookings = (rawBookings ?? []) as Array<{
+      venue_id: string
+      venue_booking_date_id: string
+      status: 'confirmed' | 'cancellation_requested' | 'cancelled'
+      bands?:
+        | {
+            band_genres?: Array<{ genres?: Array<{ name: string | null }> | { name: string | null } | null }> | null
+          }
+        | null
+    }>
+
+    const automatedGenreFocusByBookingDateId = Object.fromEntries(buildVenueDateGenreFocusMap(bookings))
+    const bookingCountByDateId: Record<string, number> = {}
+    for (const booking of bookings) {
+      if (booking.status !== 'confirmed' && booking.status !== 'cancellation_requested') continue
+      bookingCountByDateId[booking.venue_booking_date_id] =
+        (bookingCountByDateId[booking.venue_booking_date_id] ?? 0) + 1
+    }
+
+    return buildVenueRecommendations({
+      venues: venuesToScore,
+      userBands: recommendationBands,
+      venueGenreNamesByVenueId,
+      bookingDatesByVenueId,
+      bookingCountByDateId,
+      automatedGenreFocusByBookingDateId,
+    })
   }
 
   // ── My Venues tab ─────────────────────────────────────────
@@ -343,8 +594,19 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     .or('capacity.is.null,capacity.lte.2500')
 
   // Apply filters
+  let fuzzyMatches: Array<{ id: string; rank: number }> | null = null
   if (filters.q) {
-    baseQuery = baseQuery.or(`name.ilike.%${filters.q}%,location_city.ilike.%${filters.q}%`)
+    const { data } = await supabase.rpc('search_venues_fuzzy', {
+      p_query: filters.q,
+    })
+
+    fuzzyMatches = ((data ?? []) as Array<{ id: string; rank: number }>).filter((match) => !!match.id)
+
+    if (fuzzyMatches.length === 0) {
+      baseQuery = baseQuery.in('id', ['00000000-0000-0000-0000-000000000000'])
+    } else {
+      baseQuery = baseQuery.in('id', fuzzyMatches.map((match) => match.id))
+    }
   }
   if (filters.location) {
     const loc = filters.location.trim()
@@ -380,12 +642,16 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     const allVenues = rawAllVenues as Venue[] | null
     const total = allVenues?.length ?? 0
     const featured = (allVenues ?? []).slice(0, FEATURED_COUNT)
+    const recommendationsByVenueId = await fetchVenueRecommendations(featured)
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
         <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
         <Suspense>
-          <DashboardVenueFilters genres={allGenres ?? []} />
+          <DashboardVenueFilters
+            genres={allGenres ?? []}
+            recommendationBands={userBands.map((band) => ({ id: band.id, name: band.name }))}
+          />
         </Suspense>
 
         {featured.length === 0 ? (
@@ -395,7 +661,13 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 mb-6">
-              {featured.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+              {featured.map((venue) => (
+                <VenueCard
+                  key={venue.id}
+                  venue={venue}
+                  recommendation={recommendationsByVenueId.get(venue.id)}
+                />
+              ))}
             </div>
             <div className="flex items-center justify-between">
               {total > FEATURED_COUNT ? (
@@ -427,10 +699,13 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     : baseQuery.order('name')
 
   const { data: rawOrderedVenues } = await orderedQuery
-  const allVenues = rawOrderedVenues as Venue[] | null
+  const allVenues = ((filters.q && fuzzyMatches)
+    ? sortItemsByRank((rawOrderedVenues as Venue[] | null) ?? [], fuzzyMatches)
+    : ((rawOrderedVenues as Venue[] | null) ?? []))
   const total = allVenues?.length ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const pageVenues = (allVenues ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const recommendationsByVenueId = await fetchVenueRecommendations(pageVenues)
 
   // Group by state for "view all" mode
   const grouped: { state: string; venues: Venue[] }[] = []
@@ -453,7 +728,10 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     <div className="max-w-5xl mx-auto px-6 py-8">
       <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
       <Suspense>
-        <DashboardVenueFilters genres={allGenres ?? []} />
+        <DashboardVenueFilters
+          genres={allGenres ?? []}
+          recommendationBands={userBands.map((band) => ({ id: band.id, name: band.name }))}
+        />
       </Suspense>
 
       <div className="flex items-center justify-between mb-4">
@@ -482,14 +760,26 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
                 {STATE_ABBR_TO_NAME[state] ?? state}
               </p>
               <div className="grid grid-cols-1 gap-4">
-                {venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+                {venues.map((venue) => (
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    recommendation={recommendationsByVenueId.get(venue.id)}
+                  />
+                ))}
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {pageVenues.map((venue) => <VenueCard key={venue.id} venue={venue} />)}
+          {pageVenues.map((venue) => (
+            <VenueCard
+              key={venue.id}
+              venue={venue}
+              recommendation={recommendationsByVenueId.get(venue.id)}
+            />
+          ))}
         </div>
       )}
 

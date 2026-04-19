@@ -4,11 +4,18 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { requestContact } from '@/app/actions/contact'
+import { getVenueDateGenreFit } from '@/lib/venue-booking-date'
 import type { ConversationSide } from '@/types/database'
 
 type ContactOption = {
   id: string
   name: string
+  genres?: string[]
+}
+
+type DateFitContext = {
+  effectiveGenreFocus: string | null
+  showTypeLabel?: string | null
 }
 
 interface Props {
@@ -17,6 +24,7 @@ interface Props {
   targetBandId?: string
   targetVenueId?: string
   initialShowDate?: string
+  dateFitContextByIso?: Record<string, DateFitContext | undefined>
 }
 
 export function RequestContactForm({
@@ -25,6 +33,7 @@ export function RequestContactForm({
   targetBandId,
   targetVenueId,
   initialShowDate = '',
+  dateFitContextByIso,
 }: Props) {
   const router = useRouter()
   const [selectedId, setSelectedId] = useState(options[0]?.id ?? '')
@@ -39,6 +48,21 @@ export function RequestContactForm({
     const venueId = initiatorSide === 'venue' ? selectedId : targetVenueId ?? ''
     return { bandId, venueId }
   }, [initiatorSide, selectedId, targetBandId, targetVenueId])
+  const selectedOption = useMemo(
+    () => options.find((option) => option.id === selectedId) ?? options[0] ?? null,
+    [options, selectedId]
+  )
+  const dateFitContext = showDate ? dateFitContextByIso?.[showDate] : undefined
+  const genreFit = useMemo(
+    () =>
+      initiatorSide === 'band' && selectedOption
+        ? getVenueDateGenreFit({
+            bandGenres: selectedOption.genres ?? [],
+            effectiveGenreFocus: dateFitContext?.effectiveGenreFocus,
+          })
+        : null,
+    [dateFitContext?.effectiveGenreFocus, initiatorSide, selectedOption]
+  )
 
   useEffect(() => {
     setShowDate(initialShowDate)
@@ -104,6 +128,24 @@ export function RequestContactForm({
           className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F] transition-colors"
         />
       </div>
+
+      {initiatorSide === 'band' && showDate && dateFitContext && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            genreFit?.tone === 'positive'
+              ? 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'
+              : 'border-[#E8E8E8] bg-[#FAFAFA] text-[#555555]'
+          }`}
+        >
+          <p className="font-medium">{genreFit?.title ?? 'Date context'}</p>
+          <p className="mt-1 text-sm opacity-90">
+            {genreFit?.body ??
+              (dateFitContext.showTypeLabel
+                ? `This date is currently shaping into a ${dateFitContext.showTypeLabel.toLowerCase()} kind of night.`
+                : 'This date is open, but there is not much genre context on it yet.')}
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm text-[#888888] mb-1.5">Intro note</label>
