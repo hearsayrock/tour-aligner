@@ -145,7 +145,7 @@ function Hero() {
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/8 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Higher Law ↔ Test Venue</p>
+                    <p className="text-sm font-semibold">Higher Law ↔ The Blue Room</p>
                     <p className="mt-1 text-xs text-white/70">
                       Suggested date: May 14 · Working date is active
                     </p>
