@@ -4,7 +4,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
+import { IdentitySwitcher } from '@/components/dashboard/IdentitySwitcher'
 import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
+import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 
 interface Notifications {
   inbox: boolean
@@ -39,11 +41,15 @@ export function DashboardNav({
   notifications,
   hasBands = false,
   hasVenues = false,
+  activeIdentity,
+  identities = [],
 }: {
   isAdmin?: boolean
   notifications?: Notifications
   hasBands?: boolean
   hasVenues?: boolean
+  activeIdentity?: ActiveIdentity
+  identities?: ManagedIdentity[]
 }) {
   const pathname = usePathname()
   const [navOpenPath, setNavOpenPath] = useState<string | null>(null)
@@ -99,6 +105,14 @@ export function DashboardNav({
             ))}
           </nav>
 
+          {activeIdentity && (
+            <IdentitySwitcher
+              activeIdentity={activeIdentity}
+              identities={identities}
+              className="hidden sm:flex mr-2"
+            />
+          )}
+
           {/* Account menu */}
           <NavAccountMenu
             isAdmin={isAdmin}
@@ -122,6 +136,15 @@ export function DashboardNav({
 
             {/* Mobile nav dropdown */}
             <div className={`${dropdownClass} ${dropdownTransition(navOpen)}`}>
+              {activeIdentity && identities.length > 1 && (
+                <div className="border-b border-[#F0F0F0] px-4 py-3">
+                  <IdentitySwitcher
+                    activeIdentity={activeIdentity}
+                    identities={identities}
+                    className="justify-between"
+                  />
+                </div>
+              )}
               <div className="py-1">
                 {NAV_LINKS.map((link) => (
                   <Link

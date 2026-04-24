@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { IdentityRequiredNotice } from '@/components/dashboard/IdentityRequiredNotice'
 import { DashboardVenueFilters } from '@/components/venues/DashboardVenueFilters'
 import {
   buildVenueDateGenreFocusMap,
@@ -10,6 +12,12 @@ import {
 } from '@/lib/venue-booking-date'
 import { getVenueCalendarRange } from '@/lib/venue-calendar'
 import { sortItemsByRank } from '@/lib/fuzzy-search'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 import type { Venue } from '@/types/database'
 
 export const metadata = { title: 'Venues' }
@@ -287,7 +295,6 @@ interface PageProps {
     capacity?: string
     genre?: string
     age?: string
-    recommendBand?: string
     page?: string
     view?: string
     submitted?: string
@@ -314,7 +321,6 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   const hasMine = (myVenueCount ?? 0) > 0 || (pendingClaimCount ?? 0) > 0
   const tab = filters.tab ?? (hasMine ? 'mine' : 'directory')
-  const selectedRecommendationBandId = filters.recommendBand ?? ''
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
   const fullListMode = hasFilters || filters.view === 'all'
@@ -322,13 +328,21 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const calendarRange = getVenueCalendarRange(todayIso, 6)
 
-  const { data: allGenres } = await supabase.from('genres').select('id, name').order('name')
-  const { data: rawUserBands } = await supabase
-    .from('bands')
-    .select('id, name, band_genres ( genres ( name ) )')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .order('name')
+  const [{ data: allGenres }, { data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
+    supabase.from('genres').select('id, name').order('name'),
+    supabase
+      .from('bands')
+      .select('id, name, band_genres ( genres ( name ) )')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('venues')
+      .select('id, name')
+      .eq('claimed_by_user_id', user.id)
+      .eq('is_active', true)
+      .order('name'),
+  ])
 
   const userBands = ((rawUserBands ?? []) as unknown as Array<{
     id: string
@@ -342,16 +356,41 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       .map((genre) => genre.name?.trim() ?? null)
       .filter((value): value is string => !!value),
   }))
+  const identities: ManagedIdentity[] = [
+    ...userBands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...((rawUserVenues ?? []) as Array<{ id: string; name: string }>).map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const recommendationBands = activeIdentity.kind === 'band'
+    ? userBands.filter((band) => band.id === activeIdentity.id)
+    : []
+  const identityNotice = userBands.length > 0 && activeIdentity.kind !== 'band'
+    ? {
+        title: activeIdentity.kind === 'all'
+          ? 'Select an artist to use venue recommendations'
+          : 'Switch to an artist to use venue recommendations',
+        body: activeIdentity.kind === 'all'
+          ? 'Venue recommendations and contact requests need to know which artist is acting. Choose an artist in the Acting as menu, then come back to venues.'
+          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to an artist before using recommendations or requesting contact with a venue.`,
+      }
+    : null
 
   function tabHref(t: string) {
     return `/dashboard/venues?tab=${t}`
   }
 
   async function fetchVenueRecommendations(venuesToScore: Venue[]) {
-    const recommendationBands = selectedRecommendationBandId
-      ? userBands.filter((band) => band.id === selectedRecommendationBandId)
-      : userBands
-
     if (venuesToScore.length === 0 || recommendationBands.length === 0) {
       return new Map<string, VenueRecommendation>()
     }
@@ -478,7 +517,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
 
         {showSubmittedBanner && (
           <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
@@ -646,12 +685,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
+        {identityNotice && (
+          <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
+        )}
         <Suspense>
-          <DashboardVenueFilters
-            genres={allGenres ?? []}
-            recommendationBands={userBands.map((band) => ({ id: band.id, name: band.name }))}
-          />
+          <DashboardVenueFilters genres={allGenres ?? []} />
         </Suspense>
 
         {featured.length === 0 ? (
@@ -723,15 +762,16 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const searchParamsRecord = Object.fromEntries(
     Object.entries(filters).filter(([, v]) => v != null)
   ) as Record<string, string>
+  delete searchParamsRecord.recommendBand
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
+      {identityNotice && (
+        <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
+      )}
       <Suspense>
-        <DashboardVenueFilters
-          genres={allGenres ?? []}
-          recommendationBands={userBands.map((band) => ({ id: band.id, name: band.name }))}
-        />
+        <DashboardVenueFilters genres={allGenres ?? []} />
       </Suspense>
 
       <div className="flex items-center justify-between mb-4">
@@ -794,7 +834,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   )
 }
 
-function Tabs({ active, tabHref, hasMine }: { active: string; tabHref: (t: string) => string; hasMine: boolean }) {
+function Tabs({ active, tabHref, hasMine, mineCount = 0 }: { active: string; tabHref: (t: string) => string; hasMine: boolean; mineCount?: number }) {
   if (!hasMine) {
     return <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
   }
@@ -802,7 +842,7 @@ function Tabs({ active, tabHref, hasMine }: { active: string; tabHref: (t: strin
   return (
     <div className="flex items-center gap-1 mb-6 border-b border-[#E8E8E8]">
       {[
-        { key: 'mine', label: 'My Venues' },
+        { key: 'mine', label: mineCount === 1 ? 'Venue Profile' : 'Managed Venues' },
         { key: 'directory', label: 'Directory' },
       ].map(({ key, label }) => (
         <Link

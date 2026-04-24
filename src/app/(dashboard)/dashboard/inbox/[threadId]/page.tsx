@@ -12,13 +12,15 @@ import {
   formatChatDateDivider,
   formatInboxDate,
   formatShowDate,
+  getConversationMeta,
+  getConversationTitle,
+  getMessageSenderLabel,
   getThreadBookingStatus,
   getThreadDisplayStatus,
   getPartnerHref,
-  getPartnerLabel,
-  getPartnerMeta,
   getPartnerUserId,
   getPresenceLabel,
+  getViewerEntity,
   getViewerSide,
   hasUnread,
   isThreadArchived,
@@ -44,9 +46,11 @@ const STATUS_STYLES = {
 
 function MessageBubble({
   message,
+  thread,
   viewerSide,
 }: {
   message: InboxMessage
+  thread: InboxThread
   viewerSide: 'band' | 'venue'
 }) {
   const splitIndex = message.body.indexOf(' Note: ')
@@ -76,7 +80,7 @@ function MessageBubble({
             }`}
           >
             <p className={`mb-2 text-[11px] font-medium ${isOwnMessage ? 'text-white/75' : 'text-[#8E8E93]'}`}>
-              {isOwnMessage ? 'You' : message.sender_side === 'band' ? 'Artist' : 'Venue'}
+              {getMessageSenderLabel(thread, message.sender_side, viewerSide)}
             </p>
             <LinkifiedText
               text={splitSystemNote.noteBody}
@@ -117,7 +121,7 @@ function MessageBubble({
         }`}
       >
         <p className={`mb-2 text-[11px] font-medium ${isOwnMessage ? 'text-white/75' : 'text-[#8E8E93]'}`}>
-          {isOwnMessage ? 'You' : message.sender_side === 'band' ? 'Artist' : 'Venue'}
+          {getMessageSenderLabel(thread, message.sender_side, viewerSide)}
         </p>
         <LinkifiedText
           text={message.body}
@@ -294,6 +298,7 @@ export default async function InboxThreadPage({
   const displayStatusLabel = threadBookingStatus ? BOOKING_STATUS_LABELS[threadBookingStatus] : THREAD_STATUS_LABELS[thread.status]
   const displayStatusStyle = STATUS_STYLES[displayStatus]
   const messageTimeline = buildMessageTimeline(messages)
+  const viewerEntity = getViewerEntity(thread, viewerSide)
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
@@ -313,9 +318,9 @@ export default async function InboxThreadPage({
           <div className="shrink-0 border-b border-[#F0F0F0] px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold">{getPartnerLabel(thread, viewerSide)}</h1>
+                <h1 className="text-2xl font-bold">{getConversationTitle(thread)}</h1>
                 <p className="mt-1 text-sm text-[#888888]">
-                  {getPartnerMeta(thread, viewerSide) || 'Conversation'}
+                  {getConversationMeta(thread, viewerSide)}
                 </p>
                 {partnerPresenceLabel && (
                   <p className="mt-2 flex items-center gap-2 text-xs text-[#0C7C71]">
@@ -377,7 +382,7 @@ export default async function InboxThreadPage({
                         </p>
                       </div>
                     )}
-                    <MessageBubble message={message} viewerSide={viewerSide} />
+                    <MessageBubble message={message} thread={thread} viewerSide={viewerSide} />
                   </div>
                 ))}
               </div>
@@ -386,7 +391,7 @@ export default async function InboxThreadPage({
 
           {thread.status === 'accepted' && (
             <div className="shrink-0 border-t border-[#F0F0F0] px-6 py-5">
-              <DirectMessageComposer threadId={thread.id} />
+              <DirectMessageComposer threadId={thread.id} replyingAsName={viewerEntity.name} />
             </div>
           )}
         </section>

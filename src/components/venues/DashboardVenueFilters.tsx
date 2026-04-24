@@ -5,7 +5,6 @@ import { useCallback, useState, useRef, useEffect } from 'react'
 
 interface DashboardVenueFiltersProps {
   genres: { id: string; name: string }[]
-  recommendationBands?: { id: string; name: string }[]
 }
 
 const CAPACITY_OPTIONS = [
@@ -66,7 +65,6 @@ function CustomSelect({
 
 export function DashboardVenueFilters({
   genres,
-  recommendationBands = [],
 }: DashboardVenueFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -87,6 +85,7 @@ export function DashboardVenueFilters({
         else params.delete(key)
       }
       params.set('tab', 'directory')
+      params.delete('recommendBand')
       params.delete('page')
       params.delete('view')
       router.push(`/dashboard/venues?${params.toString()}`)
@@ -149,25 +148,6 @@ export function DashboardVenueFilters({
           className="w-full bg-[#F5F5F5] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#FD6A2F]/20 focus:border-[#FD6A2F] border border-transparent transition-all"
         />
       </div>
-
-      {recommendationBands.length > 1 && (
-        <div className="mb-3">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-[#888888]">
-            Tailor recommendations for
-          </label>
-          <CustomSelect
-            value={searchParams.get('recommendBand') ?? ''}
-            onChange={(v) => pushParams({ recommendBand: v })}
-          >
-            <option value="">Any of my artists</option>
-            {recommendationBands.map((band) => (
-              <option key={band.id} value={band.id}>
-                {band.name}
-              </option>
-            ))}
-          </CustomSelect>
-        </div>
-      )}
 
       {/* Filter row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

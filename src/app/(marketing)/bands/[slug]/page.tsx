@@ -1,11 +1,18 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { CoverBanner } from './CoverBanner'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 
 export const revalidate = 60
 
@@ -139,17 +146,56 @@ export default async function BandProfilePage({
   const isOwner = !!user && user.id === band.user_id
 
   let userVenues: { id: string; name: string }[] = []
+  let userBands: { id: string; name: string }[] = []
 
   if (user && !isOwner) {
-    const { data: venues } = await supabase
-      .from('venues')
-      .select('id, name')
-      .eq('claimed_by_user_id', user.id)
-      .eq('is_active', true)
-      .order('name')
+    const [{ data: venues }, { data: bands }] = await Promise.all([
+      supabase
+        .from('venues')
+        .select('id, name')
+        .eq('claimed_by_user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('bands')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+    ])
 
     userVenues = venues ?? []
+    userBands = bands ?? []
   }
+  const identities: ManagedIdentity[] = [
+    ...userBands.map((userBand) => ({
+      kind: 'band' as const,
+      id: userBand.id,
+      name: userBand.name,
+      href: `/dashboard/bands/${userBand.id}/edit`,
+    })),
+    ...userVenues.map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const contactVenues = activeIdentity.kind === 'venue'
+    ? userVenues.filter((venue) => venue.id === activeIdentity.id)
+    : []
+  const contactIdentityNotice = user && userVenues.length > 0 && activeIdentity.kind !== 'venue'
+    ? {
+        title: activeIdentity.kind === 'all'
+          ? 'Select a venue before requesting contact'
+          : 'Switch to a venue before requesting contact',
+        body: activeIdentity.kind === 'all'
+          ? 'This contact request needs one venue identity. Choose a venue in the Acting as menu, then request contact.'
+          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to a venue before contacting this artist.`,
+      }
+    : null
 
   return (
     <div className="pt-14">
@@ -478,11 +524,16 @@ export default async function BandProfilePage({
                 <p className="text-sm text-[#777777] leading-relaxed">
                   This is your artist profile.
                 </p>
-              ) : user && userVenues.length > 0 ? (
+              ) : user && contactIdentityNotice ? (
+                <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
+                  <p className="font-semibold text-[#8A5A12]">{contactIdentityNotice.title}</p>
+                  <p className="mt-1 text-[#8A5A12]/85">{contactIdentityNotice.body}</p>
+                </div>
+              ) : user && contactVenues.length > 0 ? (
                 <RequestContactForm
                   initiatorSide="venue"
                   targetBandId={band.id}
-                  options={userVenues}
+                  options={contactVenues}
                 />
               ) : user ? (
                 <p className="text-sm text-[#777777] leading-relaxed">

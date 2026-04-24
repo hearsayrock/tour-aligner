@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
+import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
@@ -22,6 +22,12 @@ import { ClaimButton } from '@/components/venues/ClaimButton'
 import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
 import { getVenueCalendarRange } from '@/lib/venue-calendar'
 import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -139,13 +145,22 @@ export default async function VenueDetailPage({
 
   // Fetch the logged-in user's bands (skip for venue owner)
   let userBands: { id: string; name: string; genres?: string[] }[] = []
+  let userVenues: { id: string; name: string }[] = []
   if (user && !isOwner) {
-    const { data: bands } = await supabase
-      .from('bands')
-      .select('id, name, band_genres ( genres ( name ) )')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('name')
+    const [{ data: bands }, { data: venues }] = await Promise.all([
+      supabase
+        .from('bands')
+        .select('id, name, band_genres ( genres ( name ) )')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('venues')
+        .select('id, name')
+        .eq('claimed_by_user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+    ])
     userBands =
       ((bands ?? []) as unknown as Array<{
         id: string
@@ -159,7 +174,37 @@ export default async function VenueDetailPage({
           .map((genre) => genre.name?.trim() ?? null)
           .filter((value): value is string => !!value),
       }))
+    userVenues = venues ?? []
   }
+  const identities: ManagedIdentity[] = [
+    ...userBands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...userVenues.map((userVenue) => ({
+      kind: 'venue' as const,
+      id: userVenue.id,
+      name: userVenue.name,
+      href: `/dashboard/venues/${userVenue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const contactBands = activeIdentity.kind === 'band'
+    ? userBands.filter((band) => band.id === activeIdentity.id)
+    : []
+  const contactIdentityNotice = user && userBands.length > 0 && activeIdentity.kind !== 'band'
+    ? {
+        title: activeIdentity.kind === 'all'
+          ? 'Select an artist before requesting contact'
+          : 'Switch to an artist before requesting contact',
+        body: activeIdentity.kind === 'all'
+          ? 'This contact request needs one artist identity. Choose an artist in the Acting as menu, then request contact.'
+          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to an artist before contacting this venue.`,
+      }
+    : null
 
   return (
     <div className="max-w-3xl mx-auto px-6 pt-24 pb-12">
@@ -266,9 +311,10 @@ export default async function VenueDetailPage({
           defaultBillCap={venue.default_bill_cap}
           venueId={venue.id}
           venueSlug={venue.slug}
-          userBands={userBands}
+          userBands={contactBands}
           isSignedIn={!!user}
           initialSelectedDate={initialSelectedDate}
+          identityNotice={contactIdentityNotice}
         />
       )}
 

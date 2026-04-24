@@ -6,9 +6,10 @@ import { sendDirectMessage } from '@/app/actions/contact'
 
 interface Props {
   threadId: string
+  replyingAsName?: string
 }
 
-export function DirectMessageComposer({ threadId }: Props) {
+export function DirectMessageComposer({ threadId, replyingAsName }: Props) {
   const router = useRouter()
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -34,6 +35,11 @@ export function DirectMessageComposer({ threadId }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3 shadow-sm">
+        {replyingAsName && (
+          <p className="mb-2 px-1 text-xs font-medium text-[#888888]">
+            Replying as {replyingAsName}
+          </p>
+        )}
         <textarea
           value={message}
           onChange={(event) => setMessage(event.target.value)}

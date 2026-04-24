@@ -178,7 +178,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
 
         {!myBands || myBands.length === 0 ? (
           <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
@@ -275,7 +275,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
         <Suspense>
           <DashboardBandFilters genres={allGenres ?? []} />
         </Suspense>
@@ -342,7 +342,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
       <Suspense>
         <DashboardBandFilters genres={allGenres ?? []} />
       </Suspense>
@@ -389,10 +389,11 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   )
 }
 
-function Tabs({ active, tabHref, hasMine }: {
+function Tabs({ active, tabHref, hasMine, mineCount = 0 }: {
   active: string
   tabHref: (t: string) => string
   hasMine: boolean
+  mineCount?: number
 }) {
   if (!hasMine) {
     return <h1 className="text-2xl font-bold mb-6">Artist Directory</h1>
@@ -402,7 +403,7 @@ function Tabs({ active, tabHref, hasMine }: {
     <div className="flex items-center justify-between mb-6 border-b border-[#E8E8E8]">
       <div className="flex items-center gap-1">
         {[
-          { key: 'mine', label: 'My Artists' },
+          { key: 'mine', label: mineCount === 1 ? 'Artist Profile' : 'Managed Artists' },
           { key: 'directory', label: 'Directory' },
         ].map(({ key, label }) => (
           <Link

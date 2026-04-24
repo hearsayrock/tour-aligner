@@ -1,7 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { ConversationSide, Json } from '@/types/database'
 
 type RpcPayload = {
@@ -46,6 +48,32 @@ async function findExistingThreadId(
   return data?.id ?? null
 }
 
+async function getActiveContactIdentity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const [{ data: rawBands }, { data: rawVenues }] = await Promise.all([
+    supabase.from('bands').select('id, name').eq('user_id', userId).eq('is_active', true).order('name'),
+    supabase.from('venues').select('id, name').eq('claimed_by_user_id', userId).eq('is_active', true).order('name'),
+  ])
+  const identities: ManagedIdentity[] = [
+    ...((rawBands ?? []) as Array<{ id: string; name: string }>).map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...((rawVenues ?? []) as Array<{ id: string; name: string }>).map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  return resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+}
+
 export async function requestContact(formData: {
   bandId: string
   venueId: string
@@ -60,6 +88,15 @@ export async function requestContact(formData: {
 
   if (!user) {
     return { error: 'You must be signed in to request contact.' }
+  }
+
+  const activeIdentity = await getActiveContactIdentity(supabase, user.id)
+  const requestedIdentityId = formData.initiatorSide === 'band' ? formData.bandId : formData.venueId
+  if (activeIdentity.kind === 'all') {
+    return { error: 'Select one acting identity before requesting contact.' }
+  }
+  if (activeIdentity.kind !== formData.initiatorSide || activeIdentity.id !== requestedIdentityId) {
+    return { error: `You are currently acting as ${activeIdentity.name}. Switch identities before requesting contact from another profile.` }
   }
 
   const { data, error } = await supabase.rpc('request_contact', {

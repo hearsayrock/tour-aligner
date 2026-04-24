@@ -36,22 +36,21 @@ export function RequestContactForm({
   dateFitContextByIso,
 }: Props) {
   const router = useRouter()
-  const [selectedId, setSelectedId] = useState(options[0]?.id ?? '')
   const [message, setMessage] = useState('')
   const [showDate, setShowDate] = useState(initialShowDate)
   const [error, setError] = useState<string | null>(null)
   const [threadIdHint, setThreadIdHint] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const currentPair = useMemo(() => {
-    const bandId = initiatorSide === 'band' ? selectedId : targetBandId ?? ''
-    const venueId = initiatorSide === 'venue' ? selectedId : targetVenueId ?? ''
-    return { bandId, venueId }
-  }, [initiatorSide, selectedId, targetBandId, targetVenueId])
   const selectedOption = useMemo(
-    () => options.find((option) => option.id === selectedId) ?? options[0] ?? null,
-    [options, selectedId]
+    () => options[0] ?? null,
+    [options]
   )
+  const currentPair = useMemo(() => {
+    const bandId = initiatorSide === 'band' ? selectedOption?.id ?? '' : targetBandId ?? ''
+    const venueId = initiatorSide === 'venue' ? selectedOption?.id ?? '' : targetVenueId ?? ''
+    return { bandId, venueId }
+  }, [initiatorSide, selectedOption?.id, targetBandId, targetVenueId])
   const dateFitContext = showDate ? dateFitContextByIso?.[showDate] : undefined
   const genreFit = useMemo(
     () =>
@@ -100,22 +99,12 @@ export function RequestContactForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {options.length > 1 && (
-        <div>
-          <label className="block text-sm text-[#888888] mb-1.5">
+      {selectedOption && (
+        <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">
             {initiatorSide === 'band' ? 'Requesting as' : 'Contacting from'}
-          </label>
-          <select
-            value={selectedId}
-            onChange={(event) => setSelectedId(event.target.value)}
-            className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F] transition-colors"
-          >
-            {options.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
+          </p>
+          <p className="mt-1 text-sm font-medium text-[#252525]">{selectedOption.name}</p>
         </div>
       )}
 

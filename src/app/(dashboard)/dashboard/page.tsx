@@ -1,12 +1,14 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
   BOOKING_STATUS_LABELS,
   formatInboxDate,
+  getConversationLabel,
+  getConversationMeta,
   getThreadBookingStatus,
   getThreadDisplayStatus,
-  getPartnerLabel,
   getViewerSide,
   hasUnread,
   isThreadArchived,
@@ -14,6 +16,13 @@ import {
   type InboxThread,
   THREAD_STATUS_LABELS,
 } from '@/lib/contact'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  identityMatchesThread,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 import type { VenueClaim } from '@/types/database'
 
 type SlimBand = { id: string; name: string; slug: string }
@@ -54,8 +63,8 @@ export default async function DashboardPage() {
     { data: rawThreads },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-    supabase.from('bands').select('id, name, slug').eq('user_id', user.id).order('created_at', { ascending: false }),
-    supabase.from('venues').select('id, name, slug, location_city, location_state').eq('claimed_by_user_id', user.id).order('name'),
+    supabase.from('bands').select('id, name, slug').eq('user_id', user.id).eq('is_active', true).order('created_at', { ascending: false }),
+    supabase.from('venues').select('id, name, slug, location_city, location_state').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
     supabase
       .from('venue_claims')
       .select('id, created_at, venues(id, name, slug, location_city, location_state)')
@@ -100,6 +109,22 @@ export default async function DashboardPage() {
   const venues = rawVenues as SlimVenue[] | null
   const pendingClaims = rawPendingClaims as unknown as PendingClaim[] | null
   const threads = (rawThreads ?? []) as unknown as InboxThread[]
+  const identities: ManagedIdentity[] = [
+    ...((bands ?? []).map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    }))),
+    ...((venues ?? []).map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    }))),
+  ]
+  const cookieStore = await cookies()
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
 
   const bookingStatusesByThreadId = new Map<string, Array<'confirmed' | 'cancellation_requested' | 'cancelled'>>()
   for (const booking of (rawBookings ?? []) as Array<{ thread_id: string | null; status: 'confirmed' | 'cancellation_requested' | 'cancelled' }>) {
@@ -116,7 +141,7 @@ export default async function DashboardPage() {
     if (status) bookingStatusByThreadId.set(threadId, status)
   }
 
-  const visibleThreads = threads.filter((thread) => !!getViewerSide(thread, user.id))
+  const visibleThreads = threads.filter((thread) => !!getViewerSide(thread, user.id) && identityMatchesThread(activeIdentity, thread))
   const activeVisibleThreads = visibleThreads.filter((thread) => {
     const viewerSide = getViewerSide(thread, user.id)
     return !!viewerSide && !isThreadArchived(thread, viewerSide)
@@ -138,12 +163,23 @@ export default async function DashboardPage() {
   const venueCount = (venues ?? []).length
   const pendingClaimCount = (pendingClaims ?? []).length
   const isNewUser = bandCount === 0 && venueCount === 0 && pendingClaimCount === 0
+  const shownBands = activeIdentity.kind === 'band'
+    ? (bands ?? []).filter((band) => band.id === activeIdentity.id)
+    : bands ?? []
+  const shownVenues = activeIdentity.kind === 'venue'
+    ? (venues ?? []).filter((venue) => venue.id === activeIdentity.id)
+    : venues ?? []
+  const artistSectionTitle = bandCount === 1 ? 'Artist Profile' : 'Managed Artists'
+  const venueSectionTitle = venueCount === 1 ? 'Venue Profile' : 'Managed Venues'
+  const dashboardScopeText = activeIdentity.kind === 'all'
+    ? "Here's what's happening in your tour pipeline."
+    : `Here's what's happening for ${activeIdentityLabel(activeIdentity)}.`
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Hey, {displayName}</h1>
-        <p className="text-[#888888] text-sm mt-1">Here&apos;s what&apos;s happening in your tour pipeline.</p>
+        <p className="text-[#888888] text-sm mt-1">{dashboardScopeText}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-10">
@@ -223,7 +259,10 @@ export default async function DashboardPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{getPartnerLabel(thread, viewerSide)}</p>
+                        <p className="font-medium text-sm truncate">{getConversationLabel(thread, viewerSide)}</p>
+                        <p className="text-xs text-[#888888] mt-0.5 truncate">
+                          {getConversationMeta(thread, viewerSide)}
+                        </p>
                         <p className="text-xs text-[#888888] mt-0.5">
                           {formatInboxDate(thread.last_message_at ?? thread.created_at)}
                         </p>
@@ -267,9 +306,12 @@ export default async function DashboardPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{getPartnerLabel(thread, viewerSide)}</p>
+                          <p className="font-medium text-sm truncate">{getConversationLabel(thread, viewerSide)}</p>
                           {unread && <span className="w-2 h-2 rounded-full bg-[#FD6A2F] shrink-0" />}
                         </div>
+                        <p className="text-xs text-[#888888] mt-0.5 truncate">
+                          {getConversationMeta(thread, viewerSide)}
+                        </p>
                         <p className="text-xs text-[#888888] mt-0.5">
                           {formatInboxDate(thread.last_message_at ?? thread.updated_at)}
                         </p>
@@ -287,18 +329,18 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        {bandCount > 0 && (
+        {bandCount > 0 && activeIdentity.kind !== 'venue' && (
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                My Artists
+                {artistSectionTitle}
               </h2>
               <Link href="/dashboard/bands" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
                 Manage →
               </Link>
             </div>
             <div className="space-y-2">
-              {(bands ?? []).slice(0, 4).map((band) => (
+              {shownBands.slice(0, 4).map((band) => (
                 <div
                   key={band.id}
                   className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl px-4 py-3 flex items-center justify-between gap-4"
@@ -362,18 +404,18 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        {venueCount > 0 && (
+        {venueCount > 0 && activeIdentity.kind !== 'band' && (
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                My venues
+                {venueSectionTitle}
               </h2>
               <Link href="/dashboard/venues" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
                 Manage →
               </Link>
             </div>
             <div className="space-y-2">
-              {(venues ?? []).slice(0, 4).map((venue) => (
+              {shownVenues.slice(0, 4).map((venue) => (
                 <div
                   key={venue.id}
                   className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl px-4 py-3 flex items-center justify-between gap-4"

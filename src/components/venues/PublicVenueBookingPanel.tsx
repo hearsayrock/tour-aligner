@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
 import { VenueAvailabilityCalendar } from '@/components/venues/VenueAvailabilityCalendar'
 import { getEffectiveVenueDateGenreFocus, getVenueShowTypeLabel } from '@/lib/venue-booking-date'
@@ -24,6 +24,7 @@ export function PublicVenueBookingPanel({
   userBands,
   isSignedIn,
   initialSelectedDate,
+  identityNotice,
 }: {
   todayIso: string
   bookingDates: Array<Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>>
@@ -35,12 +36,9 @@ export function PublicVenueBookingPanel({
   userBands: ContactOption[]
   isSignedIn: boolean
   initialSelectedDate?: string
+  identityNotice?: { title: string; body: string } | null
 }) {
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate ?? todayIso)
-
-  useEffect(() => {
-    setSelectedDate(initialSelectedDate ?? todayIso)
-  }, [initialSelectedDate, todayIso])
   const selectedEntry = useMemo(
     () => bookingDates.find((entry) => entry.show_date === selectedDate) ?? null,
     [bookingDates, selectedDate]
@@ -171,7 +169,12 @@ export function PublicVenueBookingPanel({
           Request contact
         </h2>
 
-        {isSignedIn && userBands.length > 0 ? (
+        {isSignedIn && identityNotice ? (
+          <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
+            <p className="font-semibold text-[#8A5A12]">{identityNotice.title}</p>
+            <p className="mt-1 text-[#8A5A12]/85">{identityNotice.body}</p>
+          </div>
+        ) : isSignedIn && userBands.length > 0 ? (
           <RequestContactForm
             initiatorSide="band"
             targetVenueId={venueId}

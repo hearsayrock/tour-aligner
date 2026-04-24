@@ -33,6 +33,14 @@ export type InboxMessage = ContactMessage & {
   profiles: { full_name: string | null } | null
 }
 
+export type ConversationEntity = {
+  kind: ConversationSide
+  id: string
+  name: string
+  href: string | null
+  meta: string
+}
+
 export type ThreadBookingSummary = Booking & {
   venue_booking_dates: VenueBookingDate | null
 }
@@ -102,6 +110,66 @@ export function isThreadArchived(thread: InboxThread, viewerSide: ConversationSi
 
 export function getPartnerLabel(thread: InboxThread, viewerSide: ConversationSide) {
   return viewerSide === 'band' ? thread.venues?.name ?? 'Unknown venue' : thread.bands?.name ?? 'Unknown artist'
+}
+
+export function getEntityForSide(thread: InboxThread, side: ConversationSide): ConversationEntity {
+  if (side === 'band') {
+    return {
+      kind: 'band',
+      id: thread.bands?.id ?? thread.band_id,
+      name: thread.bands?.name ?? 'Unknown artist',
+      href: thread.bands ? `/bands/${thread.bands.slug}` : null,
+      meta: 'Artist profile',
+    }
+  }
+
+  return {
+    kind: 'venue',
+    id: thread.venues?.id ?? thread.venue_id,
+    name: thread.venues?.name ?? 'Unknown venue',
+    href: thread.venues ? `/venues/${thread.venues.slug}` : null,
+    meta: thread.venues
+      ? [thread.venues.location_city, thread.venues.location_state].filter(Boolean).join(', ')
+      : '',
+  }
+}
+
+export function getViewerEntity(thread: InboxThread, viewerSide: ConversationSide) {
+  return getEntityForSide(thread, viewerSide)
+}
+
+export function getPartnerEntity(thread: InboxThread, viewerSide: ConversationSide) {
+  return getEntityForSide(thread, getOtherSide(viewerSide))
+}
+
+export function getConversationLabel(thread: InboxThread, viewerSide: ConversationSide) {
+  const viewer = getViewerEntity(thread, viewerSide)
+  const partner = getPartnerEntity(thread, viewerSide)
+
+  return viewerSide === 'band'
+    ? `${viewer.name} -> ${partner.name}`
+    : `${viewer.name} <- ${partner.name}`
+}
+
+export function getConversationTitle(thread: InboxThread) {
+  const band = getEntityForSide(thread, 'band')
+  const venue = getEntityForSide(thread, 'venue')
+  return `${band.name} with ${venue.name}`
+}
+
+export function getConversationMeta(thread: InboxThread, viewerSide: ConversationSide) {
+  const viewer = getViewerEntity(thread, viewerSide)
+  const partner = getPartnerEntity(thread, viewerSide)
+
+  return viewerSide === 'band'
+    ? `You are ${viewer.name}. Venue: ${partner.meta || partner.name}`
+    : `You are ${viewer.name}. Artist: ${partner.name}`
+}
+
+export function getMessageSenderLabel(thread: InboxThread, senderSide: ConversationSide | null, viewerSide: ConversationSide) {
+  if (!senderSide) return 'System'
+  if (senderSide === viewerSide) return `You as ${getViewerEntity(thread, viewerSide).name}`
+  return getPartnerEntity(thread, viewerSide).name
 }
 
 export function getPartnerHref(thread: InboxThread, viewerSide: ConversationSide) {

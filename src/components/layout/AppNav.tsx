@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { ActivityHeartbeat } from '@/components/auth/ActivityHeartbeat'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { Navbar } from '@/components/marketing/Navbar'
+import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 /**
@@ -22,13 +24,31 @@ export async function AppNav() {
   ] = await Promise.all([
     supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
     supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'pending'),
-    supabase.from('bands').select('id').eq('user_id', user.id),
-    supabase.from('venues').select('id').eq('claimed_by_user_id', user.id),
+    supabase.from('bands').select('id, name, slug').eq('user_id', user.id).eq('is_active', true).order('name'),
+    supabase.from('venues').select('id, name, slug').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
   ])
 
   const profile = rawProfile as { is_admin: boolean } | null
-  const bandIds = (rawBands ?? []).map((b) => b.id)
-  const venueIds = (rawVenues ?? []).map((v) => v.id)
+  const bands = (rawBands ?? []) as Array<{ id: string; name: string; slug: string }>
+  const venues = (rawVenues ?? []) as Array<{ id: string; name: string; slug: string }>
+  const bandIds = bands.map((b) => b.id)
+  const venueIds = venues.map((v) => v.id)
+  const identities: ManagedIdentity[] = [
+    ...bands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...venues.map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
 
   const [rawBandThreads, rawVenueThreads] = await Promise.all([
     bandIds.length > 0
@@ -92,6 +112,8 @@ export async function AppNav() {
         notifications={notifications}
         hasBands={bandIds.length > 0}
         hasVenues={venueIds.length > 0}
+        activeIdentity={activeIdentity}
+        identities={identities}
       />
     </>
   )
