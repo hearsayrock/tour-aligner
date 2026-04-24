@@ -296,7 +296,7 @@ export default async function InboxThreadPage({
   const messageTimeline = buildMessageTimeline(messages)
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="mx-auto max-w-7xl px-6 py-10">
       <InboxRealtime threadId={threadId} />
       <ThreadReadTracker threadId={threadId} shouldMark={unread} />
 
@@ -308,113 +308,124 @@ export default async function InboxThreadPage({
         Back to inbox
       </Link>
 
-      <div className="bg-white border border-[#E8E8E8] rounded-2xl overflow-hidden">
-        <div className="border-b border-[#F0F0F0] px-6 py-5">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold">{getPartnerLabel(thread, viewerSide)}</h1>
-              <p className="text-sm text-[#888888] mt-1">
-                {getPartnerMeta(thread, viewerSide) || 'Conversation'}
-              </p>
-              {partnerPresenceLabel && (
-                <p className="mt-2 flex items-center gap-2 text-xs text-[#0C7C71]">
-                  <span className="h-2 w-2 rounded-full bg-[#0C7C71]" />
-                  {partnerPresenceLabel}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="flex min-h-[540px] max-h-[78vh] min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E8E8E8] bg-white xl:h-[calc(100vh-8rem)] xl:max-h-none">
+          <div className="shrink-0 border-b border-[#F0F0F0] px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold">{getPartnerLabel(thread, viewerSide)}</h1>
+                <p className="mt-1 text-sm text-[#888888]">
+                  {getPartnerMeta(thread, viewerSide) || 'Conversation'}
                 </p>
-              )}
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                {partnerHref && (
-                  <Link
-                    href={partnerHref}
-                    className="inline-flex items-center rounded-lg border border-[#E8E8E8] bg-white px-3 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
-                  >
-                    View profile
-                  </Link>
+                {partnerPresenceLabel && (
+                  <p className="mt-2 flex items-center gap-2 text-xs text-[#0C7C71]">
+                    <span className="h-2 w-2 rounded-full bg-[#0C7C71]" />
+                    {partnerPresenceLabel}
+                  </p>
                 )}
-                <BlockContactControl
-                  threadId={thread.id}
-                  status={thread.status}
-                  viewerSide={viewerSide}
-                  blockedBySide={thread.blocked_by_side}
-                />
-                <ArchiveThreadControl threadId={thread.id} archived={archived} />
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {partnerHref && (
+                    <Link
+                      href={partnerHref}
+                      className="inline-flex items-center rounded-lg border border-[#E8E8E8] bg-white px-3 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
+                    >
+                      View profile
+                    </Link>
+                  )}
+                  <BlockContactControl
+                    threadId={thread.id}
+                    status={thread.status}
+                    viewerSide={viewerSide}
+                    blockedBySide={thread.blocked_by_side}
+                  />
+                  <ArchiveThreadControl threadId={thread.id} archived={archived} />
+                </div>
               </div>
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <span
+                  className={`inline-flex rounded border px-2 py-0.5 text-xs font-medium ${displayStatusStyle}`}
+                >
+                  {displayStatusLabel}
+                </span>
+                <p className="text-xs text-[#AAAAAA]">
+                  Updated {formatInboxDate(thread.last_message_at ?? thread.updated_at)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto bg-[#FCFCFC] px-6 py-6">
+            {messages.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#E8E8E8] bg-white px-6 py-10 text-center text-sm text-[#888888]">
+                No messages yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messageTimeline.map(({ message, showDateDivider, showClusterTime }) => (
+                  <div key={message.id} className="space-y-3">
+                    {showDateDivider && (
+                      <div className="flex justify-center">
+                        <p className="text-xs font-medium text-[#AAAAAA]">
+                          {formatChatDateDivider(message.created_at)}
+                        </p>
+                      </div>
+                    )}
+                    {showClusterTime && (
+                      <div className="flex justify-center">
+                        <p className="text-[11px] text-[#B3B3B3]">
+                          {formatChatClusterTime(message.created_at)}
+                        </p>
+                      </div>
+                    )}
+                    <MessageBubble message={message} viewerSide={viewerSide} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {thread.status === 'accepted' && (
+            <div className="shrink-0 border-t border-[#F0F0F0] px-6 py-5">
+              <DirectMessageComposer threadId={thread.id} />
+            </div>
+          )}
+        </section>
+
+        <aside className="rounded-2xl border border-[#E8E8E8] bg-white xl:sticky xl:top-6">
+          <div className="border-b border-[#F0F0F0] px-6 py-5">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Booking</p>
+            <h2 className="mt-2 text-lg font-semibold text-[#252525]">
+              {thread.working_date ? formatShowDate(thread.working_date) : 'No working date'}
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
               {thread.working_date && bookings.length === 0 && (
-                <p className="mt-3 inline-flex rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#666666]">
-                  Working date: {formatShowDate(thread.working_date)}
+                <p className="inline-flex rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#666666]">
+                  Working date
                 </p>
               )}
               {bookings.length > 0 && (
-                <p className="mt-3 inline-flex rounded-full border border-[#CBEAE2] bg-[#F3FBF8] px-3 py-1 text-xs font-medium text-[#14584E]">
-                  {bookings.length === 1 ? '1 booking on this thread' : `${bookings.length} bookings on this thread`}
+                <p className="inline-flex rounded-full border border-[#CBEAE2] bg-[#F3FBF8] px-3 py-1 text-xs font-medium text-[#14584E]">
+                  {bookings.length === 1 ? '1 booking' : `${bookings.length} bookings`}
                 </p>
               )}
             </div>
-            <div className="flex flex-col items-end gap-3">
-              <span
-                className={`inline-flex text-xs font-medium px-2 py-0.5 rounded border ${displayStatusStyle}
-                }`}
-              >
-                {displayStatusLabel}
-              </span>
-              <p className="text-xs text-[#AAAAAA]">
-                Updated {formatInboxDate(thread.last_message_at ?? thread.updated_at)}
-              </p>
-            </div>
           </div>
-        </div>
-
-        <div className="px-6 py-5 border-b border-[#F0F0F0]">
-          <InboxThreadActions
-            threadId={thread.id}
-            bandId={thread.band_id}
-            venueId={thread.venue_id}
-            status={thread.status}
-            viewerSide={viewerSide}
-            requestedBySide={thread.requested_by_side}
-            blockedBySide={thread.blocked_by_side}
-            workingDate={thread.working_date}
-            defaultBillCap={thread.venues?.default_bill_cap ?? 4}
-            bookings={bookings}
-            bookingCountByDateId={Object.fromEntries(bookingCountByDateId)}
-          />
-        </div>
-
-        <div className="px-6 py-6 bg-[#FCFCFC]">
-          {messages.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#E8E8E8] bg-white px-6 py-10 text-center text-sm text-[#888888]">
-              No messages yet.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {messageTimeline.map(({ message, showDateDivider, showClusterTime }) => (
-                <div key={message.id} className="space-y-3">
-                  {showDateDivider && (
-                    <div className="flex justify-center">
-                      <p className="text-xs font-medium text-[#AAAAAA]">
-                        {formatChatDateDivider(message.created_at)}
-                      </p>
-                    </div>
-                  )}
-                  {showClusterTime && (
-                    <div className="flex justify-center">
-                      <p className="text-[11px] text-[#B3B3B3]">
-                        {formatChatClusterTime(message.created_at)}
-                      </p>
-                    </div>
-                  )}
-                  <MessageBubble message={message} viewerSide={viewerSide} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {thread.status === 'accepted' && (
-          <div className="border-t border-[#F0F0F0] px-6 py-5">
-            <DirectMessageComposer threadId={thread.id} />
+          <div className="px-6 py-5">
+            <InboxThreadActions
+              threadId={thread.id}
+              bandId={thread.band_id}
+              venueId={thread.venue_id}
+              status={thread.status}
+              viewerSide={viewerSide}
+              requestedBySide={thread.requested_by_side}
+              blockedBySide={thread.blocked_by_side}
+              workingDate={thread.working_date}
+              defaultBillCap={thread.venues?.default_bill_cap ?? 4}
+              bookings={bookings}
+              bookingCountByDateId={Object.fromEntries(bookingCountByDateId)}
+            />
           </div>
-        )}
+        </aside>
       </div>
     </div>
   )
