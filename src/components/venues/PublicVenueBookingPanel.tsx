@@ -13,6 +13,13 @@ type ContactOption = {
   genres?: string[]
 }
 
+function formatDateShort(isoDate: string) {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export function PublicVenueBookingPanel({
   todayIso,
   bookingDates,
@@ -25,6 +32,8 @@ export function PublicVenueBookingPanel({
   isSignedIn,
   initialSelectedDate,
   identityNotice,
+  existingThread,
+  activeBandName,
 }: {
   todayIso: string
   bookingDates: Array<Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>>
@@ -37,6 +46,8 @@ export function PublicVenueBookingPanel({
   isSignedIn: boolean
   initialSelectedDate?: string
   identityNotice?: { title: string; body: string } | null
+  existingThread?: { threadId: string; confirmedUpcomingDate: string | null } | null
+  activeBandName?: string | null
 }) {
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate ?? todayIso)
   const selectedEntry = useMemo(
@@ -169,7 +180,39 @@ export function PublicVenueBookingPanel({
           Request contact
         </h2>
 
-        {isSignedIn && identityNotice ? (
+        {isSignedIn && existingThread ? (
+          existingThread.confirmedUpcomingDate ? (
+            <div className="rounded-xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-4">
+              <p className="text-sm font-semibold text-[#14584E]">
+                ✓ {activeBandName} is playing here on {formatDateShort(existingThread.confirmedUpcomingDate)}
+              </p>
+              <p className="mt-1 text-sm text-[#14584E]/80">
+                You already have a confirmed booking with this venue.
+              </p>
+              <Link
+                href={`/dashboard/inbox/${existingThread.threadId}`}
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0C7C71] hover:underline"
+              >
+                View booking in inbox →
+              </Link>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-4">
+              <p className="text-sm font-semibold text-[#252525]">
+                You're already in a conversation with this venue
+              </p>
+              <p className="mt-1 text-sm text-[#777777]">
+                {activeBandName} has an open thread here. Head to your inbox to continue it.
+              </p>
+              <Link
+                href={`/dashboard/inbox/${existingThread.threadId}`}
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#FD6A2F] hover:underline"
+              >
+                Continue conversation →
+              </Link>
+            </div>
+          )
+        ) : isSignedIn && identityNotice ? (
           <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
             <p className="font-semibold text-[#8A5A12]">{identityNotice.title}</p>
             <p className="mt-1 text-[#8A5A12]/85">{identityNotice.body}</p>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition, useCallback } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
   archiveContactThread,
@@ -268,8 +269,16 @@ export function InboxThreadActions({
   const isOutgoingPending = status === 'pending' && requestedBySide === viewerSide
   const canUnblock = status === 'blocked' && blockedBySide === viewerSide
   const hasPendingCancellation = bookings.some((booking) => booking.status === 'cancellation_requested')
-  const canSetWorkingDate = status === 'accepted' && !hasPendingCancellation
-  const canConfirmBooking = status === 'accepted' && viewerSide === 'venue' && !hasPendingCancellation
+  const todayStr = new Date().toISOString().split('T')[0]
+  const sortedBookings = [...bookings].sort((a, b) => a.show_date.localeCompare(b.show_date))
+  const upcomingBookings = sortedBookings.filter((b) => b.show_date >= todayStr)
+  const pastBookings = sortedBookings.filter((b) => b.show_date < todayStr)
+  const hasConfirmedUpcomingBooking = upcomingBookings.some((b) => b.status === 'confirmed')
+  // Only allow the normal "confirm" path when there is no confirmed booking yet on this thread
+  const canSetWorkingDate = status === 'accepted' && !hasPendingCancellation && !hasConfirmedUpcomingBooking
+  const canConfirmBooking = status === 'accepted' && viewerSide === 'venue' && !hasPendingCancellation && !hasConfirmedUpcomingBooking
+  // After a booking is confirmed, the venue can start a second one from within the thread
+  const canBookAnotherDate = status === 'accepted' && viewerSide === 'venue' && hasConfirmedUpcomingBooking && !hasPendingCancellation
 
   const bannerText = useMemo(() => {
     if (isIncomingPending) return 'This contact request is waiting for your response.'
@@ -307,7 +316,8 @@ export function InboxThreadActions({
     })
   }
 
-  const sortedBookings = [...bookings].sort((a, b) => a.show_date.localeCompare(b.show_date))
+  const [showPastDates, setShowPastDates] = useState(false)
+  const togglePastDates = useCallback(() => setShowPastDates((v) => !v), [])
 
   return (
     <div className="space-y-4">
@@ -384,7 +394,7 @@ export function InboxThreadActions({
         </div>
       )}
 
-      {status === 'accepted' && (
+      {status === 'accepted' && !hasConfirmedUpcomingBooking && (
         <section className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] p-4">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Current booking</p>
           <h2 className="mt-2 text-lg font-semibold text-[#252525]">
@@ -441,89 +451,124 @@ export function InboxThreadActions({
 
       {sortedBookings.length > 0 && (
         <section className="rounded-2xl border border-[#E8E8E8] bg-white p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Confirmed bookings</p>
-              <p className="mt-1 text-sm text-[#777777]">
-                Keep all confirmed and past dates together in one relationship thread.
-              </p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Confirmed bookings</p>
+          <p className="mt-1 text-sm text-[#777777]">
+            Keep all confirmed and past dates together in one relationship thread.
+          </p>
+
+          {upcomingBookings.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {upcomingBookings.map((booking) => {
+                const bookingCount = booking.venue_booking_dates?.id
+                  ? bookingCountByDateId[booking.venue_booking_dates.id] ?? 0
+                  : 0
+                const canRequestCancellation = booking.status === 'confirmed' && viewerSide === 'band'
+                const canKeepBooking = booking.status === 'cancellation_requested' && viewerSide === 'venue'
+                const canCancelBooking =
+                  (booking.status === 'confirmed' || booking.status === 'cancellation_requested') &&
+                  viewerSide === 'venue'
+
+                return (
+                  <div key={booking.id} className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-semibold text-[#252525]">
+                            {formatShowDate(booking.show_date)}
+                          </h3>
+                          <BookingBadge status={booking.status} />
+                        </div>
+                        {booking.venue_booking_dates && booking.status !== 'cancelled' && (
+                          <p className="mt-2 text-sm text-[#666666]">
+                            {bookingCount} of {booking.venue_booking_dates.bill_cap} filled
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {canRequestCancellation && (
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedBookingId(booking.id); setActiveModal('request-cancel') }}
+                            className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
+                          >
+                            Request cancellation
+                          </button>
+                        )}
+                        {canKeepBooking && (
+                          <button
+                            type="button"
+                            onClick={() => runAction(() => resolveBookingCancellation(booking.id, 'keep', ''))}
+                            disabled={isPending}
+                            className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
+                          >
+                            Keep booking
+                          </button>
+                        )}
+                        {canCancelBooking && (
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedBookingId(booking.id); setActiveModal('cancel') }}
+                            className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
+                          >
+                            Cancel booking
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          )}
 
-          <div className="mt-4 space-y-3">
-            {sortedBookings.map((booking) => {
-              const bookingCount = booking.venue_booking_dates?.id
-                ? bookingCountByDateId[booking.venue_booking_dates.id] ?? 0
-                : 0
-              const canRequestCancellation = booking.status === 'confirmed' && viewerSide === 'band'
-              const canKeepBooking = booking.status === 'cancellation_requested' && viewerSide === 'venue'
-              const canCancelBooking =
-                (booking.status === 'confirmed' || booking.status === 'cancellation_requested') &&
-                viewerSide === 'venue'
+          {upcomingBookings.length === 0 && pastBookings.length > 0 && (
+            <p className="mt-3 text-sm text-[#AAAAAA]">No upcoming dates.</p>
+          )}
 
-              return (
-                <div
-                  key={booking.id}
-                  className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-semibold text-[#252525]">
+          {pastBookings.length > 0 && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={togglePastDates}
+                className="flex items-center gap-1.5 text-xs font-medium text-[#888888] transition-colors hover:text-[#555555]"
+              >
+                {showPastDates
+                  ? <ChevronUp className="h-3.5 w-3.5" />
+                  : <ChevronDown className="h-3.5 w-3.5" />}
+                {showPastDates ? 'Hide' : `${pastBookings.length} past date${pastBookings.length !== 1 ? 's' : ''}`}
+              </button>
+
+              {showPastDates && (
+                <div className="mt-3 space-y-2">
+                  {pastBookings.map((booking) => (
+                    <div key={booking.id} className="rounded-xl border border-[#F0F0F0] bg-[#FAFAFA] px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-medium text-[#888888]">
                           {formatShowDate(booking.show_date)}
                         </h3>
                         <BookingBadge status={booking.status} />
                       </div>
-                      {booking.venue_booking_dates && booking.status !== 'cancelled' && (
-                        <p className="mt-2 text-sm text-[#666666]">
-                          {bookingCount} of {booking.venue_booking_dates.bill_cap} filled
-                        </p>
-                      )}
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      {canRequestCancellation && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedBookingId(booking.id)
-                            setActiveModal('request-cancel')
-                          }}
-                          className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC]"
-                        >
-                          Request cancellation
-                        </button>
-                      )}
-
-                      {canKeepBooking && (
-                        <button
-                          type="button"
-                          onClick={() => runAction(() => resolveBookingCancellation(booking.id, 'keep', ''))}
-                          disabled={isPending}
-                          className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
-                        >
-                          Keep booking
-                        </button>
-                      )}
-
-                      {canCancelBooking && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedBookingId(booking.id)
-                            setActiveModal('cancel')
-                          }}
-                          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
-                        >
-                          Cancel booking
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
+              )}
+            </div>
+          )}
+
+          {canBookAnotherDate && (
+            <div className="mt-5 border-t border-[#F0F0F0] pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDate('')
+                  setActiveModal('confirm')
+                }}
+                className="text-sm font-medium text-[#FD6A2F] transition-colors hover:text-[#E55A22]"
+              >
+                + Need to book another date?
+              </button>
+            </div>
+          )}
         </section>
       )}
 
@@ -531,8 +576,8 @@ export function InboxThreadActions({
 
       {activeModal === 'confirm' && (
         <Modal
-          title="Confirm booking"
-          description="This will turn the working date into a confirmed show and make it available for public artist pages and the venue calendar."
+          title={hasConfirmedUpcomingBooking ? 'Confirm additional booking' : 'Confirm booking'}
+          description="This will lock in a confirmed show and make it available for public artist pages and the venue calendar."
           onClose={resetModal}
         >
           <div className="space-y-4">

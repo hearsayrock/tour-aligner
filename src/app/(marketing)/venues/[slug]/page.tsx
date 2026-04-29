@@ -206,6 +206,28 @@ export default async function VenueDetailPage({
       }
     : null
 
+  // Check if the active band already has a thread with this venue
+  let existingThreadInfo: { threadId: string; confirmedUpcomingDate: string | null } | null = null
+  if (contactBands.length > 0) {
+    const { data: threadRow } = await supabase
+      .from('contact_threads')
+      .select('id, bookings(show_date, status)')
+      .eq('venue_id', venue.id)
+      .eq('band_id', contactBands[0].id)
+      .maybeSingle()
+
+    if (threadRow) {
+      const upcomingConfirmed = ((threadRow.bookings ?? []) as Array<{ show_date: string; status: string }>)
+        .filter((b) => b.status === 'confirmed' && b.show_date >= todayIso)
+        .sort((a, b) => a.show_date.localeCompare(b.show_date))
+
+      existingThreadInfo = {
+        threadId: threadRow.id,
+        confirmedUpcomingDate: upcomingConfirmed[0]?.show_date ?? null,
+      }
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-6 pt-24 pb-12">
       {/* Header */}
@@ -315,6 +337,8 @@ export default async function VenueDetailPage({
           isSignedIn={!!user}
           initialSelectedDate={initialSelectedDate}
           identityNotice={contactIdentityNotice}
+          existingThread={existingThreadInfo}
+          activeBandName={contactBands[0]?.name ?? null}
         />
       )}
 

@@ -4,17 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { DirectMessageComposer } from '@/components/contact/DirectMessageComposer'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
 import { ArchiveThreadControl, BlockContactControl, InboxThreadActions } from '@/components/contact/InboxThreadActions'
-import { LinkifiedText } from '@/components/contact/LinkifiedText'
 import { ThreadReadTracker } from '@/components/contact/ThreadReadTracker'
+import { ChatPane } from '@/components/contact/ChatPane'
 import {
   BOOKING_STATUS_LABELS,
-  formatChatClusterTime,
-  formatChatDateDivider,
   formatInboxDate,
   formatShowDate,
-  getConversationMeta,
-  getConversationTitle,
-  getMessageSenderLabel,
   getThreadBookingStatus,
   getThreadDisplayStatus,
   getPartnerHref,
@@ -24,7 +19,6 @@ import {
   getViewerSide,
   hasUnread,
   isThreadArchived,
-  isSameCalendarDay,
   type InboxMessage,
   type ThreadBookingSummary,
   type InboxThread,
@@ -32,7 +26,6 @@ import {
 } from '@/lib/contact'
 
 export const metadata = { title: 'Inbox Thread' }
-const MESSAGE_CLUSTER_GAP_MS = 5 * 60 * 1000
 
 const STATUS_STYLES = {
   pending: 'text-yellow-700 bg-yellow-50 border-yellow-200',
@@ -44,123 +37,6 @@ const STATUS_STYLES = {
   cancelled: 'text-[#666666] bg-[#F5F5F5] border-[#E8E8E8]',
 } as const
 
-function MessageBubble({
-  message,
-  thread,
-  viewerSide,
-}: {
-  message: InboxMessage
-  thread: InboxThread
-  viewerSide: 'band' | 'venue'
-}) {
-  const splitIndex = message.body.indexOf(' Note: ')
-  const splitSystemNote = message.kind === 'system' && splitIndex > -1
-    ? {
-        systemBody: message.body.slice(0, splitIndex),
-        noteBody: message.body.slice(splitIndex + ' Note: '.length),
-      }
-    : null
-
-  if (splitSystemNote) {
-    const isOwnMessage = message.sender_side === viewerSide
-
-    return (
-      <div className="space-y-3">
-        <div className="flex justify-center">
-          <div className="max-w-xl rounded-full bg-[#F5F5F5] border border-[#E8E8E8] px-4 py-2 text-xs text-[#666666]">
-            <LinkifiedText text={splitSystemNote.systemBody} className="whitespace-pre-wrap" />
-          </div>
-        </div>
-        <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-          <div
-            className={`max-w-[78%] px-4 py-3 ${
-              isOwnMessage
-                ? 'rounded-[20px] rounded-br-md bg-[#FD6A2F] text-white'
-                : 'rounded-[20px] rounded-bl-md border border-[#E8E8E8] bg-white text-[#252525]'
-            }`}
-          >
-            <p className={`mb-2 text-[11px] font-medium ${isOwnMessage ? 'text-white/75' : 'text-[#8E8E93]'}`}>
-              {getMessageSenderLabel(thread, message.sender_side, viewerSide)}
-            </p>
-            <LinkifiedText
-              text={splitSystemNote.noteBody}
-              className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${
-                isOwnMessage ? 'text-white' : 'text-[#252525]'
-              }`}
-              linkClassName={
-                isOwnMessage
-                  ? 'text-white underline decoration-white/60 break-all'
-                  : 'text-[#FD6A2F] hover:underline break-all'
-              }
-            />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (message.kind === 'system') {
-    return (
-      <div className="flex justify-center">
-        <div className="max-w-xl rounded-full bg-[#F5F5F5] border border-[#E8E8E8] px-4 py-2 text-xs text-[#666666]">
-          <LinkifiedText text={message.body} className="whitespace-pre-wrap" />
-        </div>
-      </div>
-    )
-  }
-
-  const isOwnMessage = message.sender_side === viewerSide
-
-  return (
-    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[78%] px-4 py-3 ${
-          isOwnMessage
-            ? 'rounded-[20px] rounded-br-md bg-[#FD6A2F] text-white'
-            : 'rounded-[20px] rounded-bl-md border border-[#E8E8E8] bg-white text-[#252525]'
-        }`}
-      >
-        <p className={`mb-2 text-[11px] font-medium ${isOwnMessage ? 'text-white/75' : 'text-[#8E8E93]'}`}>
-          {getMessageSenderLabel(thread, message.sender_side, viewerSide)}
-        </p>
-        <LinkifiedText
-          text={message.body}
-          className={`whitespace-pre-wrap break-words text-sm leading-relaxed ${
-            isOwnMessage ? 'text-white' : 'text-[#252525]'
-          }`}
-          linkClassName={
-            isOwnMessage
-              ? 'text-white underline decoration-white/60 break-all'
-              : 'text-[#FD6A2F] hover:underline break-all'
-          }
-        />
-      </div>
-    </div>
-  )
-}
-
-function buildMessageTimeline(messages: InboxMessage[]) {
-  return messages.map((message, index) => {
-    const previousMessage = index > 0 ? messages[index - 1] : null
-    const isNewDay =
-      !previousMessage || !isSameCalendarDay(previousMessage.created_at, message.created_at)
-
-    const gapFromPrevious = previousMessage
-      ? new Date(message.created_at).getTime() - new Date(previousMessage.created_at).getTime()
-      : Number.POSITIVE_INFINITY
-
-    const startsNewCluster =
-      !previousMessage ||
-      isNewDay ||
-      gapFromPrevious >= MESSAGE_CLUSTER_GAP_MS
-
-    return {
-      message,
-      showDateDivider: isNewDay,
-      showClusterTime: startsNewCluster,
-    }
-  })
-}
 
 export default async function InboxThreadPage({
   params,
@@ -297,7 +173,6 @@ export default async function InboxThreadPage({
   const displayStatus = getThreadDisplayStatus(thread.status, threadBookingStatus)
   const displayStatusLabel = threadBookingStatus ? BOOKING_STATUS_LABELS[threadBookingStatus] : THREAD_STATUS_LABELS[thread.status]
   const displayStatusStyle = STATUS_STYLES[displayStatus]
-  const messageTimeline = buildMessageTimeline(messages)
   const viewerEntity = getViewerEntity(thread, viewerSide)
 
   return (
@@ -318,9 +193,21 @@ export default async function InboxThreadPage({
           <div className="shrink-0 border-b border-[#F0F0F0] px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold">{getConversationTitle(thread)}</h1>
+                <div className="flex flex-wrap items-baseline gap-x-2.5">
+                  <h1 className="text-2xl font-bold">
+                    Conversation with{' '}
+                    <span className="text-[#FD6A2F]">
+                      {viewerSide === 'band' ? (thread.venues?.name ?? 'Venue') : (thread.bands?.name ?? 'Artist')}
+                    </span>
+                  </h1>
+                  {viewerSide === 'band' && thread.venues?.location_city && (
+                    <span className="text-sm text-[#888888]">
+                      {thread.venues.location_city}, {thread.venues.location_state}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 text-sm text-[#888888]">
-                  {getConversationMeta(thread, viewerSide)}
+                  You are <span className="font-bold text-[#252525]">{viewerEntity.name}</span>
                 </p>
                 {partnerPresenceLabel && (
                   <p className="mt-2 flex items-center gap-2 text-xs text-[#0C7C71]">
@@ -359,35 +246,12 @@ export default async function InboxThreadPage({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-[#FCFCFC] px-6 py-6">
-            {messages.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#E8E8E8] bg-white px-6 py-10 text-center text-sm text-[#888888]">
-                No messages yet.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {messageTimeline.map(({ message, showDateDivider, showClusterTime }) => (
-                  <div key={message.id} className="space-y-3">
-                    {showDateDivider && (
-                      <div className="flex justify-center">
-                        <p className="text-xs font-medium text-[#AAAAAA]">
-                          {formatChatDateDivider(message.created_at)}
-                        </p>
-                      </div>
-                    )}
-                    {showClusterTime && (
-                      <div className="flex justify-center">
-                        <p className="text-[11px] text-[#B3B3B3]">
-                          {formatChatClusterTime(message.created_at)}
-                        </p>
-                      </div>
-                    )}
-                    <MessageBubble message={message} thread={thread} viewerSide={viewerSide} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ChatPane
+            messages={messages}
+            thread={thread}
+            viewerSide={viewerSide}
+            lastReadAt={viewerSide === 'band' ? thread.band_last_read_at : thread.venue_last_read_at}
+          />
 
           {thread.status === 'accepted' && (
             <div className="shrink-0 border-t border-[#F0F0F0] px-6 py-5">

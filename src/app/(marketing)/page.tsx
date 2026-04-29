@@ -5,11 +5,9 @@ import {
   ArrowRight,
   CalendarRange,
   CheckCircle2,
-  ChevronRight,
   Compass,
   Inbox,
   Radar,
-  Sparkles,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -103,17 +101,17 @@ function Hero() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#E55A22]"
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#E55A22]"
             >
               Start free
               <ArrowRight size={16} />
             </Link>
             <Link
               href="/venues"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/14"
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/14"
             >
               Browse venues
-              <ChevronRight size={16} />
+              <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -136,46 +134,112 @@ function Hero() {
           </div>
         </div>
 
-        <div className="relative lg:pl-8">
-          <div className="mx-auto w-full max-w-[620px]">
-            <div className="rounded-[28px] border border-white/12 bg-black/44 p-4 text-white shadow-[0_28px_80px_rgba(0,0,0,0.26)] backdrop-blur-md">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#F6B293]">
-                Booking inbox
-              </p>
-              <div className="mt-3 rounded-2xl border border-white/10 bg-white/8 p-4">
-                <div className="flex items-center justify-between gap-3">
+        <div className="relative lg:pl-12">
+          <div className="mx-auto w-full max-w-[460px]">
+            <div className="rounded-[22px] border border-white/12 bg-black/38 p-3 text-white shadow-[0_18px_42px_rgba(0,0,0,0.2)] backdrop-blur-md lg:-translate-x-[50px]">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#F6B293]">
+                  Inbox
+                </p>
+                <span className="rounded-full bg-[#0E7490]/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8DDAEF]">
+                  In discussion
+                </span>
+              </div>
+
+              <div className="mt-3 rounded-[18px] border border-white/10 bg-[#101010]/88 p-3 shadow-[0_10px_22px_rgba(0,0,0,0.16)]">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">Higher Law ↔ The Blue Room</p>
-                    <p className="mt-1 text-xs text-white/70">
-                      Suggested date: May 14 · Working date is active
+                    <p className="mt-1 text-xs text-white/65">Salt Lake City, UT</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                      Working date
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-white">May 14, 2026</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.04] p-2.5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                        Working date
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-white">May 14, 2026</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                        Bill
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-white">1 / 4 filled</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  <div className="mr-8 rounded-[15px] border border-white/8 bg-white/[0.04] px-3 py-2.5">
+                    <p className="mb-1 text-[11px] font-medium text-[#8E8E93]">Venue</p>
+                    <p className="text-sm leading-relaxed text-white/88">
+                      May 14 looks open. Want to put a hold on it and keep talking?
                     </p>
                   </div>
-                  <span className="rounded-full bg-[#0E7490]/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8DDAEF]">
-                    In discussion
-                  </span>
+
+                  <div className="ml-8 rounded-[15px] bg-[#FD6A2F] px-3 py-2.5 text-white">
+                    <p className="mb-1 text-[11px] font-medium text-white/75">Artist</p>
+                    <p className="text-sm leading-relaxed">
+                      Yes. That date works for us. We can bring a psych-leaning bill.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="-mt-2 ml-auto w-full max-w-[360px] rounded-[24px] border border-[#17343A] bg-[#091315]/94 p-4 text-white shadow-[0_20px_45px_rgba(0,0,0,0.28)] backdrop-blur-md">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#79D7CC]">
-                Venue calendar
-              </p>
-              <h3 className="mt-2 text-lg font-semibold">Right room. Right date.</h3>
-              <div className="mt-4 space-y-2">
-                {[
-                  ['May 14', 'Open · indie / psych leaning'],
-                  ['May 18', '1 / 4 filled'],
-                  ['May 24', 'All booked up'],
-                ].map(([date, note]) => (
-                  <div
-                    key={date}
-                    className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5"
-                  >
-                    <span className="text-sm font-medium">{date}</span>
-                    <span className="text-xs text-white/70">{note}</span>
+            <div className="-mt-12 ml-auto w-full max-w-[272px] rounded-[20px] border border-[#17343A] bg-[#091315]/94 p-3 text-white shadow-[0_16px_32px_rgba(0,0,0,0.22)] backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#79D7CC]">
+                    Calendar
+                  </p>
+                  <h3 className="mt-1 text-[15px] font-semibold">The Blue Room</h3>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md border border-white/14 px-2.5 py-1.5 text-[11px] font-medium text-white/85"
+                >
+                  Today
+                </button>
+              </div>
+
+              <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-2.5">
+                <div className="mb-2.5 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">May 2026</span>
+                  <div className="flex items-center gap-2 text-lg text-white/70">
+                    <span>‹</span>
+                    <span>›</span>
                   </div>
-                ))}
+                </div>
+
+                <div className="space-y-1.5">
+                  {[
+                    ['May 14', 'Open', 'indie / psych leaning', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
+                    ['May 18', '1 / 4 filled', '', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
+                    ['May 24', 'All booked up', '', 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]'],
+                  ].map(([date, status, note, styles]) => (
+                    <div
+                      key={date}
+                      className={`rounded-[16px] border px-2.5 py-2 ${styles}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">{date}</p>
+                          <p className="mt-1 text-xs opacity-80">{status}</p>
+                        </div>
+                        {note ? <span className="text-[11px] opacity-80">{note}</span> : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

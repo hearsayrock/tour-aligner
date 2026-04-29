@@ -1,8 +1,6 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { IdentitySwitcher } from '@/components/dashboard/IdentitySwitcher'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
 import { InboxViewSelect } from '@/components/contact/InboxViewSelect'
 import {
@@ -23,13 +21,6 @@ import {
   type InboxThread,
   THREAD_STATUS_LABELS,
 } from '@/lib/contact'
-import {
-  ACTIVE_IDENTITY_COOKIE,
-  activeIdentityLabel,
-  identityMatchesThread,
-  resolveActiveIdentity,
-  type ManagedIdentity,
-} from '@/lib/managed-identity'
 
 export const metadata = { title: 'Inbox' }
 
@@ -159,7 +150,7 @@ export default async function InboxPage({
 
   if (!user) return redirect('/login')
 
-  const [{ data: rawThreads }, { data: rawBands }, { data: rawVenues }] = await Promise.all([
+  const [{ data: rawThreads }] = await Promise.all([
     supabase
       .from('contact_threads')
       .select(`
@@ -182,8 +173,6 @@ export default async function InboxPage({
       `)
       .order('last_message_at', { ascending: false })
       .order('updated_at', { ascending: false }),
-    supabase.from('bands').select('id, name, slug').eq('user_id', user.id).eq('is_active', true).order('name'),
-    supabase.from('venues').select('id, name, slug').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
   ])
 
   const threadIds = ((rawThreads ?? []) as Array<{ id: string }>).map((t) => t.id)
@@ -196,22 +185,6 @@ export default async function InboxPage({
     : { data: [] }
 
   const threads = (rawThreads ?? []) as unknown as InboxThread[]
-  const identities: ManagedIdentity[] = [
-    ...((rawBands ?? []) as Array<{ id: string; name: string; slug: string }>).map((band) => ({
-      kind: 'band' as const,
-      id: band.id,
-      name: band.name,
-      href: `/dashboard/bands/${band.id}/edit`,
-    })),
-    ...((rawVenues ?? []) as Array<{ id: string; name: string; slug: string }>).map((venue) => ({
-      kind: 'venue' as const,
-      id: venue.id,
-      name: venue.name,
-      href: `/dashboard/venues/${venue.id}/edit`,
-    })),
-  ]
-  const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
   const bookingStatusesByThreadId = new Map<string, Array<'confirmed' | 'cancellation_requested' | 'cancelled'>>()
   for (const booking of (rawBookings ?? []) as Array<{ thread_id: string | null; status: 'confirmed' | 'cancellation_requested' | 'cancelled' }>) {
     if (!booking.thread_id) continue
@@ -225,7 +198,7 @@ export default async function InboxPage({
     const status = getThreadBookingStatus(statuses)
     if (status) bookingStatusByThreadId.set(threadId, status)
   }
-  const visibleThreads = threads.filter((thread) => !!getViewerSide(thread, user.id) && identityMatchesThread(activeIdentity, thread))
+  const visibleThreads = threads.filter((thread) => !!getViewerSide(thread, user.id))
   const partnerUserIds = Array.from(
     new Set(
       visibleThreads
@@ -300,16 +273,13 @@ export default async function InboxPage({
       <div className="flex items-end justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold">Inbox</h1>
-          <p className="text-sm text-[#888888] mt-1">
-            {activeIdentity.kind === 'all'
-              ? 'Contact requests, active conversations, and history all live here.'
-              : `Contact requests, active conversations, and history for ${activeIdentityLabel(activeIdentity)}.`}
-          </p>
+          <p className="text-sm text-[#888888] mt-1">Contact requests, active conversations, and history all live here.</p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <IdentitySwitcher activeIdentity={activeIdentity} identities={identities} />
-          {showViewSelect && <InboxViewSelect value={selectedView} />}
-        </div>
+        {showViewSelect && (
+          <div className="flex items-center">
+            <InboxViewSelect value={selectedView} />
+          </div>
+        )}
       </div>
 
       {!hasAnything && (
