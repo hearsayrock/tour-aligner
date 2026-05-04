@@ -42,3 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vscode
+
+# supabase CLI ephemeral state — keep only project-ref tracked
+supabase/.temp/*
+!supabase/.temp/project-ref
