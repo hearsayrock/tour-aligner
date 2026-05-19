@@ -2,6 +2,12 @@
 
 This file contains repo-specific instructions for automated coding agents working in `tour-aligner`.
 
+## Branch workflow
+
+- Do all new development from `staging` unless the user explicitly says otherwise.
+- Start new work by updating `staging` and creating a feature branch from it.
+- Do not use `main` as the base for new work unless the task is specifically a production hotfix or the user requests it.
+
 ## Supabase migrations
 
 - Always create new Supabase migrations with the CLI:
