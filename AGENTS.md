@@ -10,6 +10,12 @@ This file contains repo-specific instructions for automated coding agents workin
 
 ## Supabase migrations
 
+- Before any schema change or Supabase migration work, verify the linked project ref:
+  ```powershell
+  Get-Content supabase\.temp\project-ref
+  ```
+- The linked project ref must be the staging project, `zdfmylywoewtncrnqvod`.
+- If `supabase/.temp/project-ref` is missing or is not `zdfmylywoewtncrnqvod`, stop and tell the developer before creating migrations, editing schema SQL, or running Supabase database commands.
 - Always create new Supabase migrations with the CLI:
   ```powershell
   npx supabase migration new <descriptive_name>

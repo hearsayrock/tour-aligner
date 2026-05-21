@@ -128,6 +128,11 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+Staging deployments should set `APP_ENV=staging` to show the staging-only badge
+next to the TourAligner logo. Production should set `APP_ENV=production` or
+leave it unset; the staging badge is disabled unless the environment value is
+explicitly `staging` or `stage`.
+
 4. Start the app:
 
 ```bash

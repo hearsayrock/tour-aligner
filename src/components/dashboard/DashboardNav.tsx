@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { IdentitySwitcher } from '@/components/dashboard/IdentitySwitcher'
+import { EnvironmentBadge } from '@/components/layout/EnvironmentBadge'
 import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 
@@ -37,6 +38,7 @@ function Dot() {
 }
 
 export function DashboardNav({
+  showStagingBadge = false,
   isAdmin = false,
   notifications,
   hasBands = false,
@@ -44,6 +46,7 @@ export function DashboardNav({
   activeIdentity,
   identities = [],
 }: {
+  showStagingBadge?: boolean
   isAdmin?: boolean
   notifications?: Notifications
   hasBands?: boolean
@@ -80,8 +83,9 @@ export function DashboardNav({
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <Image src="/logo.png" alt="TourAligner" width={130} height={34} priority />
+          {showStagingBadge && <EnvironmentBadge />}
         </Link>
 
         {/* Right side controls */}

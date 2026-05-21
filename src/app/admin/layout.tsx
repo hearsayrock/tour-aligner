@@ -1,11 +1,14 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { EnvironmentBadge } from '@/components/layout/EnvironmentBadge'
 import { createClient } from '@/lib/supabase/server'
+import { isStagingEnvironment } from '@/lib/deployment-environment'
 import { AdminNav } from './_components/AdminNav'
 
 export const metadata = { title: 'Admin' }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const showStagingBadge = isStagingEnvironment()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
@@ -22,7 +25,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* Sidebar */}
       <aside className="w-48 shrink-0 bg-[#FFFFFF] border-r border-[#E8E8E8] flex flex-col">
         <div className="px-4 py-4 border-b border-[#E8E8E8]">
-          <p className="text-[10px] font-bold text-[#888888] uppercase tracking-widest">TourAligner</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-bold text-[#888888] uppercase tracking-widest">TourAligner</p>
+            {showStagingBadge && <EnvironmentBadge />}
+          </div>
           <p className="text-base font-bold text-[#252525] mt-0.5">Admin</p>
         </div>
 
