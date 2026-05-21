@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { ActivityHeartbeat } from '@/components/auth/ActivityHeartbeat'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { Navbar } from '@/components/marketing/Navbar'
+import { isStagingEnvironment } from '@/lib/deployment-environment'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
@@ -11,6 +12,7 @@ import type { ContactThreadStatus, ConversationSide } from '@/types/database'
  * Use this in all layouts so the nav is always consistent.
  */
 export async function AppNav() {
+  const showStagingBadge = isStagingEnvironment()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -108,6 +110,7 @@ export async function AppNav() {
     <>
       <ActivityHeartbeat />
       <DashboardNav
+        showStagingBadge={showStagingBadge}
         isAdmin={profile?.is_admin ?? false}
         notifications={notifications}
         hasBands={bandIds.length > 0}
