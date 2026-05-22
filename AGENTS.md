@@ -20,6 +20,12 @@ This file contains repo-specific instructions for automated coding agents workin
   ```powershell
   npx supabase migration new <descriptive_name>
   ```
+- Unless the developer explicitly specifies otherwise, create a matching rollback SQL file for every new migration in `supabase/rollback/` using the same timestamp and descriptive name as the CLI-created migration:
+  ```text
+  supabase/migrations/<timestamp>_<descriptive_name>.sql
+  supabase/rollback/<timestamp>_<descriptive_name>_rollback.sql
+  ```
+- Rollback files must contain the inverse SQL needed to undo the migration, or a clear SQL comment explaining why the migration is not safely reversible.
 - Never hand-create migration filenames in `supabase/migrations`.
 - Never duplicate a migration timestamp.
 - There must be exactly one migration file per timestamp in `supabase/migrations`.
@@ -43,6 +49,7 @@ This file contains repo-specific instructions for automated coding agents workin
 - Do not place rollback scripts in `supabase/migrations`.
 - Store rollback SQL in `supabase/rollback/`.
 - Only forward migrations belong in `supabase/migrations`.
+- Rollback files are manual recovery scripts, not forward migrations, and must not be applied through the normal migration chain unless the developer explicitly requests a new forward migration that reverts a previous change.
 
 ## Live database safety
 
