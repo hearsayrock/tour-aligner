@@ -139,6 +139,7 @@ export default async function DashboardPage() {
   const name = profile?.full_name?.split(' ')[0] ?? 'there'
   const hasAnyEvents = (venueEvents ?? []).length > 0 || artistEvents.length > 0
   const canCreateEvent = venueIds.length > 0
+  const hasMultipleProfiles = identities.length > 1
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
@@ -159,20 +160,22 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link href="/dashboard/backstage" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-          <p className="text-3xl font-bold">{(venueEvents ?? []).length + artistEvents.length}</p>
-          <p className="mt-1 text-sm text-[#888888]">Active Backstages</p>
-        </Link>
-        <Link href="/dashboard/bands" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-          <p className="text-3xl font-bold">{allBandIds.length}</p>
-          <p className="mt-1 text-sm text-[#888888]">{allBandIds.length === 1 ? 'Artist' : 'Artists'}</p>
-        </Link>
-        <Link href="/dashboard/venues" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-          <p className="text-3xl font-bold">{allVenueIds.length}</p>
-          <p className="mt-1 text-sm text-[#888888]">{allVenueIds.length === 1 ? 'Venue' : 'Venues'}</p>
-        </Link>
-      </div>
+      {hasMultipleProfiles && (
+        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Link href="/dashboard/backstage" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
+            <p className="text-3xl font-bold">{(venueEvents ?? []).length + artistEvents.length}</p>
+            <p className="mt-1 text-sm text-[#888888]">Active Backstages</p>
+          </Link>
+          <Link href="/dashboard/bands" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
+            <p className="text-3xl font-bold">{allBandIds.length}</p>
+            <p className="mt-1 text-sm text-[#888888]">{allBandIds.length === 1 ? 'Artist' : 'Artists'}</p>
+          </Link>
+          <Link href="/dashboard/venues" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
+            <p className="text-3xl font-bold">{allVenueIds.length}</p>
+            <p className="mt-1 text-sm text-[#888888]">{allVenueIds.length === 1 ? 'Venue' : 'Venues'}</p>
+          </Link>
+        </div>
+      )}
 
       {!hasAnyEvents && (pendingClaims ?? []).length === 0 && (
         <div className="rounded-2xl border border-[#E8E8E8] bg-white p-12 text-center">

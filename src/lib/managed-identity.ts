@@ -11,6 +11,12 @@ export type ManagedIdentity = {
 
 export type ActiveIdentity = { kind: 'all' } | ManagedIdentity
 
+export type RequiredIdentityResolution = {
+  activeIdentity: ManagedIdentity | null
+  requiresSelection: boolean
+  hasMultipleIdentities: boolean
+}
+
 export function identityValue(identity: ActiveIdentity) {
   return identity.kind === 'all' ? 'all' : `${identity.kind}:${identity.id}`
 }
@@ -38,6 +44,44 @@ export function resolveActiveIdentity(
   if (!parsed || parsed.kind === 'all') return { kind: 'all' }
 
   return identities.find((identity) => identity.kind === parsed.kind && identity.id === parsed.id) ?? { kind: 'all' }
+}
+
+export function resolveRequiredActiveIdentity(
+  cookieValue: string | null | undefined,
+  identities: ManagedIdentity[]
+): RequiredIdentityResolution {
+  if (identities.length === 0) {
+    return {
+      activeIdentity: null,
+      requiresSelection: false,
+      hasMultipleIdentities: false,
+    }
+  }
+
+  if (identities.length === 1) {
+    return {
+      activeIdentity: identities[0],
+      requiresSelection: false,
+      hasMultipleIdentities: false,
+    }
+  }
+
+  const parsed = parseIdentityValue(cookieValue)
+  if (!parsed || parsed.kind === 'all') {
+    return {
+      activeIdentity: null,
+      requiresSelection: true,
+      hasMultipleIdentities: true,
+    }
+  }
+
+  const activeIdentity = identities.find((identity) => identity.kind === parsed.kind && identity.id === parsed.id) ?? null
+
+  return {
+    activeIdentity,
+    requiresSelection: !activeIdentity,
+    hasMultipleIdentities: true,
+  }
 }
 
 export function identityMatchesThread(

@@ -79,6 +79,8 @@ export function DashboardNav({
     return false
   }
 
+  const allowAllIdentities = pathname === '/dashboard'
+
   return (
     <header className="relative border-b border-[#E8E8E8] bg-[#FAFAFA]">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -114,6 +116,7 @@ export function DashboardNav({
             <IdentitySwitcher
               activeIdentity={activeIdentity}
               identities={identities}
+              allowAll={allowAllIdentities}
               className="hidden sm:flex mr-2"
             />
           )}
@@ -146,6 +149,7 @@ export function DashboardNav({
                   <IdentitySwitcher
                     activeIdentity={activeIdentity}
                     identities={identities}
+                    allowAll={allowAllIdentities}
                     className="justify-between"
                   />
                 </div>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import {
   EVENT_STATUS_LABELS,
   MEMBERSHIP_STATUS_LABELS,
@@ -9,7 +10,7 @@ import {
   getAcceptedMemberships,
   getOpenArtistNeed,
 } from '@/lib/events'
-import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
+import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
 
 export const metadata = { title: 'Backstages' }
@@ -114,19 +115,27 @@ export default async function BackstageListPage() {
     })),
   ]
   const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
-  const allBandIds = (bands ?? []).map((band) => band.id)
-  const allVenueIds = (venues ?? []).map((venue) => venue.id)
-  const bandIds = activeIdentity.kind === 'all'
-    ? allBandIds
-    : activeIdentity.kind === 'band'
-      ? [activeIdentity.id]
-      : []
-  const venueIds = activeIdentity.kind === 'all'
-    ? allVenueIds
-    : activeIdentity.kind === 'venue'
-      ? [activeIdentity.id]
-      : []
+  const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+  if (requiredIdentity.requiresSelection) {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-[#252525]">Backstages</h1>
+          <p className="mt-1 text-sm text-[#888888]">Choose which profile you want to browse.</p>
+        </div>
+        <ProfileSelectionModal
+          title="Select a profile to view Backstages"
+          body="Backstages are filtered by one artist or venue profile. Use the profile selector in the nav to choose the profile you want to browse."
+          identities={identities}
+        />
+      </div>
+    )
+  }
+
+  const activeIdentity = requiredIdentity.activeIdentity
+  const bandIds = activeIdentity?.kind === 'band' ? [activeIdentity.id] : []
+  const venueIds = activeIdentity?.kind === 'venue' ? [activeIdentity.id] : []
 
   const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     venueIds.length

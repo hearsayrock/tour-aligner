@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import { setActiveIdentity } from '@/app/actions/profile'
 import { identityValue, type ActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 
-function activeLabel(activeIdentity: ActiveIdentity) {
-  if (activeIdentity.kind === 'all') return 'All profiles'
+function activeLabel(activeIdentity: ActiveIdentity, allowAll: boolean) {
+  if (activeIdentity.kind === 'all') return allowAll ? 'All profiles' : 'Select profile'
   return activeIdentity.name
 }
 
@@ -15,10 +15,12 @@ export function IdentitySwitcher({
   activeIdentity,
   identities,
   className = '',
+  allowAll = true,
 }: {
   activeIdentity: ActiveIdentity
   identities: ManagedIdentity[]
   className?: string
+  allowAll?: boolean
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -53,20 +55,22 @@ export function IdentitySwitcher({
           open ? 'text-[#252525]' : 'text-[#888888] hover:text-[#252525]'
         }`}
       >
-        <span className="max-w-[140px] truncate">{activeLabel(activeIdentity)}</span>
+        <span className="max-w-[140px] truncate">{activeLabel(activeIdentity, allowAll)}</span>
         <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
         <div className="absolute top-[calc(100%+4px)] right-0 z-50 w-48 bg-white border border-[#E8E8E8] rounded-xl shadow-lg overflow-hidden">
           <div className="py-1">
-            <button
-              type="button"
-              onClick={() => select('all')}
-              className="block w-full text-left text-sm px-4 py-2.5 text-[#333333] hover:bg-[#F5F5F5] transition-colors"
-            >
-              All profiles
-            </button>
+            {allowAll && (
+              <button
+                type="button"
+                onClick={() => select('all')}
+                className="block w-full text-left text-sm px-4 py-2.5 text-[#333333] hover:bg-[#F5F5F5] transition-colors"
+              >
+                All profiles
+              </button>
+            )}
             {identities.map((identity) => (
               <button
                 key={`${identity.kind}:${identity.id}`}
