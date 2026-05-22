@@ -27,11 +27,11 @@ export function ApplyEventForm({
   backstageHref?: string | null
 }) {
   const router = useRouter()
-  const [bandId, setBandId] = useState(bands[0]?.id ?? '')
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const bandId = bands[0]?.id ?? ''
 
   if (existingMembership?.status === 'accepted' || existingMembership?.status === 'removal_requested') {
     return (
@@ -112,14 +112,6 @@ export function ApplyEventForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div>
-        <label className="mb-1.5 block text-sm text-[#777777]">Applying as</label>
-        <select value={bandId} onChange={(event) => setBandId(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]">
-          {bands.map((band) => (
-            <option key={band.id} value={band.id}>{band.name}</option>
-          ))}
-        </select>
-      </div>
       <div>
         <label className="mb-1.5 block text-sm text-[#777777]">Application note</label>
         <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} required placeholder="Tell the venue why this artist fits the event." className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />

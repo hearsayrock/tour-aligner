@@ -1,6 +1,9 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { createClient } from '@/lib/supabase/server'
 import { formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
 
 export const metadata = {
@@ -26,12 +29,55 @@ export default async function EventsPage({
 }) {
   const supabase = await createClient()
   const params = (await searchParams) ?? {}
-  const [{ data: genres }, eventIdResult] = await Promise.all([
+  const [
+    { data: genres },
+    eventIdResult,
+    { data: { user } },
+  ] = await Promise.all([
     supabase.from('genres').select('id, name').order('name'),
     params.genre
       ? supabase.from('event_genres').select('event_id').eq('genre_id', params.genre)
       : Promise.resolve({ data: null }),
+    supabase.auth.getUser(),
   ])
+
+  if (user) {
+    const [{ data: rawBands }, { data: rawVenues }] = await Promise.all([
+      supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true).order('name'),
+      supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
+    ])
+    const bandIdentities: ManagedIdentity[] = ((rawBands ?? []) as Array<{ id: string; name: string }>).map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    }))
+    const venueIdentities: ManagedIdentity[] = ((rawVenues ?? []) as Array<{ id: string; name: string }>).map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    }))
+    const identities = [...bandIdentities, ...venueIdentities]
+    const cookieStore = await cookies()
+    const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+    if (identities.length > 1 && activeIdentity.kind === 'all') {
+      return (
+        <div className="mx-auto max-w-5xl px-6 py-10">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-[#252525]">Available Events</h1>
+            <p className="mt-1 text-sm text-[#888888]">Choose which profile you want to browse from.</p>
+          </div>
+          <ProfileSelectionModal
+            title="Select a profile to browse Events"
+            body="Available Events are browsed from one active profile at a time. Artist profiles can apply; other profiles browse as attendees."
+            identities={identities}
+          />
+        </div>
+      )
+    }
+  }
 
   const matchingEventIds = params.genre
     ? ((eventIdResult.data ?? []) as Array<{ event_id: string }>).map((row) => row.event_id)

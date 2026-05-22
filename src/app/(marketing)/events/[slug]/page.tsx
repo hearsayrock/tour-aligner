@@ -78,6 +78,7 @@ export default async function EventDetailPage({
   let existingMembership: { id: string; status: EventArtistMembership['status'] } | null = null
   let identityNotice: { title: string; body: string } | null = null
   let activeVenueOwnsEvent = false
+  let showApplyPanel = !user
   const backstageHref = `/dashboard/backstage/${event.id}`
 
   if (user) {
@@ -123,6 +124,7 @@ export default async function EventDetailPage({
     applyBands = activeIdentity.kind === 'band'
       ? userBands.filter((band) => band.id === activeIdentity.id)
       : []
+    showApplyPanel = activeIdentity.kind === 'band' || activeIdentity.kind === 'all'
     const existing = activeIdentity.kind === 'band'
       ? memberships.find((membership) => membership.band_id === activeIdentity.id)
       : null
@@ -211,7 +213,7 @@ export default async function EventDetailPage({
             >
               Open Backstage
             </Link>
-          ) : (
+          ) : showApplyPanel ? (
             <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
               <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Apply</h2>
               <div className="mt-4">
@@ -237,7 +239,7 @@ export default async function EventDetailPage({
                 )}
               </div>
             </section>
-          )}
+          ) : null}
 
           <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5 text-sm">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Capacity</p>
