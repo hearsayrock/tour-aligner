@@ -53,7 +53,13 @@ function LogisticsDisplay({ event }: { event: EventWithVenue }) {
   )
 }
 
-function MessageList({ messages }: { messages: BackstageMessageSummary[] }) {
+function MessageList({
+  activeIdentity,
+  messages,
+}: {
+  activeIdentity: ManagedIdentity
+  messages: BackstageMessageSummary[]
+}) {
   if (messages.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E8E8E8] bg-white px-6 py-10 text-center text-sm text-[#888888]">
@@ -66,31 +72,44 @@ function MessageList({ messages }: { messages: BackstageMessageSummary[] }) {
     <div className="space-y-4">
       {messages.map((message) => {
         const isSystem = message.sender_kind === 'system'
+        const isOwnMessage =
+          activeIdentity.kind === 'venue'
+            ? message.sender_kind === 'venue'
+            : message.sender_kind === 'artist' && message.sender_band_id === activeIdentity.id
         const sender =
           message.sender_kind === 'venue'
             ? 'Venue'
             : message.sender_kind === 'artist'
               ? message.bands?.name ?? 'Artist'
               : 'System'
+        const formattedCreatedAt = new Date(message.created_at).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
 
         return (
-          <div key={message.id} className={isSystem ? 'flex justify-center' : ''}>
-            <div className={isSystem ? 'max-w-xl rounded-full border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2 text-xs text-[#666666]' : 'rounded-2xl border border-[#E8E8E8] bg-white px-4 py-3'}>
-              {!isSystem && (
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">{sender}</p>
-                  <p className="text-xs text-[#AAAAAA]">
-                    {new Date(message.created_at).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </p>
+          <div key={message.id} className={isSystem ? 'flex justify-center' : `flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+            {isSystem ? (
+              <div className="max-w-xl rounded-full border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2 text-center text-xs text-[#666666]">
+                <LinkifiedText text={message.body} className="whitespace-pre-wrap break-words leading-relaxed" />
+              </div>
+            ) : (
+              <div className={`flex max-w-[82%] flex-col ${isOwnMessage ? 'items-end' : 'items-start'} sm:max-w-[68%]`}>
+                <div className={`mb-1 flex max-w-full flex-wrap items-center gap-2 px-1 text-xs ${isOwnMessage ? 'justify-end text-right' : 'justify-start'}`}>
+                  <p className="font-semibold uppercase tracking-widest text-[#888888]">{sender}</p>
+                  <p className="text-[#AAAAAA]">{formattedCreatedAt}</p>
                 </div>
-              )}
-              <LinkifiedText text={message.body} className="whitespace-pre-wrap text-sm leading-relaxed text-[#252525]" />
-            </div>
+                <div className={`rounded-2xl px-4 py-3 shadow-sm ${isOwnMessage ? 'rounded-br-md bg-[#2563EB]' : 'rounded-bl-md bg-[#FD6A2F]'}`}>
+                  <LinkifiedText
+                    text={message.body}
+                    className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white"
+                    linkClassName="break-all font-medium text-white underline decoration-white/60 underline-offset-2"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )
       })}
@@ -276,7 +295,7 @@ export default async function BackstageDetailPage({
         </div>
       </div>
 
-      {!canEnterBackstage ? (
+      {!canEnterBackstage || !activeIdentity ? (
         <div className="rounded-2xl border border-[#E8E8E8] bg-white p-8">
           <h2 className="text-lg font-semibold text-[#252525]">Backstage access pending</h2>
           <p className="mt-2 text-sm text-[#777777]">
@@ -302,7 +321,7 @@ export default async function BackstageDetailPage({
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Backstage chat</h2>
               </div>
-              <MessageList messages={messages} />
+              <MessageList activeIdentity={activeIdentity} messages={messages} />
               <div className="mt-5">
                 <BackstageComposer
                   eventId={event.id}
