@@ -199,7 +199,7 @@ export function PublicVenueBookingPanel({
           ) : (
             <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-4">
               <p className="text-sm font-semibold text-[#252525]">
-                You're already in a conversation with this venue
+                You&apos;re already in a conversation with this venue
               </p>
               <p className="mt-1 text-sm text-[#777777]">
                 {activeBandName} has an open thread here. Head to your inbox to continue it.
@@ -222,7 +222,8 @@ export function PublicVenueBookingPanel({
             initiatorSide="band"
             targetVenueId={venueId}
             options={userBands}
-            initialShowDate={selectedDate}
+            showDate={selectedDate}
+            onShowDateChange={setSelectedDate}
             dateFitContextByIso={dateFitContextByIso}
           />
         ) : isSignedIn && userBands.length === 0 ? (

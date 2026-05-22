@@ -324,7 +324,11 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
   function toggleGenre(id: string) {
     setSelectedGenres((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }
@@ -434,7 +438,7 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
       } else if (removeCover) {
         photoUpdates.cover_photo_url = null
       }
-    } catch (uploadErr) {
+    } catch {
       setError('Photo upload failed. Your other changes were saved.')
       setLoading(false)
       router.push('/dashboard/bands')
@@ -537,6 +541,17 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
               required
               className={inputClass}
               placeholder="The Midnight"
+            />
+          </div>
+          <div>
+            <Label htmlFor="tagline">Tagline</Label>
+            <input
+              id="tagline"
+              type="text"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
+              className={inputClass}
+              placeholder="Synth-pop from Los Angeles"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

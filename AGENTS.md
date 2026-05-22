@@ -8,6 +8,23 @@ This file contains repo-specific instructions for automated coding agents workin
 - Start new work by updating `staging`; do not create sub-branches or feature branches unless the user explicitly requests one.
 - Do not use `main` as the base for new work unless the task is specifically a production hotfix or the user requests it.
 
+## Verification
+
+- When code changes are made, run the relevant project checks before reporting completion.
+- For this repo, the default checks are:
+  ```powershell
+  npm run lint
+  npx tsc --noEmit
+  ```
+- Do not skip `npm run lint` just because unrelated lint errors are expected.
+- If `npm run lint` fails, report that it failed and include the exact blocking files/errors.
+- A scoped lint command may be run in addition to full lint to verify touched files, but it is not a replacement for `npm run lint`.
+- Do not describe verification as passing unless the actual command exited successfully.
+- If full lint is blocked by unrelated baseline errors, say so explicitly and distinguish:
+  - Full-repo check result.
+  - Touched-file check result.
+  - TypeScript check result.
+
 ## Supabase migrations
 
 - Before any schema change or Supabase migration work, verify the linked project ref:

@@ -52,7 +52,7 @@ export function SignedOutMobileMenu() {
             onClick={() => setOpen(false)}
             className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
           >
-            Who it's for
+            Who it&apos;s for
           </Link>
           <Link
             href="/venues"

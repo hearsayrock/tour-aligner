@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useState, useRef, useEffect } from 'react'
+import { useCallback, useState, useRef } from 'react'
 
 interface VenueFiltersProps {
   genres: { id: string; name: string }[]
@@ -63,17 +63,84 @@ function CustomSelect({
   )
 }
 
+function LocationFilterInput({
+  value,
+  geoLoading,
+  onChange,
+  onClear,
+  onUseLocation,
+}: {
+  value: string
+  geoLoading: boolean
+  onChange: (value: string) => void
+  onClear: () => void
+  onUseLocation: () => void
+}) {
+  const [locationValue, setLocationValue] = useState(value)
+
+  function handleChange(raw: string) {
+    setLocationValue(raw)
+    onChange(raw)
+  }
+
+  function handleClear() {
+    setLocationValue('')
+    onClear()
+  }
+
+  return (
+    <div className="relative col-span-2 sm:col-span-1">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB] z-10">
+        {geoLoading ? (
+          <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
+          </svg>
+        )}
+      </span>
+      <input
+        type="text"
+        value={locationValue}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder="City or state..."
+        className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg pl-8 pr-8 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+      />
+      {locationValue ? (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#888888] text-base leading-none"
+          aria-label="Clear"
+        >&times;</button>
+      ) : (
+        <button
+          type="button"
+          onClick={onUseLocation}
+          disabled={geoLoading}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-[#FD6A2F] hover:text-[#E55A22] disabled:opacity-40 transition-colors"
+          aria-label="Use my location"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function VenueFilters({ genres }: VenueFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [locationValue, setLocationValue] = useState(searchParams.get('location') ?? '')
   const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const urlLocation = searchParams.get('location') ?? ''
-  useEffect(() => { setLocationValue(urlLocation) }, [urlLocation])
 
   const pushParams = useCallback(
     (updates: Record<string, string>) => {
@@ -94,7 +161,6 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
   }
 
   function handleLocationInput(raw: string) {
-    setLocationValue(raw)
     setGeoError(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!raw.trim()) { pushParams({ location: '' }); return }
@@ -109,7 +175,7 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
       async (pos) => {
         const resolved = await reverseGeocode(pos.coords.latitude, pos.coords.longitude)
         setGeoLoading(false)
-        if (resolved) { setLocationValue(resolved); pushParams({ location: resolved }) }
+        if (resolved) pushParams({ location: resolved })
         else setGeoError("Couldn't determine location. Try typing it.")
       },
       (err) => {
@@ -143,46 +209,14 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
       {/* Filter row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {/* Location */}
-        <div className="relative col-span-2 sm:col-span-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB] z-10">
-            {geoLoading ? (
-              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-              </svg>
-            )}
-          </span>
-          <input
-            type="text"
-            value={locationValue}
-            onChange={(e) => handleLocationInput(e.target.value)}
-            placeholder="City or state…"
-            className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg pl-8 pr-8 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
-          />
-          {locationValue ? (
-            <button
-              type="button"
-              onClick={() => { setLocationValue(''); setGeoError(null); pushParams({ location: '' }) }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#888888] text-base leading-none"
-              aria-label="Clear"
-            >×</button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleUseLocation}
-              disabled={geoLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#FD6A2F] hover:text-[#E55A22] disabled:opacity-40 transition-colors"
-              aria-label="Use my location"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-              </svg>
-            </button>
-          )}
-        </div>
+        <LocationFilterInput
+          key={urlLocation}
+          value={urlLocation}
+          geoLoading={geoLoading}
+          onChange={handleLocationInput}
+          onClear={() => { setGeoError(null); pushParams({ location: '' }) }}
+          onUseLocation={handleUseLocation}
+        />
 
         <CustomSelect value={searchParams.get('capacity') ?? ''} onChange={(v) => pushParams({ capacity: v })}>
           {CAPACITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
