@@ -77,6 +77,8 @@ export default async function EventDetailPage({
   let userVenues: Array<{ id: string; name: string }> = []
   let existingMembership: { id: string; status: EventArtistMembership['status'] } | null = null
   let identityNotice: { title: string; body: string } | null = null
+  let activeVenueOwnsEvent = false
+  const backstageHref = `/dashboard/backstage/${event.id}`
 
   if (user) {
     const [{ data: bands }, { data: venues }] = await Promise.all([
@@ -112,6 +114,11 @@ export default async function EventDetailPage({
     ]
     const cookieStore = await cookies()
     const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+    activeVenueOwnsEvent =
+      activeIdentity.kind === 'venue' &&
+      activeIdentity.id === event.venue_id &&
+      userVenues.some((venue) => venue.id === event.venue_id)
 
     applyBands = activeIdentity.kind === 'band'
       ? userBands.filter((band) => band.id === activeIdentity.id)
@@ -197,31 +204,40 @@ export default async function EventDetailPage({
         </main>
 
         <aside className="space-y-5">
-          <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Apply</h2>
-            <div className="mt-4">
-              {user ? identityNotice ? (
-                <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-5">
-                  <p className="text-sm font-semibold text-[#8A5A12]">{identityNotice.title}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-[#8A5A12]">{identityNotice.body}</p>
-                </div>
-              ) : (
-                <ApplyEventForm
-                  eventId={event.id}
-                  bands={applyBands}
-                  existingMembership={existingMembership}
-                  backstageHref={`/dashboard/backstage/${event.id}`}
-                />
-              ) : (
-                <p className="text-sm text-[#888888]">
-                  <Link href={`/login?redirectTo=/events/${event.slug}`} className="text-[#FD6A2F] hover:underline">
-                    Sign in
-                  </Link>{' '}
-                  with an artist profile to apply.
-                </p>
-              )}
-            </div>
-          </section>
+          {activeVenueOwnsEvent ? (
+            <Link
+              href={backstageHref}
+              className="block w-full rounded-xl bg-[#FD6A2F] px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#E85D27]"
+            >
+              Open Backstage
+            </Link>
+          ) : (
+            <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Apply</h2>
+              <div className="mt-4">
+                {user ? identityNotice ? (
+                  <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-5">
+                    <p className="text-sm font-semibold text-[#8A5A12]">{identityNotice.title}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#8A5A12]">{identityNotice.body}</p>
+                  </div>
+                ) : (
+                  <ApplyEventForm
+                    eventId={event.id}
+                    bands={applyBands}
+                    existingMembership={existingMembership}
+                    backstageHref={backstageHref}
+                  />
+                ) : (
+                  <p className="text-sm text-[#888888]">
+                    <Link href={`/login?redirectTo=/events/${event.slug}`} className="text-[#FD6A2F] hover:underline">
+                      Sign in
+                    </Link>{' '}
+                    with an artist profile to apply.
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5 text-sm">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Capacity</p>
