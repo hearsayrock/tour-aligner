@@ -1,8 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ApplyEventForm } from '@/components/events/ApplyEventForm'
 import { formatEventDateLong, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
 
 type PublicEventDetail = Event & {
@@ -66,20 +73,63 @@ export default async function EventDetailPage({
   const publicLineup = event.lineup_published ? acceptedMemberships.filter((membership) => membership.bands) : []
 
   let userBands: Array<{ id: string; name: string }> = []
+  let applyBands: Array<{ id: string; name: string }> = []
+  let userVenues: Array<{ id: string; name: string }> = []
   let existingMembership: { id: string; status: EventArtistMembership['status'] } | null = null
+  let identityNotice: { title: string; body: string } | null = null
 
   if (user) {
-    const { data: bands } = await supabase
-      .from('bands')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('name')
+    const [{ data: bands }, { data: venues }] = await Promise.all([
+      supabase
+        .from('bands')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('venues')
+        .select('id, name')
+        .eq('claimed_by_user_id', user.id)
+        .eq('is_active', true)
+        .order('name'),
+    ])
 
     userBands = bands ?? []
-    const userBandIds = userBands.map((band) => band.id)
-    const existing = memberships.find((membership) => userBandIds.includes(membership.band_id))
+    userVenues = venues ?? []
+    const identities: ManagedIdentity[] = [
+      ...userBands.map((band) => ({
+        kind: 'band' as const,
+        id: band.id,
+        name: band.name,
+        href: `/dashboard/bands/${band.id}/edit`,
+      })),
+      ...userVenues.map((venue) => ({
+        kind: 'venue' as const,
+        id: venue.id,
+        name: venue.name,
+        href: `/dashboard/venues/${venue.id}/edit`,
+      })),
+    ]
+    const cookieStore = await cookies()
+    const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+    applyBands = activeIdentity.kind === 'band'
+      ? userBands.filter((band) => band.id === activeIdentity.id)
+      : []
+    const existing = activeIdentity.kind === 'band'
+      ? memberships.find((membership) => membership.band_id === activeIdentity.id)
+      : null
     if (existing) existingMembership = { id: existing.id, status: existing.status }
+    identityNotice = userBands.length > 0 && activeIdentity.kind !== 'band'
+      ? {
+          title: activeIdentity.kind === 'all'
+            ? 'Select an artist before applying'
+            : 'Switch to an artist before applying',
+          body: activeIdentity.kind === 'all'
+            ? 'This application needs one artist identity. Choose an artist in the Acting as menu, then apply.'
+            : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to an artist before applying to this event.`,
+        }
+      : null
   }
 
   return (
@@ -150,10 +200,15 @@ export default async function EventDetailPage({
           <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Apply</h2>
             <div className="mt-4">
-              {user ? (
+              {user ? identityNotice ? (
+                <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-5">
+                  <p className="text-sm font-semibold text-[#8A5A12]">{identityNotice.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#8A5A12]">{identityNotice.body}</p>
+                </div>
+              ) : (
                 <ApplyEventForm
                   eventId={event.id}
-                  bands={userBands}
+                  bands={applyBands}
                   existingMembership={existingMembership}
                   backstageHref={`/dashboard/backstage/${event.id}`}
                 />

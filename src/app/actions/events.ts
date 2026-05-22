@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/events'
+import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
 
 type ActionResult<T extends object = object> = T & { error?: string; success?: true }
@@ -26,6 +28,33 @@ async function getUserId() {
   } = await supabase.auth.getUser()
 
   return { supabase, userId: user?.id ?? null }
+}
+
+async function getActiveManagedIdentity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const [{ data: rawBands }, { data: rawVenues }] = await Promise.all([
+    supabase.from('bands').select('id, name').eq('user_id', userId).eq('is_active', true).order('name'),
+    supabase.from('venues').select('id, name').eq('claimed_by_user_id', userId).eq('is_active', true).order('name'),
+  ])
+  const identities: ManagedIdentity[] = [
+    ...((rawBands ?? []) as Array<{ id: string; name: string }>).map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...((rawVenues ?? []) as Array<{ id: string; name: string }>).map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+
+  return resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
 }
 
 async function ensureVenueOwner(
@@ -261,6 +290,14 @@ export async function applyToEvent(input: {
   const { supabase, userId } = await getUserId()
   if (!userId) return { error: 'You must be signed in to apply.' }
 
+  const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+  if (activeIdentity.kind !== 'band') {
+    return { error: 'Select one artist profile before applying.' }
+  }
+  if (activeIdentity.id !== input.bandId) {
+    return { error: `You are currently acting as ${activeIdentity.name}. Switch identities before applying from another artist profile.` }
+  }
+
   const { data: band } = await supabase
     .from('bands')
     .select('id, name, user_id')
@@ -376,12 +413,22 @@ export async function updateMembershipStatus(input: {
 
   const isVenueLeader = membership.events.venues?.claimed_by_user_id === userId
   const isArtistOwner = membership.bands?.user_id === userId
+  const activeIdentity = isVenueLeader || isArtistOwner
+    ? await getActiveManagedIdentity(supabase, userId)
+    : null
+  const isActiveVenueLeader =
+    isVenueLeader && activeIdentity?.kind === 'venue' && activeIdentity.id === membership.events.venue_id
+  const isActiveArtistOwner =
+    isArtistOwner && activeIdentity?.kind === 'band' && activeIdentity.id === membership.band_id
+  if ((isVenueLeader || isArtistOwner) && !isActiveVenueLeader && !isActiveArtistOwner) {
+    return { error: 'Switch to the profile that owns this Backstage before updating it.' }
+  }
   const now = new Date().toISOString()
   const update: Partial<EventArtistMembership> = { status: input.status }
   let message: string | null = null
 
   if (input.status === 'accepted') {
-    if (isArtistOwner && membership.status === 'invited' && !isVenueLeader) {
+    if (isActiveArtistOwner && membership.status === 'invited' && !isActiveVenueLeader) {
       const { error } = await supabase.rpc('accept_event_invite', {
         p_membership_id: input.membershipId,
       })
@@ -390,22 +437,22 @@ export async function updateMembershipStatus(input: {
       return { success: true }
     }
 
-    if (!isVenueLeader && !(isArtistOwner && membership.status === 'invited')) {
+    if (!isActiveVenueLeader && !(isActiveArtistOwner && membership.status === 'invited')) {
       return { error: 'You do not have permission to accept this artist.' }
     }
     update.accepted_at = now
     message = `${membership.bands?.name ?? 'Artist'} joined Backstage.`
   } else if (input.status === 'declined') {
-    if (!isVenueLeader) return { error: 'Only the venue leader can decline artists.' }
+    if (!isActiveVenueLeader) return { error: 'Only the active venue profile can decline artists.' }
     update.declined_at = now
     message = `Venue declined ${membership.bands?.name ?? 'this artist'} for this event.`
   } else if (input.status === 'removed') {
-    if (!isVenueLeader) return { error: 'Only the venue leader can remove artists.' }
+    if (!isActiveVenueLeader) return { error: 'Only the active venue profile can remove artists.' }
     update.removed_at = now
     update.removal_note = normalizeText(input.note) || null
     message = `Venue removed ${membership.bands?.name ?? 'an artist'} from this Backstage.`
   } else if (input.status === 'removal_requested') {
-    if (isArtistOwner) {
+    if (isActiveArtistOwner) {
       const { error } = await supabase.rpc('request_event_removal', {
         p_membership_id: input.membershipId,
         p_note: normalizeText(input.note) || null,
@@ -415,7 +462,7 @@ export async function updateMembershipStatus(input: {
       return { success: true }
     }
 
-    if (!isArtistOwner) return { error: 'Only the artist can request removal.' }
+    if (!isActiveArtistOwner) return { error: 'Only the active artist profile can request removal.' }
     update.removal_requested_at = now
     update.removal_note = normalizeText(input.note) || null
     message = `${membership.bands?.name ?? 'Artist'} requested removal from this Backstage.`
@@ -430,7 +477,7 @@ export async function updateMembershipStatus(input: {
 
   if (error) return { error: error.message }
 
-  if (message && isVenueLeader) {
+  if (message && isActiveVenueLeader) {
     await supabase.from('backstage_messages').insert({
       event_id: membership.event_id,
       sender_user_id: userId,
@@ -464,6 +511,11 @@ export async function sendBackstageMessage(input: {
   const isVenueLeader = rawVenue?.claimed_by_user_id === userId
 
   if (isVenueLeader && !input.bandId) {
+    const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+    if (activeIdentity.kind !== 'venue' || activeIdentity.id !== event?.venue_id) {
+      return { error: 'Switch to the venue profile before posting as the venue.' }
+    }
+
     const { error } = await supabase.from('backstage_messages').insert({
       event_id: input.eventId,
       sender_user_id: userId,
@@ -476,6 +528,13 @@ export async function sendBackstageMessage(input: {
   }
 
   if (!input.bandId) return { error: 'Choose an artist profile to message from.' }
+  const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+  if (activeIdentity.kind !== 'band') {
+    return { error: 'Select one artist profile before posting in Backstage.' }
+  }
+  if (activeIdentity.id !== input.bandId) {
+    return { error: `You are currently acting as ${activeIdentity.name}. Switch identities before posting from another artist profile.` }
+  }
 
   const { data: membership } = await supabase
     .from('event_artist_memberships')

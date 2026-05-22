@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
 import {
   BackstageComposer,
@@ -19,6 +21,7 @@ import {
   type EventMembershipSummary,
   type EventWithVenue,
 } from '@/lib/events'
+import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { EventGenre, Genre } from '@/types/database'
 
 export const metadata = { title: 'Backstage' }
@@ -108,7 +111,14 @@ export default async function BackstageDetailPage({
 
   if (!user) return redirect('/login')
 
-  const [{ data: rawEvent }, { data: rawGenres }, { data: rawMemberships }, { data: rawMessages }] = await Promise.all([
+  const [
+    { data: rawEvent },
+    { data: rawGenres },
+    { data: rawMemberships },
+    { data: rawMessages },
+    { data: rawUserBands },
+    { data: rawUserVenues },
+  ] = await Promise.all([
     supabase
       .from('events')
       .select('*, venues(id, name, slug, location_city, location_state, claimed_by_user_id)')
@@ -125,14 +135,58 @@ export default async function BackstageDetailPage({
       .select('*, profiles(full_name), bands:sender_band_id(name)')
       .eq('event_id', eventId)
       .order('created_at', { ascending: true }),
+    supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true).order('name'),
+    supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
   ])
 
   const event = rawEvent as unknown as EventWithVenue | null
   if (!event) return notFound()
 
   const memberships = (rawMemberships ?? []) as unknown as EventMembershipSummary[]
-  const viewerMembership = memberships.find((membership) => membership.bands?.user_id === user.id) ?? null
-  const isVenueLeader = event.venues?.claimed_by_user_id === user.id
+  const userBands = (rawUserBands ?? []) as Array<{ id: string; name: string }>
+  const userVenues = (rawUserVenues ?? []) as Array<{ id: string; name: string }>
+  const identities: ManagedIdentity[] = [
+    ...userBands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...userVenues.map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+  if (requiredIdentity.requiresSelection) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mb-8">
+          <Link href="/dashboard/backstage" className="text-sm text-[#888888] hover:text-[#252525]">
+            Back to Backstages
+          </Link>
+          <h1 className="mt-3 text-2xl font-bold text-[#252525]">Backstage</h1>
+          <p className="mt-1 text-sm text-[#888888]">Choose which profile you want to use for this Backstage.</p>
+        </div>
+        <ProfileSelectionModal
+          title="Select a profile to view Backstage"
+          body="Backstage access is checked against one active artist or venue profile. Use the profile selector to choose the profile you want to browse from."
+          identities={identities}
+        />
+      </div>
+    )
+  }
+
+  const activeIdentity = requiredIdentity.activeIdentity
+  const viewerMembership = activeIdentity?.kind === 'band'
+    ? memberships.find((membership) => membership.band_id === activeIdentity.id && membership.bands?.user_id === user.id) ?? null
+    : null
+  const isVenueLeader =
+    activeIdentity?.kind === 'venue' && event.venue_id === activeIdentity.id && event.venues?.claimed_by_user_id === user.id
   const canEnterBackstage =
     isVenueLeader || viewerMembership?.status === 'accepted' || viewerMembership?.status === 'removal_requested'
 
