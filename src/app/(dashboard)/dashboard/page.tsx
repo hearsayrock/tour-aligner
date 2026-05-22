@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import { MEMBERSHIP_STATUS_LABELS, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership, VenueClaim } from '@/types/database'
 
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
           .from('event_artist_memberships')
           .select('status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
           .in('band_id', bandIds)
-          .in('status', ['invited', 'accepted', 'removal_requested'])
+          .in('status', ['applied', 'invited', 'accepted', 'removal_requested'])
           .limit(5)
       : Promise.resolve({ data: [] }),
   ])
@@ -223,7 +223,7 @@ export default async function DashboardPage() {
             </div>
             <div className="space-y-4">
               {artistEvents.map(({ event, status }) => (
-                <DashboardEventCard key={`${event.id}-${status}`} event={event} label={status === 'invited' ? 'Invited' : 'Artist'} />
+                <DashboardEventCard key={`${event.id}-${status}`} event={event} label={MEMBERSHIP_STATUS_LABELS[status]} />
               ))}
             </div>
           </section>

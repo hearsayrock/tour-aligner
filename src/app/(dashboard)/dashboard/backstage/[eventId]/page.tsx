@@ -161,8 +161,20 @@ export default async function BackstageDetailPage({
   ]
   const cookieStore = await cookies()
   const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const visibleMembershipBandIds = new Set(
+    memberships
+      .filter((membership) => !['declined', 'removed'].includes(membership.status))
+      .map((membership) => membership.band_id)
+  )
+  const backstageIdentities = identities.filter((identity) => {
+    if (identity.kind === 'venue') {
+      return event.venue_id === identity.id && event.venues?.claimed_by_user_id === user.id
+    }
 
-  if (requiredIdentity.requiresSelection) {
+    return visibleMembershipBandIds.has(identity.id)
+  })
+
+  function renderProfileSelection(title: string, body: string) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
@@ -173,11 +185,20 @@ export default async function BackstageDetailPage({
           <p className="mt-1 text-sm text-[#888888]">Choose which profile you want to use for this Backstage.</p>
         </div>
         <ProfileSelectionModal
-          title="Select a profile to view Backstage"
-          body="Backstage access is checked against one active artist or venue profile. Use the profile selector to choose the profile you want to browse from."
-          identities={identities}
+          title={title}
+          body={body}
+          identities={backstageIdentities}
         />
       </div>
+    )
+  }
+
+  if (requiredIdentity.requiresSelection) {
+    if (backstageIdentities.length === 0) return notFound()
+
+    return renderProfileSelection(
+      'Select a profile to view Backstage',
+      'This Backstage is tied to specific artist and venue profiles. Choose one of the related profiles to continue.'
     )
   }
 
@@ -190,7 +211,14 @@ export default async function BackstageDetailPage({
   const canEnterBackstage =
     isVenueLeader || viewerMembership?.status === 'accepted' || viewerMembership?.status === 'removal_requested'
 
-  if (!isVenueLeader && !viewerMembership) return notFound()
+  if (!isVenueLeader && !viewerMembership) {
+    if (backstageIdentities.length === 0) return notFound()
+
+    return renderProfileSelection(
+      'Switch profile to view Backstage',
+      'The selected profile is not tied to this Backstage. Choose a related artist or venue profile to continue.'
+    )
+  }
 
   const eventGenres = (rawGenres ?? []) as unknown as Array<EventGenre & { genres: Genre | null }>
   const selectedGenreIds = eventGenres.map((entry) => entry.genre_id)
