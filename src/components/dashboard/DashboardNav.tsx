@@ -10,16 +10,17 @@ import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 
 interface Notifications {
-  inbox: boolean
+  backstage: boolean
   pendingClaims: boolean
   adminClaims: boolean
 }
 
 const NAV_LINKS = [
-  { label: 'Dashboard',  href: '/dashboard' },
-  { label: 'Artists',    href: '/dashboard/bands' },
-  { label: 'Venues',     href: '/dashboard/venues' },
-  { label: 'Inbox',      href: '/dashboard/inbox' },
+  { label: 'Dashboard',        href: '/dashboard' },
+  { label: 'Backstages',       href: '/dashboard/backstage' },
+  { label: 'Available Events', href: '/events' },
+  { label: 'Artists',          href: '/dashboard/bands' },
+  { label: 'Venues',           href: '/dashboard/venues' },
 ]
 
 const dropdownClass =
@@ -73,7 +74,7 @@ export function DashboardNav({
 
   function dotForLink(href: string) {
     if (!notifications) return false
-    if (href === '/dashboard/inbox') return notifications.inbox
+    if (href === '/dashboard/backstage') return notifications.backstage
     if (href === '/dashboard/venues') return notifications.pendingClaims
     return false
   }

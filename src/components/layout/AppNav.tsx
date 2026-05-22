@@ -5,7 +5,6 @@ import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { Navbar } from '@/components/marketing/Navbar'
 import { isStagingEnvironment } from '@/lib/deployment-environment'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
-import type { ContactThreadStatus, ConversationSide } from '@/types/database'
 
 /**
  * Renders DashboardNav for logged-in users and Navbar for logged-out users.
@@ -52,56 +51,12 @@ export async function AppNav() {
   const cookieStore = await cookies()
   const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
 
-  const [rawBandThreads, rawVenueThreads] = await Promise.all([
-    bandIds.length > 0
-      ? supabase
-          .from('contact_threads')
-          .select('id, status, requested_by_side, last_message_at, band_last_read_at, band_archived_at')
-          .in('band_id', bandIds)
-      : Promise.resolve({ data: [] }),
-    venueIds.length > 0
-      ? supabase
-          .from('contact_threads')
-          .select('id, status, requested_by_side, last_message_at, venue_last_read_at, venue_archived_at')
-          .in('venue_id', venueIds)
-      : Promise.resolve({ data: [] }),
-  ])
-
-  type Thread = {
-    id: string
-    status: ContactThreadStatus
-    requested_by_side: ConversationSide | null
-    last_message_at: string | null
-    last_read_at: string | null
-    archived_at: string | null
-  }
-
-  const bandThreads: Thread[] = ((rawBandThreads.data ?? []) as Array<{
-    id: string; status: ContactThreadStatus; requested_by_side: ConversationSide | null
-    last_message_at: string | null; band_last_read_at: string | null; band_archived_at: string | null
-  }>).map((t) => ({ id: t.id, status: t.status, requested_by_side: t.requested_by_side, last_message_at: t.last_message_at, last_read_at: t.band_last_read_at, archived_at: t.band_archived_at }))
-
-  const venueThreads: Thread[] = ((rawVenueThreads.data ?? []) as Array<{
-    id: string; status: ContactThreadStatus; requested_by_side: ConversationSide | null
-    last_message_at: string | null; venue_last_read_at: string | null; venue_archived_at: string | null
-  }>).map((t) => ({ id: t.id, status: t.status, requested_by_side: t.requested_by_side, last_message_at: t.last_message_at, last_read_at: t.venue_last_read_at, archived_at: t.venue_archived_at }))
-
   const adminClaimsResult = profile?.is_admin
     ? await supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending')
     : { count: 0 }
 
-  function hasUnread(threads: Thread[], viewerSide: ConversationSide) {
-    return threads.some((t) => {
-      if (t.archived_at) return false
-      if (t.status === 'pending' && t.requested_by_side !== viewerSide) return true
-      if (!t.last_message_at) return false
-      if (!t.last_read_at) return true
-      return new Date(t.last_message_at).getTime() > new Date(t.last_read_at).getTime()
-    })
-  }
-
   const notifications = {
-    inbox:         hasUnread(bandThreads, 'band') || hasUnread(venueThreads, 'venue'),
+    backstage:     false,
     pendingClaims: (userPendingClaimCount ?? 0) > 0,
     adminClaims:   (adminClaimsResult.count ?? 0) > 0,
   }

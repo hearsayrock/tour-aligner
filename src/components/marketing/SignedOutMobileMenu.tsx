@@ -62,6 +62,13 @@ export function SignedOutMobileMenu() {
             Venues
           </Link>
           <Link
+            href="/events"
+            onClick={() => setOpen(false)}
+            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
+          >
+            Events
+          </Link>
+          <Link
             href="/login"
             onClick={() => setOpen(false)}
             className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
