@@ -8,6 +8,7 @@ import { signOut } from '@/app/actions/auth'
 
 const ACCOUNT_LINKS = [
   { label: 'Account', href: '/dashboard/account' },
+  { label: 'Manage Profiles', href: '/dashboard/profiles' },
 ]
 
 const itemClass =
@@ -20,14 +21,10 @@ interface Notifications {
 export function NavAccountMenu({
   isAdmin = false,
   notifications,
-  hasBands = false,
-  hasVenues = false,
   placement = 'bottom',
 }: {
   isAdmin?: boolean
   notifications?: Notifications
-  hasBands?: boolean
-  hasVenues?: boolean
   placement?: 'bottom' | 'top'
 }) {
   const pathname = usePathname()
@@ -70,27 +67,15 @@ export function NavAccountMenu({
           {ACCOUNT_LINKS.map((link) => (
             <Link key={link.href} href={link.href} className={itemClass}>
               <span className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-[#888888]" />
+                {link.href === '/dashboard/profiles' ? (
+                  <Users className="h-4 w-4 text-[#888888]" />
+                ) : (
+                  <Settings className="h-4 w-4 text-[#888888]" />
+                )}
                 {link.label}
               </span>
             </Link>
           ))}
-          {hasBands && (
-            <Link href="/dashboard/bands?tab=mine" className={itemClass}>
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-[#888888]" />
-                My Artists
-              </span>
-            </Link>
-          )}
-          {hasVenues && (
-            <Link href="/dashboard/venues?tab=mine" className={itemClass}>
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-[#888888]" />
-                My Venues
-              </span>
-            </Link>
-          )}
           {isAdmin && (
             <Link href="/admin" className={itemClass}>
               <span className="flex items-center gap-2">

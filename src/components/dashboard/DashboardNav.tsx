@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   Shield,
-  Users,
 } from 'lucide-react'
 import { IdentitySwitcher } from '@/components/dashboard/IdentitySwitcher'
 import { EnvironmentBadge } from '@/components/layout/EnvironmentBadge'
@@ -41,7 +40,6 @@ export function DashboardNav({
   showStagingBadge = false,
   isAdmin = false,
   notifications,
-  hasBands = false,
   hasVenues = false,
   activeIdentity,
   identities = [],
@@ -49,7 +47,6 @@ export function DashboardNav({
   showStagingBadge?: boolean
   isAdmin?: boolean
   notifications?: Notifications
-  hasBands?: boolean
   hasVenues?: boolean
   activeIdentity?: ActiveIdentity
   identities?: ManagedIdentity[]
@@ -119,41 +116,29 @@ export function DashboardNav({
           </nav>
 
           <div className="border-t border-[#E8E6E0] px-3 py-4">
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              {hasVenues && (
-                <Link
-                  href="/dashboard/events/new"
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-3 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Event
-                </Link>
-              )}
+            {hasVenues && (
               <Link
-                href={hasBands ? '/dashboard/bands?tab=mine' : '/dashboard/bands/new'}
-                className={cx(
-                  'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#E1E1E1] bg-white px-3 text-sm font-semibold text-[#252525] transition-colors hover:border-[#CCCCCC]',
-                  !hasVenues && 'col-span-2'
-                )}
+                href="/dashboard/events/new"
+                className="mb-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-3 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
               >
-                <Users className="h-4 w-4" />
-                Profiles
+                <Plus className="h-4 w-4" />
+                Event
               </Link>
-            </div>
+            )}
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E8E6E0] bg-white px-3 py-3">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9B9B9B]">
                   Account
                 </p>
-                <p className="mt-0.5 truncate text-sm font-medium text-[#252525]">
-                  {profileCount} profile{profileCount === 1 ? '' : 's'}
-                </p>
+                {profileCount > 1 && (
+                  <p className="mt-0.5 truncate text-sm font-medium text-[#252525]">
+                    {profileCount} profiles
+                  </p>
+                )}
               </div>
               <NavAccountMenu
                 isAdmin={isAdmin}
                 notifications={{ adminClaims: notifications?.adminClaims ?? false }}
-                hasBands={hasBands}
-                hasVenues={hasVenues}
                 placement="top"
               />
             </div>
@@ -190,8 +175,6 @@ export function DashboardNav({
             <NavAccountMenu
               isAdmin={isAdmin}
               notifications={{ adminClaims: notifications?.adminClaims ?? false }}
-              hasBands={hasBands}
-              hasVenues={hasVenues}
             />
           </div>
         </div>

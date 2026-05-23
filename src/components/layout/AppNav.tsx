@@ -92,7 +92,6 @@ export async function AppNav() {
         showStagingBadge={showStagingBadge}
         isAdmin={profile?.is_admin ?? false}
         notifications={notifications}
-        hasBands={bandIds.length > 0}
         hasVenues={venueIds.length > 0}
         activeIdentity={activeIdentity}
         identities={identities}

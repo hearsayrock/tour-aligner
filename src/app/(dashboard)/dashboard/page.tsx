@@ -176,6 +176,8 @@ export default async function DashboardPage() {
   const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
   const allBandIds = (bands ?? []).map((band) => band.id)
   const allVenueIds = (venues ?? []).map((venue) => venue.id)
+  const totalProfileCount = allBandIds.length + allVenueIds.length
+  const hasMultipleProfiles = totalProfileCount > 1
   const bandIds = activeIdentity.kind === 'all'
     ? allBandIds
     : activeIdentity.kind === 'band'
@@ -223,6 +225,12 @@ export default async function DashboardPage() {
   const name = profile?.full_name?.split(' ')[0] ?? 'there'
   const hasAnyEvents = venueEventRows.length > 0 || artistEvents.length > 0
   const canCreateEvent = venueIds.length > 0
+  const headerDescription = hasMultipleProfiles
+    ? 'Your dashboard highlights booking work that needs attention, plus the next Backstages for the selected profile.'
+    : 'Your dashboard highlights booking work that needs attention, plus your next Backstages.'
+  const backstageDescription = hasMultipleProfiles
+    ? 'The next events tied to the selected profile.'
+    : 'The next events tied to your profile.'
 
   const actionItems: ActionItem[] = [
     ...((pendingClaims ?? []) as unknown as Array<VenueClaim & { venues: { name: string; location_city: string; location_state: string } | null }>).map((claim) => ({
@@ -265,7 +273,7 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow="Action center"
         title={`Hey, ${name}`}
-        description="Your dashboard highlights the booking work that needs attention, plus the next Backstages and profile actions for the selected identity."
+        description={headerDescription}
         actions={
           <>
             {canCreateEvent && (
@@ -282,17 +290,21 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={cx('grid gap-4', hasMultipleProfiles ? 'sm:grid-cols-2 lg:grid-cols-3' : 'max-w-sm')}>
         <StatCard label="Active Backstages" value={venueEventRows.length + artistEvents.length} icon={CalendarRange} href="/dashboard/backstage" />
-        <StatCard label={allBandIds.length === 1 ? 'Artist profile' : 'Artist profiles'} value={allBandIds.length} icon={Mic2} href="/dashboard/bands?tab=mine" />
-        <StatCard label={allVenueIds.length === 1 ? 'Venue profile' : 'Venue profiles'} value={allVenueIds.length} icon={MapPin} href="/dashboard/venues?tab=mine" />
+        {hasMultipleProfiles && allBandIds.length > 0 && (
+          <StatCard label={allBandIds.length === 1 ? 'Artist profile' : 'Artist profiles'} value={allBandIds.length} icon={Mic2} href="/dashboard/bands?tab=mine" />
+        )}
+        {hasMultipleProfiles && allVenueIds.length > 0 && (
+          <StatCard label={allVenueIds.length === 1 ? 'Venue profile' : 'Venue profiles'} value={allVenueIds.length} icon={MapPin} href="/dashboard/venues?tab=mine" />
+        )}
       </div>
 
       <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
         <main>
           <SectionHeading
             title="Upcoming Backstages"
-            description="The next events tied to the selected profile."
+            description={backstageDescription}
             action={<Link href="/dashboard/backstage" className="text-sm font-semibold text-[#777777] hover:text-[#252525]">View all</Link>}
           />
           {!hasAnyEvents ? (
@@ -328,13 +340,15 @@ export default async function DashboardPage() {
           <Card className="p-5">
             <SectionHeading title="Quick Starts" description="Common next steps for booking work." />
             <div className="grid gap-2">
-              <ButtonLink href="/dashboard/bands/new" tone="secondary">
-                <Mic2 className="h-4 w-4" />
-                Add Artist Profile
-              </ButtonLink>
-              <ButtonLink href="/dashboard/venues" tone="secondary">
-                <MapPin className="h-4 w-4" />
-                Claim or Add Venue
+              {canCreateEvent && (
+                <ButtonLink href="/dashboard/events/new" tone="secondary">
+                  <Plus className="h-4 w-4" />
+                  Create Event
+                </ButtonLink>
+              )}
+              <ButtonLink href="/events" tone="secondary">
+                <Search className="h-4 w-4" />
+                Browse Events
               </ButtonLink>
               <ButtonLink href="/venues" tone="secondary">
                 <Search className="h-4 w-4" />
