@@ -177,7 +177,7 @@ export default async function EventDetailPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#E8E8E8] bg-white p-6">
+          <section id="event-description" className="scroll-mt-8 rounded-2xl border border-[#E8E8E8] bg-white p-6">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Event</h2>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[#252525]">{event.description}</p>
           </section>

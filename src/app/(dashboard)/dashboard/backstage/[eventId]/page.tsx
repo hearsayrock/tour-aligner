@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { CalendarRange, ClipboardList, Settings, SlidersHorizontal, Users } from 'lucide-react'
+import { CalendarRange, ClipboardList, FileText, Settings, SlidersHorizontal, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
@@ -322,6 +322,13 @@ export default async function BackstageDetailPage({
           <p className="mt-2 text-sm text-[#777777]">
             Your current status is {viewerMembership ? MEMBERSHIP_STATUS_LABELS[viewerMembership.status].toLowerCase() : 'not joined'}.
           </p>
+          <Link
+            href={`/events/${event.slug}#event-description`}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E8E8E8] bg-white px-4 text-sm font-semibold text-[#252525] transition-colors hover:border-[#CCCCCC] hover:bg-[#FAFAFA]"
+          >
+            <FileText className="h-4 w-4 text-[#FD6A2F]" />
+            View Event details
+          </Link>
           {viewerMembership?.status === 'invited' && (
             <div className="mt-4">
               <MembershipActionButton membershipId={viewerMembership.id} status="accepted" label="Accept invite" />

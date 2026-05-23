@@ -31,9 +31,11 @@ type ActionItem = {
 function DashboardEventCard({
   event,
   label,
+  href,
 }: {
   event: DashboardEvent
   label: string
+  href: string
 }) {
   const memberships = event.event_artist_memberships ?? []
   const acceptedCount = getAcceptedMemberships(memberships).length
@@ -41,7 +43,7 @@ function DashboardEventCard({
 
   return (
     <Link
-      href={`/dashboard/backstage/${event.id}`}
+      href={href}
       className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -243,7 +245,7 @@ export default async function DashboardPage() {
     ...artistEvents
       .filter(({ status }) => status === 'invited' || status === 'removal_requested')
       .map(({ event, status }) => ({
-        href: `/dashboard/backstage/${event.id}`,
+        href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
         title: status === 'invited' ? `Invite from ${event.venues?.name ?? 'a venue'}` : `Removal request: ${event.title}`,
         detail: `${event.title} / ${formatEventDate(event)}`,
         tone: status === 'invited' ? 'brand' as const : 'warning' as const,
@@ -262,8 +264,12 @@ export default async function DashboardPage() {
   ].slice(0, 6)
 
   const upcoming = [
-    ...venueEventRows.map((event) => ({ event, label: 'Venue leader' })),
-    ...artistEvents.map(({ event, status }) => ({ event, label: MEMBERSHIP_STATUS_LABELS[status] })),
+    ...venueEventRows.map((event) => ({ event, label: 'Venue leader', href: `/dashboard/backstage/${event.id}` })),
+    ...artistEvents.map(({ event, status }) => ({
+      event,
+      label: MEMBERSHIP_STATUS_LABELS[status],
+      href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
+    })),
   ]
     .sort((a, b) => a.event.event_date.localeCompare(b.event.event_date))
     .slice(0, 6)
@@ -324,8 +330,8 @@ export default async function DashboardPage() {
             />
           ) : (
             <div className="space-y-4">
-              {upcoming.map(({ event, label }) => (
-                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} />
+              {upcoming.map(({ event, label, href }) => (
+                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} href={href} />
               ))}
             </div>
           )}
