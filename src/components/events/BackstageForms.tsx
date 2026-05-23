@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { buttonBaseClass, inputClass, labelClass } from '@/components/ui/primitives'
 import {
   inviteArtistToEvent,
   sendBackstageMessage,
@@ -47,7 +48,7 @@ export function BackstageComposer({
 
   return (
     <form onSubmit={submit} className="space-y-2">
-      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3">
+      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3 shadow-[0_12px_28px_rgba(20,20,20,0.035)]">
         <p className="mb-2 px-1 text-xs font-medium text-[#888888]">Posting as {replyingAs}</p>
         <textarea
           value={message}
@@ -60,7 +61,7 @@ export function BackstageComposer({
           <button
             type="submit"
             disabled={isPending || !message.trim()}
-            className="rounded-full bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:opacity-50"
+            className={`${buttonBaseClass('primary')} min-h-9 rounded-full px-4 py-1.5`}
           >
             {isPending ? 'Sending...' : 'Send'}
           </button>
@@ -141,12 +142,12 @@ export function BackstageSettingsForm({
     <form onSubmit={submit} className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Title</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+          <span className={labelClass}>Title</span>
+          <input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Status</span>
-          <select value={status} onChange={(event) => setStatus(event.target.value as Event['status'])} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]">
+          <span className={labelClass}>Status</span>
+          <select value={status} onChange={(event) => setStatus(event.target.value as Event['status'])} className={inputClass}>
             <option value="draft">Draft</option>
             <option value="active">Active</option>
             <option value="completed">Completed</option>
@@ -157,23 +158,23 @@ export function BackstageSettingsForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Date</span>
-          <input type="date" value={eventDate} onChange={(event) => setEventDate(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+          <span className={labelClass}>Date</span>
+          <input type="date" value={eventDate} onChange={(event) => setEventDate(event.target.value)} className={inputClass} />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Show start</span>
-          <input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+          <span className={labelClass}>Show start</span>
+          <input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} className={inputClass} />
         </label>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Capacity</span>
-          <input type="number" min={1} value={attendeeCapacity} onChange={(event) => setAttendeeCapacity(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+          <span className={labelClass}>Capacity</span>
+          <input type="number" min={1} value={attendeeCapacity} onChange={(event) => setAttendeeCapacity(event.target.value)} className={inputClass} />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">Needed artists</span>
-          <input type="number" min={1} value={neededArtistCount} onChange={(event) => setNeededArtistCount(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+          <span className={labelClass}>Needed artists</span>
+          <input type="number" min={1} value={neededArtistCount} onChange={(event) => setNeededArtistCount(event.target.value)} className={inputClass} />
         </label>
       </div>
 
@@ -194,12 +195,12 @@ export function BackstageSettingsForm({
       </div>
 
       <label className="block">
-        <span className="mb-1.5 block text-sm text-[#777777]">Artists needed</span>
-        <textarea value={artistNeedDescription} onChange={(event) => setArtistNeedDescription(event.target.value)} rows={3} className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+        <span className={labelClass}>Artists needed</span>
+        <textarea value={artistNeedDescription} onChange={(event) => setArtistNeedDescription(event.target.value)} rows={3} className={`${inputClass} resize-y`} />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm text-[#777777]">Event description</span>
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+        <span className={labelClass}>Event description</span>
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className={`${inputClass} resize-y`} />
       </label>
 
       <div className="grid gap-2 sm:grid-cols-3">
@@ -219,7 +220,7 @@ export function BackstageSettingsForm({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
       {saved && <p className="text-sm text-[#0C7C71]">Event saved.</p>}
-      <button type="submit" disabled={isPending} className="rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#E55A22] disabled:opacity-50">
+      <button type="submit" disabled={isPending} className={buttonBaseClass('primary')}>
         {isPending ? 'Saving...' : 'Save event'}
       </button>
     </form>
@@ -279,18 +280,18 @@ export function BackstageLogisticsForm({ event }: { event: Event }) {
     <form onSubmit={submit} className="space-y-4">
       {fields.map(([label, value, setter]) => (
         <label key={label} className="block">
-          <span className="mb-1.5 block text-sm text-[#777777]">{label}</span>
+          <span className={labelClass}>{label}</span>
           <textarea
             value={value}
             onChange={(event) => setter(event.target.value)}
             rows={2}
-            className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]"
+            className={`${inputClass} resize-y`}
           />
         </label>
       ))}
       {error && <p className="text-sm text-red-500">{error}</p>}
       {saved && <p className="text-sm text-[#0C7C71]">Logistics saved.</p>}
-      <button type="submit" disabled={isPending} className="rounded-xl bg-[#252525] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+      <button type="submit" disabled={isPending} className={buttonBaseClass('dark')}>
         {isPending ? 'Saving...' : 'Save logistics'}
       </button>
     </form>
@@ -328,7 +329,7 @@ export function MembershipActionButton({
           })
         }}
         disabled={isPending}
-        className="rounded-lg border border-[#E8E8E8] bg-white px-3 py-2 text-sm font-medium text-[#252525] hover:border-[#CCCCCC] disabled:opacity-50"
+        className={`${buttonBaseClass('secondary')} min-h-9 rounded-lg px-3 py-1.5`}
       >
         {isPending ? 'Working...' : label}
       </button>
@@ -374,15 +375,15 @@ export function InviteArtistForm({
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <select value={bandId} onChange={(event) => setBandId(event.target.value)} className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]">
+      <select value={bandId} onChange={(event) => setBandId(event.target.value)} className={inputClass}>
         {bands.map((band) => (
           <option key={band.id} value={band.id}>{band.name}</option>
         ))}
       </select>
-      <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="Optional invite note" className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+      <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="Optional invite note" className={`${inputClass} resize-y`} />
       {error && <p className="text-sm text-red-500">{error}</p>}
       {sent && <p className="text-sm text-[#0C7C71]">Invite sent.</p>}
-      <button type="submit" disabled={isPending || !bandId} className="rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+      <button type="submit" disabled={isPending || !bandId} className={buttonBaseClass('primary')}>
         {isPending ? 'Sending...' : 'Invite artist'}
       </button>
     </form>

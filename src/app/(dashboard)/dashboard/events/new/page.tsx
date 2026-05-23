@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { EventCreateForm } from '@/components/events/EventCreateForm'
+import { ButtonLink, EmptyState, PageHeader } from '@/components/ui/primitives'
 import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 
 export const metadata = { title: 'Create Event' }
@@ -56,16 +56,14 @@ export default async function NewEventPage() {
       : []
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="mb-8">
-        <Link href="/dashboard/backstage" className="text-sm text-[#888888] transition-colors hover:text-[#252525]">
-          Back to Backstages
-        </Link>
-        <h1 className="mt-3 text-2xl font-bold text-[#252525]">Create Event</h1>
-        <p className="mt-1 text-sm text-[#888888]">
-          Create the Event first. TourAligner will create its private Backstage automatically.
-        </p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        backHref="/dashboard/backstage"
+        backLabel="Back to Backstages"
+        eyebrow="New Backstage"
+        title="Create Event"
+        description="Create the Event first. TourAligner will create its private Backstage automatically."
+      />
 
       {venueIdentities.length > 0 && (requiredIdentity.requiresSelection || requiredIdentity.activeIdentity?.kind === 'band') ? (
         <ProfileSelectionModal
@@ -76,12 +74,11 @@ export default async function NewEventPage() {
       ) : selectedVenues.length > 0 ? (
         <EventCreateForm venues={selectedVenues} genres={genres ?? []} />
       ) : (
-        <div className="rounded-2xl border border-[#E8E8E8] bg-white p-10 text-center">
-          <p className="text-sm text-[#888888]">Claim a venue before creating an Event.</p>
-          <Link href="/dashboard/venues" className="mt-4 inline-block rounded-xl bg-[#FD6A2F] px-5 py-2.5 text-sm font-semibold text-white">
-            Manage venues
-          </Link>
-        </div>
+        <EmptyState
+          title="Claim a venue first"
+          description="Events need to be attached to a venue profile you manage."
+          action={<ButtonLink href="/dashboard/venues">Manage venues</ButtonLink>}
+        />
       )}
     </div>
   )

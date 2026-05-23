@@ -27,6 +27,31 @@ body {
   color: #252525;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #D6D6D6 transparent;
+}
+
+.app-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.app-scrollbar::-webkit-scrollbar-thumb {
+  background: #D6D6D6;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
 /* Scroll indicator dot animation */
 @keyframes scroll-dot {
   0%   { transform: translateY(0);   opacity: 1; }

@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { AlertCircle, CalendarRange, CheckCircle2, Clock3, MapPin, Mic2, Plus, Search, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MEMBERSHIP_STATUS_LABELS, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
+import { Badge, ButtonLink, Card, EmptyState, PageHeader, SectionHeading, cx } from '@/components/ui/primitives'
 import type { Event, EventArtistMembership, VenueClaim } from '@/types/database'
 
 export const metadata = { title: 'Dashboard' }
@@ -18,6 +20,14 @@ type DashboardEvent = Event & {
   event_artist_memberships: Array<Pick<EventArtistMembership, 'status'>> | null
 }
 
+type ActionItem = {
+  href: string
+  title: string
+  detail: string
+  tone: 'brand' | 'warning' | 'success' | 'info'
+  icon: React.ComponentType<{ className?: string }>
+}
+
 function DashboardEventCard({
   event,
   label,
@@ -30,31 +40,102 @@ function DashboardEventCard({
   const openNeed = getOpenArtistNeed(event, memberships)
 
   return (
-    <Link href={`/dashboard/backstage/${event.id}`} className="block rounded-2xl border border-[#E8E8E8] bg-white p-5 transition-colors hover:border-[#CCCCCC]">
+    <Link
+      href={`/dashboard/backstage/${event.id}`}
+      className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-[#252525]">{event.title}</h2>
-            <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-2 py-0.5 text-xs text-[#777777]">
-              {label}
-            </span>
+            <h3 className="text-lg font-semibold tracking-tight text-[#202020]">{event.title}</h3>
+            <Badge tone="muted">{label}</Badge>
           </div>
-          <p className="mt-1 text-sm text-[#777777]">
-            {event.venues?.name ?? 'Unknown venue'} · {formatEventDate(event)}
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
+            <span>{event.venues?.name ?? 'Unknown venue'}</span>
+            <span className="text-[#B0B0B0]">/</span>
+            <span>{formatEventDate(event)}</span>
           </p>
-          <p className="mt-1 text-sm text-[#888888]">
-            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : ''}
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
+            <MapPin className="h-3.5 w-3.5" />
+            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
           </p>
         </div>
-        <div className="text-right text-sm">
+        <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
           <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
-          <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
-            {openNeed <= 0 ? 'Needed count reached' : `${openNeed} open need${openNeed === 1 ? '' : 's'}`}
+          <p className={cx('mt-1 text-xs', openNeed <= 0 ? 'text-[#8A5A12]' : 'text-[#777777]')}>
+            {openNeed <= 0 ? 'Lineup target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
           </p>
-          {event.is_public && <p className="mt-1 text-xs text-[#0C7C71]">Public</p>}
         </div>
       </div>
     </Link>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  href,
+}: {
+  label: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
+  href: string
+}) {
+  return (
+    <Link href={href} className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0]">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-3xl font-bold tracking-tight text-[#202020]">{value}</p>
+          <p className="mt-1 text-sm font-medium text-[#777777]">{label}</p>
+        </div>
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </Link>
+  )
+}
+
+function ActionQueue({ items }: { items: ActionItem[] }) {
+  if (items.length === 0) {
+    return (
+      <Card className="p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F3FBF8] text-[#0C7C71]">
+            <CheckCircle2 className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="font-semibold text-[#252525]">Nothing urgent right now</h2>
+            <p className="mt-1 text-sm leading-6 text-[#777777]">
+              Your action queue is clear. New invites, applications, and venue claims will appear here.
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((item) => {
+        const Icon = item.icon
+        return (
+          <Link key={`${item.href}-${item.title}`} href={item.href} className="group flex items-start gap-3 rounded-2xl border border-[#E6E6E6] bg-white p-4 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[#252525]">{item.title}</span>
+                <Badge tone={item.tone}>{item.tone === 'warning' ? 'Needs review' : 'Open'}</Badge>
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-[#777777]">{item.detail}</span>
+            </span>
+          </Link>
+        )
+      })}
+    </div>
   )
 }
 
@@ -114,136 +195,154 @@ export default async function DashboardPage() {
           .in('venue_id', venueIds)
           .in('status', ['draft', 'active'])
           .order('event_date', { ascending: true })
-          .limit(5)
+          .limit(8)
       : Promise.resolve({ data: [] }),
     bandIds.length
       ? supabase
           .from('event_artist_memberships')
-          .select('status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
+          .select('id, status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
           .in('band_id', bandIds)
           .in('status', ['applied', 'invited', 'accepted', 'removal_requested'])
-          .limit(5)
+          .limit(8)
       : Promise.resolve({ data: [] }),
   ])
 
   const artistEvents = ((artistMemberships ?? []) as unknown as Array<{
+    id: string
     status: EventArtistMembership['status']
     events: DashboardEvent | DashboardEvent[] | null
   }>)
     .map((row) => ({
+      membershipId: row.id,
       status: row.status,
       event: Array.isArray(row.events) ? row.events[0] : row.events,
     }))
-    .filter((row): row is { status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
+    .filter((row): row is { membershipId: string; status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
 
+  const venueEventRows = (venueEvents ?? []) as unknown as DashboardEvent[]
   const name = profile?.full_name?.split(' ')[0] ?? 'there'
-  const hasAnyEvents = (venueEvents ?? []).length > 0 || artistEvents.length > 0
+  const hasAnyEvents = venueEventRows.length > 0 || artistEvents.length > 0
   const canCreateEvent = venueIds.length > 0
-  const hasMultipleProfiles = identities.length > 1
+
+  const actionItems: ActionItem[] = [
+    ...((pendingClaims ?? []) as unknown as Array<VenueClaim & { venues: { name: string; location_city: string; location_state: string } | null }>).map((claim) => ({
+      href: '/dashboard/venues?tab=mine',
+      title: `${claim.venues?.name ?? 'Venue'} claim is pending`,
+      detail: claim.venues ? [claim.venues.location_city, claim.venues.location_state].filter(Boolean).join(', ') : 'We will show approval here when it changes.',
+      tone: 'warning' as const,
+      icon: Clock3,
+    })),
+    ...artistEvents
+      .filter(({ status }) => status === 'invited' || status === 'removal_requested')
+      .map(({ event, status }) => ({
+        href: `/dashboard/backstage/${event.id}`,
+        title: status === 'invited' ? `Invite from ${event.venues?.name ?? 'a venue'}` : `Removal request: ${event.title}`,
+        detail: `${event.title} / ${formatEventDate(event)}`,
+        tone: status === 'invited' ? 'brand' as const : 'warning' as const,
+        icon: AlertCircle,
+      })),
+    ...venueEventRows
+      .filter((event) => event.status === 'draft' || getOpenArtistNeed(event, event.event_artist_memberships ?? []) > 0)
+      .slice(0, 4)
+      .map((event) => ({
+        href: `/dashboard/backstage/${event.id}`,
+        title: event.status === 'draft' ? `Draft event: ${event.title}` : `${event.title} still needs artists`,
+        detail: `${formatEventDate(event)} / ${getAcceptedMemberships(event.event_artist_memberships ?? []).length}/${event.needed_artist_count} accepted`,
+        tone: event.status === 'draft' ? 'info' as const : 'brand' as const,
+        icon: Users,
+      })),
+  ].slice(0, 6)
+
+  const upcoming = [
+    ...venueEventRows.map((event) => ({ event, label: 'Venue leader' })),
+    ...artistEvents.map(({ event, status }) => ({ event, label: MEMBERSHIP_STATUS_LABELS[status] })),
+  ]
+    .sort((a, b) => a.event.event_date.localeCompare(b.event.event_date))
+    .slice(0, 6)
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#252525]">Hey, {name}</h1>
-          <p className="mt-1 text-sm text-[#888888]">Your Events and Backstages are the center of the workflow.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {canCreateEvent && (
-            <Link href="/dashboard/events/new" className="rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white">
-              Create Event
-            </Link>
-          )}
-          <Link href="/events" className="rounded-xl border border-[#E8E8E8] bg-white px-4 py-2.5 text-sm font-semibold text-[#252525]">
-            Available Events
-          </Link>
-        </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Action center"
+        title={`Hey, ${name}`}
+        description="Your dashboard highlights the booking work that needs attention, plus the next Backstages and profile actions for the selected identity."
+        actions={
+          <>
+            {canCreateEvent && (
+              <ButtonLink href="/dashboard/events/new">
+                <Plus className="h-4 w-4" />
+                Create Event
+              </ButtonLink>
+            )}
+            <ButtonLink href="/events" tone="secondary">
+              <Search className="h-4 w-4" />
+              Browse Events
+            </ButtonLink>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Active Backstages" value={venueEventRows.length + artistEvents.length} icon={CalendarRange} href="/dashboard/backstage" />
+        <StatCard label={allBandIds.length === 1 ? 'Artist profile' : 'Artist profiles'} value={allBandIds.length} icon={Mic2} href="/dashboard/bands?tab=mine" />
+        <StatCard label={allVenueIds.length === 1 ? 'Venue profile' : 'Venue profiles'} value={allVenueIds.length} icon={MapPin} href="/dashboard/venues?tab=mine" />
       </div>
 
-      {hasMultipleProfiles && (
-        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Link href="/dashboard/backstage" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-            <p className="text-3xl font-bold">{(venueEvents ?? []).length + artistEvents.length}</p>
-            <p className="mt-1 text-sm text-[#888888]">Active Backstages</p>
-          </Link>
-          <Link href="/dashboard/bands" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-            <p className="text-3xl font-bold">{allBandIds.length}</p>
-            <p className="mt-1 text-sm text-[#888888]">{allBandIds.length === 1 ? 'Artist' : 'Artists'}</p>
-          </Link>
-          <Link href="/dashboard/venues" className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-            <p className="text-3xl font-bold">{allVenueIds.length}</p>
-            <p className="mt-1 text-sm text-[#888888]">{allVenueIds.length === 1 ? 'Venue' : 'Venues'}</p>
-          </Link>
-        </div>
-      )}
-
-      {!hasAnyEvents && (pendingClaims ?? []).length === 0 && (
-        <div className="rounded-2xl border border-[#E8E8E8] bg-white p-12 text-center">
-          <h2 className="text-lg font-semibold text-[#252525]">No Backstages yet</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[#888888]">
-            Venues create Events to open a Backstage. Artists can browse Available Events and apply.
-          </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            {canCreateEvent ? (
-              <Link href="/dashboard/events/new" className="rounded-xl bg-[#FD6A2F] px-5 py-2.5 text-sm font-semibold text-white">
-                Create Event
-              </Link>
-            ) : allVenueIds.length === 0 ? (
-              <Link href="/dashboard/venues" className="rounded-xl bg-[#FD6A2F] px-5 py-2.5 text-sm font-semibold text-white">
-                Claim a venue
-              </Link>
-            ) : null}
-            <Link href="/events" className="rounded-xl border border-[#E8E8E8] px-5 py-2.5 text-sm font-semibold text-[#252525]">
-              Browse Available Events
-            </Link>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-10">
-        {(venueEvents ?? []).length > 0 && (
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Venue Backstages</h2>
-              <Link href="/dashboard/backstage" className="text-xs text-[#888888] hover:text-[#252525]">View all</Link>
-            </div>
-            <div className="space-y-4">
-              {((venueEvents ?? []) as unknown as DashboardEvent[]).map((event) => (
-                <DashboardEventCard key={event.id} event={event} label="Venue leader" />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {artistEvents.length > 0 && (
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Artist Backstages</h2>
-              <Link href="/dashboard/backstage" className="text-xs text-[#888888] hover:text-[#252525]">View all</Link>
-            </div>
-            <div className="space-y-4">
-              {artistEvents.map(({ event, status }) => (
-                <DashboardEventCard key={`${event.id}-${status}`} event={event} label={MEMBERSHIP_STATUS_LABELS[status]} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {(pendingClaims ?? []).length > 0 && (
-          <section>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Pending venue claims</h2>
-            <div className="space-y-3">
-              {((pendingClaims ?? []) as unknown as Array<VenueClaim & { venues: { name: string; location_city: string; location_state: string } | null }>).map((claim) => (
-                <div key={claim.id} className="rounded-2xl border border-yellow-200 bg-white p-5">
-                  <p className="font-semibold text-[#252525]">{claim.venues?.name ?? 'Venue'}</p>
-                  <p className="mt-1 text-sm text-[#888888]">
-                    {claim.venues ? [claim.venues.location_city, claim.venues.location_state].filter(Boolean).join(', ') : ''}
-                  </p>
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <main>
+          <SectionHeading
+            title="Upcoming Backstages"
+            description="The next events tied to the selected profile."
+            action={<Link href="/dashboard/backstage" className="text-sm font-semibold text-[#777777] hover:text-[#252525]">View all</Link>}
+          />
+          {!hasAnyEvents ? (
+            <EmptyState
+              title="No Backstages yet"
+              description="Venues can create Events to open a Backstage. Artists can browse available events and apply."
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  {canCreateEvent ? (
+                    <ButtonLink href="/dashboard/events/new">Create Event</ButtonLink>
+                  ) : allVenueIds.length === 0 ? (
+                    <ButtonLink href="/dashboard/venues">Claim a Venue</ButtonLink>
+                  ) : null}
+                  <ButtonLink href="/events" tone="secondary">Browse Events</ButtonLink>
                 </div>
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              {upcoming.map(({ event, label }) => (
+                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} />
               ))}
             </div>
+          )}
+        </main>
+
+        <aside className="space-y-8">
+          <section>
+            <SectionHeading title="Needs Attention" description="Invites, drafts, open spots, and claims." />
+            <ActionQueue items={actionItems} />
           </section>
-        )}
+
+          <Card className="p-5">
+            <SectionHeading title="Quick Starts" description="Common next steps for booking work." />
+            <div className="grid gap-2">
+              <ButtonLink href="/dashboard/bands/new" tone="secondary">
+                <Mic2 className="h-4 w-4" />
+                Add Artist Profile
+              </ButtonLink>
+              <ButtonLink href="/dashboard/venues" tone="secondary">
+                <MapPin className="h-4 w-4" />
+                Claim or Add Venue
+              </ButtonLink>
+              <ButtonLink href="/venues" tone="secondary">
+                <Search className="h-4 w-4" />
+                Discover Venues
+              </ButtonLink>
+            </div>
+          </Card>
+        </aside>
       </div>
     </div>
   )

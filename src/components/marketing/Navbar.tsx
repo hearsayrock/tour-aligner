@@ -71,7 +71,9 @@ export async function Navbar() {
           )}
         </nav>
 
-        {!user && <SignedOutMobileMenu />}
+        <div className="md:hidden">
+          {user ? <NavAccountMenu /> : <SignedOutMobileMenu />}
+        </div>
       </div>
     </header>
   )

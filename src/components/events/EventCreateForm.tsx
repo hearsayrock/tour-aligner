@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { CalendarClock, Info, SlidersHorizontal } from 'lucide-react'
 import { createEvent } from '@/app/actions/events'
+import { Card, SectionHeading, buttonBaseClass, inputClass, labelClass } from '@/components/ui/primitives'
 import type { Genre } from '@/types/database'
 
 type VenueOption = {
@@ -68,10 +70,15 @@ export function EventCreateForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
-      <section className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm text-[#777777]">Venue</label>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title="Core Event Details"
+          description="Set the venue, date, and lineup need. You can refine the public description after the Backstage is created."
+        />
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Venue</label>
           <select
             value={venueId}
             onChange={(event) => {
@@ -79,7 +86,7 @@ export function EventCreateForm({
               setVenueId(event.target.value)
               setAttendeeCapacity(String(nextVenue?.capacity ?? 100))
             }}
-            className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+            className={inputClass}
           >
             {venues.map((venue) => (
               <option key={venue.id} value={venue.id}>
@@ -90,62 +97,66 @@ export function EventCreateForm({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm text-[#777777]">Event title</label>
+          <label className={labelClass}>Event title</label>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Friday night indie bill"
-            className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+            className={inputClass}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm text-[#777777]">Event date</label>
+            <label className={labelClass}>Event date</label>
             <input
               type="date"
               value={eventDate}
               onChange={(event) => setEventDate(event.target.value)}
-              className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm text-[#777777]">Show start time</label>
+            <label className={labelClass}>Show start time</label>
             <input
               type="time"
               value={startTime}
               onChange={(event) => setStartTime(event.target.value)}
-              className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm text-[#777777]">Attendee capacity</label>
+            <label className={labelClass}>Attendee capacity</label>
             <input
               type="number"
               min={1}
               value={attendeeCapacity}
               onChange={(event) => setAttendeeCapacity(event.target.value)}
-              className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm text-[#777777]">Needed artists</label>
+            <label className={labelClass}>Needed artists</label>
             <input
               type="number"
               min={1}
               value={neededArtistCount}
               onChange={(event) => setNeededArtistCount(event.target.value)}
-              className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
+              className={inputClass}
             />
           </div>
         </div>
-      </section>
+        </div>
+      </Card>
 
-      <section>
-        <p className="mb-3 text-sm text-[#777777]">Event genres</p>
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title="Event Fit"
+          description="Genres help artists decide whether this is the right bill to apply for."
+        />
         <div className="flex flex-wrap gap-2">
           {genres.map((genre) => {
             const selected = selectedGenres.has(genre.id)
@@ -156,7 +167,7 @@ export function EventCreateForm({
                 onClick={() => toggleGenre(genre.id)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   selected
-                    ? 'border-[#FD6A2F] bg-[#FFF3EE] text-[#252525]'
+                    ? 'border-[#FD6A2F] bg-[#FFF3EE] text-[#A84216]'
                     : 'border-[#E8E8E8] bg-white text-[#777777] hover:border-[#CCCCCC]'
                 }`}
               >
@@ -165,39 +176,51 @@ export function EventCreateForm({
             )
           })}
         </div>
-      </section>
+      </Card>
 
-      <section className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm text-[#777777]">Artists needed</label>
-          <textarea
-            value={artistNeedDescription}
-            onChange={(event) => setArtistNeedDescription(event.target.value)}
-            rows={4}
-            placeholder="Describe the sound, experience level, and fit you need for this event."
-            className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
-          />
-        </div>
+      <Card className="overflow-hidden">
+        <details open>
+          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525] sm:px-6">
+            <span className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-[#FD6A2F]" />
+              Artist-facing notes
+            </span>
+            <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+          </summary>
+          <div className="space-y-4 border-t border-[#EEEEEE] p-5 sm:p-6">
+            <div>
+              <label className={labelClass}>Artists needed</label>
+              <textarea
+                value={artistNeedDescription}
+                onChange={(event) => setArtistNeedDescription(event.target.value)}
+                rows={4}
+                placeholder="Describe the sound, experience level, and fit you need for this event."
+                className={`${inputClass} resize-y`}
+              />
+            </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm text-[#777777]">Event description</label>
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            rows={4}
-            placeholder="Tell artists what this night is, who it is for, and what kind of bill you are building."
-            className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FD6A2F]"
-          />
-        </div>
-      </section>
+            <div>
+              <label className={labelClass}>Event description</label>
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={4}
+                placeholder="Tell artists what this night is, who it is for, and what kind of bill you are building."
+                className={`${inputClass} resize-y`}
+              />
+            </div>
+          </div>
+        </details>
+      </Card>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <button
         type="submit"
         disabled={isPending || venues.length === 0}
-        className="w-full rounded-xl bg-[#FD6A2F] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:opacity-50"
+        className={`${buttonBaseClass('primary')} w-full`}
       >
+        <CalendarClock className="h-4 w-4" />
         {isPending ? 'Creating...' : 'Create Event and Backstage'}
       </button>
     </form>

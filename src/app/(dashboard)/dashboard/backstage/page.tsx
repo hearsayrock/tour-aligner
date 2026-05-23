@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { MapPin, Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
+import { Badge, ButtonLink, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
 import {
   EVENT_STATUS_LABELS,
   MEMBERSHIP_STATUS_LABELS,
@@ -31,6 +33,13 @@ type EventCardRecord = Event & {
   > | null
 }
 
+function eventTone(status: Event['status']) {
+  if (status === 'active') return 'success' as const
+  if (status === 'draft') return 'warning' as const
+  if (status === 'cancelled') return 'danger' as const
+  return 'muted' as const
+}
+
 function EventCard({
   event,
   role,
@@ -48,39 +57,40 @@ function EventCard({
   return (
     <Link
       href={`/dashboard/backstage/${event.id}`}
-      className="block rounded-2xl border border-[#E8E8E8] bg-white p-5 transition-colors hover:border-[#CCCCCC]"
+      className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-[#252525]">{event.title}</h2>
-            <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-2 py-0.5 text-xs text-[#777777]">
+            <h2 className="text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">{event.title}</h2>
+            <Badge tone="muted">
               {role === 'venue' ? 'Venue leader' : membership ? MEMBERSHIP_STATUS_LABELS[membership.status] : 'Artist'}
-            </span>
+            </Badge>
+            <Badge tone={eventTone(event.status)}>{EVENT_STATUS_LABELS[event.status]}</Badge>
           </div>
-          <p className="mt-1 text-sm text-[#777777]">
-            {event.venues?.name ?? 'Unknown venue'} · {formatEventDate(event)}
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
+            <span>{event.venues?.name ?? 'Unknown venue'}</span>
+            <span className="text-[#B0B0B0]">/</span>
+            <span>{formatEventDate(event)}</span>
           </p>
-          <p className="mt-1 text-sm text-[#888888]">
-            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : ''}
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
+            <MapPin className="h-3.5 w-3.5" />
+            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
           </p>
           {genres.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-4 flex flex-wrap gap-1.5">
               {genres.slice(0, 4).map((genre) => (
-                <span key={genre} className="rounded-full border border-[#E8E8E8] px-2 py-0.5 text-xs text-[#555555]">
-                  {genre}
-                </span>
+                <Badge key={genre} tone="default">{genre}</Badge>
               ))}
             </div>
           )}
         </div>
-        <div className="text-right text-sm">
-          <p className="font-semibold text-[#252525]">{EVENT_STATUS_LABELS[event.status]}</p>
-          <p className={`mt-1 ${openNeed <= 0 ? 'text-[#8A5A12]' : 'text-[#777777]'}`}>
-            {acceptedCount}/{event.needed_artist_count} artists
+        <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
+          <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
+          <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
+            {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
           </p>
-          {event.is_public && <p className="mt-1 text-xs text-[#0C7C71]">Public</p>}
-          {event.is_accepting_artists && <p className="mt-1 text-xs text-[#FD6A2F]">Accepting artists</p>}
+          {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
         </div>
       </div>
     </Link>
@@ -119,11 +129,12 @@ export default async function BackstageListPage() {
 
   if (requiredIdentity.requiresSelection) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#252525]">Backstages</h1>
-          <p className="mt-1 text-sm text-[#888888]">Choose which profile you want to browse.</p>
-        </div>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <PageHeader
+          eyebrow="Backstages"
+          title="Choose a profile"
+          description="Backstages are filtered by one artist or venue profile. Use the profile selector to choose the profile you want to browse."
+        />
         <ProfileSelectionModal
           title="Select a profile to view Backstages"
           body="Backstages are filtered by one artist or venue profile. Use the profile selector in the nav to choose the profile you want to browse."
@@ -181,39 +192,49 @@ export default async function BackstageListPage() {
     }))
     .filter((row): row is { membership: { id: string; status: EventArtistMembership['status'] }; event: EventCardRecord } => !!row.event)
 
-  return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#252525]">Backstages</h1>
-          <p className="mt-1 text-sm text-[#888888]">Plan Events with venues and accepted artists in one shared room.</p>
-        </div>
-        {venueIds.length > 0 && (
-          <Link href="/dashboard/events/new" className="rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#E55A22]">
-            Create Event
-          </Link>
-        )}
-      </div>
+  const total = venueEventRows.length + artistEvents.length
 
-      {venueEventRows.length === 0 && artistEvents.length === 0 ? (
-        <div className="rounded-2xl border border-[#E8E8E8] bg-white p-12 text-center">
-          <p className="text-sm text-[#888888]">No Backstages yet.</p>
-          <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Backstages"
+        title="Booking Workspaces"
+        description={`${total} Backstage${total === 1 ? '' : 's'} for the selected profile. Each room keeps lineup, logistics, and conversation together.`}
+        actions={
+          <div className="flex flex-wrap gap-2">
             {venueIds.length > 0 && (
-              <Link href="/dashboard/events/new" className="rounded-xl bg-[#FD6A2F] px-5 py-2.5 text-sm font-semibold text-white">
+              <ButtonLink href="/dashboard/events/new">
+                <Plus className="h-4 w-4" />
                 Create Event
-              </Link>
+              </ButtonLink>
             )}
-            <Link href="/events" className="rounded-xl border border-[#E8E8E8] px-5 py-2.5 text-sm font-semibold text-[#252525]">
-              Browse Available Events
-            </Link>
+            <ButtonLink href="/events" tone="secondary">
+              <Search className="h-4 w-4" />
+              Browse Events
+            </ButtonLink>
           </div>
-        </div>
+        }
+      />
+
+      {total === 0 ? (
+        <EmptyState
+          title="No Backstages yet"
+          description="Venues can create Events to open a Backstage. Artists can browse Available Events and apply."
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              {venueIds.length > 0 && <ButtonLink href="/dashboard/events/new">Create Event</ButtonLink>}
+              <ButtonLink href="/events" tone="secondary">Browse Available Events</ButtonLink>
+            </div>
+          }
+        />
       ) : (
         <div className="space-y-10">
           {venueEventRows.length > 0 && (
             <section>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Your venue Events</h2>
+              <SectionHeading
+                title="Venue Backstages"
+                description="Events where the selected venue owns the booking workflow."
+              />
               <div className="space-y-4">
                 {venueEventRows.map((event) => (
                   <EventCard key={event.id} event={event} role="venue" />
@@ -224,7 +245,10 @@ export default async function BackstageListPage() {
 
           {artistEvents.length > 0 && (
             <section>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Artist Backstages</h2>
+              <SectionHeading
+                title="Artist Backstages"
+                description="Events where the selected artist has applied, been invited, or joined."
+              />
               <div className="space-y-4">
                 {artistEvents.map(({ event, membership }) => (
                   <EventCard key={`${event.id}-${membership.id}`} event={event} role="artist" membership={membership} />

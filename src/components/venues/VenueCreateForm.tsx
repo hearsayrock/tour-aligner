@@ -19,11 +19,11 @@ function slugify(str: string): string {
 }
 
 const inputClass =
-  'w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors'
+  'w-full rounded-xl border border-[#E2E2E2] bg-[#F7F7F7] px-4 py-3 text-sm text-[#252525] placeholder-[#A3A3A3] transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FD6A2F]/15'
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="block text-sm text-[#777777] mb-1.5">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-[#626262]">
       {children}
     </label>
   )
@@ -31,7 +31,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNo
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-5">
+    <h2 className="mb-5 text-sm font-semibold text-[#252525]">
       {children}
     </h2>
   )
@@ -151,18 +151,19 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-6 py-10 space-y-12">
-      <div className="flex items-center justify-between">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10 space-y-6">
+      <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Add your venue</h1>
-          <p className="text-sm text-[#888888] mt-0.5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Venue profile</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#181818]">Add your venue</h1>
+          <p className="mt-2 text-sm text-[#777777]">
             It will be added to the directory and sent to admin for claim approval.
           </p>
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? 'Submitting…' : 'Submit venue'}
         </button>

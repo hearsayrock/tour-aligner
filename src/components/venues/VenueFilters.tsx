@@ -2,6 +2,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState, useRef } from 'react'
+import { ChevronDown, Crosshair, LoaderCircle, MapPin, Search, X } from 'lucide-react'
+import { inputClass } from '@/components/ui/primitives'
 
 interface VenueFiltersProps {
   genres: { id: string; name: string }[]
@@ -10,7 +12,7 @@ interface VenueFiltersProps {
 const CAPACITY_OPTIONS = [
   { value: '', label: 'Any size' },
   { value: 'small', label: 'Small (< 150)' },
-  { value: 'medium', label: 'Medium (150–400)' },
+  { value: 'medium', label: 'Medium (150-400)' },
   { value: 'large', label: 'Large (400+)' },
 ]
 
@@ -52,13 +54,11 @@ function CustomSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg px-3 py-2.5 pr-8 text-sm text-[#252525] focus:outline-none focus:border-[#FD6A2F] transition-colors cursor-pointer"
+        className={`${inputClass} appearance-none pr-10 cursor-pointer`}
       >
         {children}
       </select>
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#888888] text-[9px]">
-        ▼
-      </span>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#888888]" />
     </div>
   )
 }
@@ -89,43 +89,35 @@ function LocationFilterInput({
   }
 
   return (
-    <div className="relative col-span-2 sm:col-span-1">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB] z-10">
-        {geoLoading ? (
-          <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-          </svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-          </svg>
-        )}
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[#A0A0A0]">
+        {geoLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
       </span>
       <input
         type="text"
         value={locationValue}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder="City or state..."
-        className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg pl-8 pr-8 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+        placeholder="City or state"
+        className={`${inputClass} pl-10 pr-10`}
       />
       {locationValue ? (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#888888] text-base leading-none"
-          aria-label="Clear"
-        >&times;</button>
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#888888] transition-colors hover:bg-[#EFEFEF] hover:text-[#252525]"
+          aria-label="Clear location"
+        >
+          <X className="h-4 w-4" />
+        </button>
       ) : (
         <button
           type="button"
           onClick={onUseLocation}
           disabled={geoLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-[#FD6A2F] hover:text-[#E55A22] disabled:opacity-40 transition-colors"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#FD6A2F] transition-colors hover:bg-[#FFF3EE] hover:text-[#E55A22] disabled:opacity-40"
           aria-label="Use my location"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          </svg>
+          <Crosshair className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -163,12 +155,18 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
   function handleLocationInput(raw: string) {
     setGeoError(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!raw.trim()) { pushParams({ location: '' }); return }
+    if (!raw.trim()) {
+      pushParams({ location: '' })
+      return
+    }
     debounceRef.current = setTimeout(() => pushParams({ location: raw.trim() }), 350)
   }
 
   async function handleUseLocation() {
-    if (!navigator.geolocation) { setGeoError('Geolocation not supported.'); return }
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation not supported.')
+      return
+    }
     setGeoLoading(true)
     setGeoError(null)
     navigator.geolocation.getCurrentPosition(
@@ -189,26 +187,19 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
   }
 
   return (
-    <div className="bg-white border border-[#E8E8E8] rounded-xl p-5 mb-8 shadow-sm">
-      {/* Search */}
+    <div className="sticky top-[73px] z-20 mb-8 rounded-2xl border border-[#E6E6E6] bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,20,20,0.07)] backdrop-blur lg:top-4">
       <div className="relative mb-3">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB]">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-        </span>
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A0A0A0]" />
         <input
           type="text"
-          placeholder="Search venues…"
+          placeholder="Search venues or cities"
           defaultValue={searchParams.get('q') ?? ''}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full bg-[#F5F5F5] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#FD6A2F]/20 focus:border-[#FD6A2F] border border-transparent transition-all"
+          className={`${inputClass} pl-10`}
         />
       </div>
 
-      {/* Filter row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {/* Location */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <LocationFilterInput
           key={urlLocation}
           value={urlLocation}
@@ -232,7 +223,7 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
         </CustomSelect>
       </div>
 
-      {geoError && <p className="text-xs text-red-400 mt-2">{geoError}</p>}
+      {geoError && <p className="mt-2 text-xs text-red-500">{geoError}</p>}
     </div>
   )
 }

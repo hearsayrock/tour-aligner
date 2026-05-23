@@ -54,9 +54,33 @@ export async function AppNav() {
   const adminClaimsResult = profile?.is_admin
     ? await supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending')
     : { count: 0 }
+  const [{ count: invitedMembershipCount }, { data: venueEventIds }] = await Promise.all([
+    bandIds.length
+      ? supabase
+          .from('event_artist_memberships')
+          .select('id', { count: 'exact', head: true })
+          .in('band_id', bandIds)
+          .eq('status', 'invited')
+      : Promise.resolve({ count: 0 }),
+    venueIds.length
+      ? supabase
+          .from('events')
+          .select('id')
+          .in('venue_id', venueIds)
+          .in('status', ['draft', 'active'])
+      : Promise.resolve({ data: [] }),
+  ])
+  const eventIds = (venueEventIds ?? []).map((event) => event.id)
+  const { count: venueApplicationCount } = eventIds.length
+    ? await supabase
+        .from('event_artist_memberships')
+        .select('id', { count: 'exact', head: true })
+        .in('event_id', eventIds)
+        .eq('status', 'applied')
+    : { count: 0 }
 
   const notifications = {
-    backstage:     false,
+    backstage:     (invitedMembershipCount ?? 0) > 0 || (venueApplicationCount ?? 0) > 0,
     pendingClaims: (userPendingClaimCount ?? 0) > 0,
     adminClaims:   (adminClaimsResult.count ?? 0) > 0,
   }

@@ -142,7 +142,7 @@ export default async function EventDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className={`mx-auto max-w-5xl px-6 pb-10 ${user ? 'pt-8 lg:pt-10' : 'pt-24'}`}>
       <Link href="/events" className="text-sm text-[#888888] hover:text-[#252525]">
         Back to Available Events
       </Link>

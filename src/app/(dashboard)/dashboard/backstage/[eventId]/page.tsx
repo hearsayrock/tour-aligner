@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { CalendarRange, ClipboardList, Settings, SlidersHorizontal, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
+import { Badge, Card, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
 import {
   BackstageComposer,
   BackstageLogisticsForm,
@@ -26,6 +28,21 @@ import type { EventGenre, Genre } from '@/types/database'
 
 export const metadata = { title: 'Backstage' }
 
+function eventStatusTone(status: EventWithVenue['status']) {
+  if (status === 'active') return 'success' as const
+  if (status === 'draft') return 'warning' as const
+  if (status === 'cancelled') return 'danger' as const
+  return 'muted' as const
+}
+
+function membershipTone(status: EventMembershipSummary['status']) {
+  if (status === 'accepted') return 'success' as const
+  if (status === 'applied' || status === 'invited') return 'brand' as const
+  if (status === 'removal_requested') return 'warning' as const
+  if (status === 'declined' || status === 'removed') return 'muted' as const
+  return 'default' as const
+}
+
 function LogisticsDisplay({ event }: { event: EventWithVenue }) {
   const rows = [
     ['Load-in', event.logistics_load_in],
@@ -38,15 +55,21 @@ function LogisticsDisplay({ event }: { event: EventWithVenue }) {
   ].filter(([, value]) => !!value)
 
   if (rows.length === 0) {
-    return <p className="text-sm text-[#888888]">No pinned logistics yet.</p>
+    return (
+      <EmptyState
+        title="No pinned logistics yet"
+        description="Load-in, soundcheck, set times, parking, and backline notes will appear here once the venue adds them."
+        className="border-dashed py-8"
+      />
+    )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       {rows.map(([label, value]) => (
-        <div key={label} className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">{label}</p>
-          <LinkifiedText text={value ?? ''} className="mt-1 whitespace-pre-wrap text-sm text-[#252525]" />
+        <div key={label} className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#888888]">{label}</p>
+          <LinkifiedText text={value ?? ''} className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#252525]" />
         </div>
       ))}
     </div>
@@ -62,9 +85,11 @@ function MessageList({
 }) {
   if (messages.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#E8E8E8] bg-white px-6 py-10 text-center text-sm text-[#888888]">
-        No Backstage messages yet.
-      </div>
+      <EmptyState
+        title="No Backstage messages yet"
+        description="Accepted artists and the venue can coordinate here once the conversation starts."
+        className="border-dashed"
+      />
     )
   }
 
@@ -98,10 +123,10 @@ function MessageList({
             ) : (
               <div className={`flex max-w-[82%] flex-col ${isOwnMessage ? 'items-end' : 'items-start'} sm:max-w-[68%]`}>
                 <div className={`mb-1 flex max-w-full flex-wrap items-center gap-2 px-1 text-xs ${isOwnMessage ? 'justify-end text-right' : 'justify-start'}`}>
-                  <p className="font-semibold uppercase tracking-widest text-[#888888]">{sender}</p>
+                  <p className="font-semibold uppercase tracking-[0.16em] text-[#888888]">{sender}</p>
                   <p className="text-[#AAAAAA]">{formattedCreatedAt}</p>
                 </div>
-                <div className={`rounded-2xl px-4 py-3 shadow-sm ${isOwnMessage ? 'rounded-br-md bg-[#2563EB]' : 'rounded-bl-md bg-[#FD6A2F]'}`}>
+                <div className={`rounded-2xl px-4 py-3 shadow-sm ${isOwnMessage ? 'rounded-br-md bg-[#252525]' : 'rounded-bl-md bg-[#FD6A2F]'}`}>
                   <LinkifiedText
                     text={message.body}
                     className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white"
@@ -262,41 +287,37 @@ export default async function BackstageDetailPage({
     : null
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-8">
-        <Link href="/dashboard/backstage" className="text-sm text-[#888888] hover:text-[#252525]">
-          Back to Backstages
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#252525]">{event.title}</h1>
-            <p className="mt-1 text-sm text-[#777777]">
-              {event.venues?.name ?? 'Unknown venue'} · {formatEventDateLong(event)}
-            </p>
-            <p className="mt-1 text-sm text-[#888888]">
-              {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : ''}
-            </p>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        backHref="/dashboard/backstage"
+        backLabel="Back to Backstages"
+        eyebrow="Backstage workspace"
+        title={event.title}
+        description={`${event.venues?.name ?? 'Unknown venue'} / ${formatEventDateLong(event)}${event.venues ? ` / ${[event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ')}` : ''}`}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={eventStatusTone(event.status)}>
+              <CalendarRange className="h-3.5 w-3.5" />
+              {EVENT_STATUS_LABELS[event.status]}
+            </Badge>
+            <Badge tone={openNeed <= 0 ? 'success' : 'brand'}>
+              <Users className="h-3.5 w-3.5" />
+              {acceptedCount}/{event.needed_artist_count} accepted
+            </Badge>
           </div>
-          <div className="rounded-2xl border border-[#E8E8E8] bg-white px-4 py-3 text-right text-sm">
-            <p className="font-semibold text-[#252525]">{EVENT_STATUS_LABELS[event.status]}</p>
-            <p className={openNeed <= 0 ? 'mt-1 text-[#8A5A12]' : 'mt-1 text-[#777777]'}>
-              {acceptedCount}/{event.needed_artist_count} artists accepted
-            </p>
-            {openNeed <= 0 && <p className="mt-1 text-xs text-[#8A5A12]">Needed count reached</p>}
-          </div>
-        </div>
+        }
+      />
 
-        <div className="mt-4 flex flex-wrap gap-2">
+      {genreNames.length > 0 && (
+        <div className="-mt-4 mb-8 flex flex-wrap gap-2">
           {genreNames.map((genre) => (
-            <span key={genre} className="rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-xs font-medium text-[#555555]">
-              {genre}
-            </span>
+            <Badge key={genre} tone="default">{genre}</Badge>
           ))}
         </div>
-      </div>
+      )}
 
       {!canEnterBackstage || !activeIdentity ? (
-        <div className="rounded-2xl border border-[#E8E8E8] bg-white p-8">
+        <Card className="p-8">
           <h2 className="text-lg font-semibold text-[#252525]">Backstage access pending</h2>
           <p className="mt-2 text-sm text-[#777777]">
             Your current status is {viewerMembership ? MEMBERSHIP_STATUS_LABELS[viewerMembership.status].toLowerCase() : 'not joined'}.
@@ -306,21 +327,17 @@ export default async function BackstageDetailPage({
               <MembershipActionButton membershipId={viewerMembership.id} status="accepted" label="Accept invite" />
             </div>
           )}
-        </div>
+        </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_390px]">
           <main className="space-y-8">
-            <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Pinned logistics</h2>
-              <div className="mt-4">
-                <LogisticsDisplay event={event} />
-              </div>
-            </section>
+            <Card className="p-5">
+              <SectionHeading title="Pinned Logistics" description="Shared show details everyone can refer back to." />
+              <LogisticsDisplay event={event} />
+            </Card>
 
             <section>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Backstage chat</h2>
-              </div>
+              <SectionHeading title="Backstage Chat" description="Keep artist and venue coordination in one room." />
               <MessageList activeIdentity={activeIdentity} messages={messages} />
               <div className="mt-5">
                 <BackstageComposer
@@ -332,21 +349,28 @@ export default async function BackstageDetailPage({
             </section>
           </main>
 
-          <aside className="space-y-6">
-            <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#888888]">Lineup</h2>
+          <aside className="space-y-6 xl:sticky xl:top-8 xl:self-start">
+            <Card className="p-5">
+              <SectionHeading
+                title="Lineup"
+                description={openNeed <= 0 ? 'Lineup target reached.' : `${openNeed} open artist spot${openNeed === 1 ? '' : 's'}.`}
+              />
               <div className="mt-4 space-y-3">
                 {memberships.length === 0 ? (
                   <p className="text-sm text-[#888888]">No artists yet.</p>
                 ) : (
                   memberships.map((membership) => (
-                    <div key={membership.id} className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
+                    <div key={membership.id} className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-[#252525]">{membership.bands?.name ?? 'Unknown artist'}</p>
-                          <p className="mt-1 text-xs text-[#888888]">{MEMBERSHIP_STATUS_LABELS[membership.status]}</p>
-                          {membership.application_note && <p className="mt-2 text-xs text-[#666666]">{membership.application_note}</p>}
-                          {membership.invite_note && <p className="mt-2 text-xs text-[#666666]">{membership.invite_note}</p>}
+                          <div className="mt-1">
+                            <Badge tone={membershipTone(membership.status)}>
+                              {MEMBERSHIP_STATUS_LABELS[membership.status]}
+                            </Badge>
+                          </div>
+                          {membership.application_note && <p className="mt-2 text-xs leading-5 text-[#666666]">{membership.application_note}</p>}
+                          {membership.invite_note && <p className="mt-2 text-xs leading-5 text-[#666666]">{membership.invite_note}</p>}
                         </div>
                       </div>
                       {isVenueLeader && (
@@ -371,24 +395,44 @@ export default async function BackstageDetailPage({
                   ))
                 )}
               </div>
-            </section>
+            </Card>
 
             {isVenueLeader && (
               <>
-                <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Invite artist</h2>
+                <Card className="p-5">
+                  <SectionHeading title="Invite Artist" description="Add another artist to this Backstage." />
                   <InviteArtistForm eventId={event.id} bands={availableInviteBands} />
-                </section>
+                </Card>
 
-                <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Event settings</h2>
-                  <BackstageSettingsForm event={event} genres={allGenres ?? []} selectedGenreIds={selectedGenreIds} />
-                </section>
+                <Card className="overflow-hidden">
+                  <details>
+                    <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525]">
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-[#FD6A2F]" />
+                        Event settings
+                      </span>
+                      <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+                    </summary>
+                    <div className="border-t border-[#EEEEEE] p-5">
+                      <BackstageSettingsForm event={event} genres={allGenres ?? []} selectedGenreIds={selectedGenreIds} />
+                    </div>
+                  </details>
+                </Card>
 
-                <section className="rounded-2xl border border-[#E8E8E8] bg-white p-5">
-                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#888888]">Edit logistics</h2>
-                  <BackstageLogisticsForm event={event} />
-                </section>
+                <Card className="overflow-hidden">
+                  <details>
+                    <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525]">
+                      <span className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-[#FD6A2F]" />
+                        Edit logistics
+                      </span>
+                      <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+                    </summary>
+                    <div className="border-t border-[#EEEEEE] p-5">
+                      <BackstageLogisticsForm event={event} />
+                    </div>
+                  </details>
+                </Card>
               </>
             )}
           </aside>
