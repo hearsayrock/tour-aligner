@@ -25,6 +25,24 @@ This file contains repo-specific instructions for automated coding agents workin
   - Touched-file check result.
   - TypeScript check result.
 
+## Mobile and API readiness
+
+- Treat Supabase as the durable multi-client backend contract. Web, Android, iOS, and future clients should be able to rely on the same Auth, RLS, Storage policies, Realtime subscriptions, and SQL RPCs where practical.
+- Do not put new core business rules only in Next.js Server Actions, React components, middleware, or route handlers. Server Actions may orchestrate UI concerns such as cache revalidation and redirects, but durable authorization and workflow state transitions should live in RLS, SQL functions, triggers, or Edge Functions.
+- For important mutations that mobile clients will likely need, prefer one of these patterns:
+  - Direct table writes only when RLS fully enforces ownership and valid state.
+  - SQL RPCs for multi-step workflow transitions, permission-sensitive operations, or changes that must remain atomic.
+  - Edge Functions or server routes only when the operation requires secret keys, third-party service credentials, webhooks, or privileged server-side integration.
+- When adding or changing a Server Action that performs a product workflow, note whether it is a thin wrapper around Supabase or whether it contains web-only business logic. If it contains web-only business logic, either move that logic into Supabase or document why it is intentionally web-only.
+- Never trust client-selected active identity values, cookies, local storage, request payloads, or mobile app state for authorization. Always verify ownership against Supabase data inside RLS, RPCs, or server-side code.
+- Keep managed identity concepts portable. If a user can act as a band or venue, APIs should accept the intended band or venue id and verify that the authenticated user owns it; do not depend on web cookies as the only source of identity selection.
+- Avoid using the Supabase service role key in browser or mobile code. Service role usage must stay server-side only and should be isolated to the smallest possible function or route.
+- Storage policies must be mobile-safe. New buckets or upload paths should enforce ownership by bucket/path policy, signed upload URL, or server-side mediation; avoid broad authenticated write/update/delete policies for user-generated files.
+- Public read models should be explicit. If mobile or public clients need discovery data, prefer RLS-safe tables/views/RPCs that expose only intended fields instead of relying on broad table access.
+- Realtime subscriptions should be backed by RLS-safe tables and predictable channel semantics. Do not rely on web-only refresh behavior as the only way users see inbox, event, or backstage updates.
+- After schema or RPC changes that affect application code, update `src/types/database.ts` or clearly report that generated Supabase types are stale.
+- When adding mobile-relevant workflows, include enough documentation in `README.md`, `docs/`, or migration comments for another client to call the same backend behavior without reverse-engineering the web UI.
+
 ## Supabase migrations
 
 - Before any schema change or Supabase migration work, verify the linked project ref:
