@@ -308,12 +308,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const [{ count: pendingClaimCount }, { data: allGenres }, { data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
-    supabase
-      .from('venue_claims')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'pending'),
+  const [{ data: allGenres }, { data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
     supabase.from('genres').select('id, name').order('name'),
     supabase
       .from('bands')
@@ -371,15 +366,9 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   }
 
   const activeIdentity = requiredIdentity.activeIdentity
-  const selectedVenueId = activeIdentity?.kind === 'venue' ? activeIdentity.id : null
-  const selectedVenueCount = selectedVenueId ? 1 : 0
-  const hasMine = selectedVenueCount > 0 || (!requiredIdentity.hasMultipleIdentities && (pendingClaimCount ?? 0) > 0)
-  const requestedTab = filters.tab ?? (hasMine ? 'mine' : 'directory')
-  const tab = requestedTab === 'mine' && !hasMine ? 'directory' : requestedTab
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
   const fullListMode = hasFilters || filters.view === 'all'
-  const showSubmittedBanner = filters.submitted === '1'
   const todayIso = new Date().toISOString().slice(0, 10)
   const calendarRange = getVenueCalendarRange(todayIso, 6)
   const recommendationBands = activeIdentity?.kind === 'band'
@@ -393,10 +382,6 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
           : 'Venue recommendations and contact requests need to know which artist is acting. Choose an artist in the profile selector, then come back to venues.',
       }
     : null
-
-  function tabHref(t: string) {
-    return `/dashboard/venues?tab=${t}`
-  }
 
   async function fetchVenueRecommendations(venuesToScore: Venue[]) {
     if (venuesToScore.length === 0 || recommendationBands.length === 0) {
@@ -491,150 +476,6 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     })
   }
 
-  // ── My Venues tab ─────────────────────────────────────────
-  if (tab === 'mine') {
-    let myVenuesQuery = supabase
-      .from('venues')
-      .select('*')
-      .eq('claimed_by_user_id', user.id)
-
-    if (selectedVenueId) myVenuesQuery = myVenuesQuery.eq('id', selectedVenueId)
-
-    const [{ data: rawMyVenues }, { data: rawPendingClaims }] = await Promise.all([
-      myVenuesQuery.order('name'),
-      supabase
-        .from('venue_claims')
-        .select('id, created_at, venues(id, name, slug, location_city, location_state)')
-        .eq('user_id', user.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false }),
-    ])
-    const myVenues = rawMyVenues as Venue[] | null
-    const pendingClaims = requiredIdentity.hasMultipleIdentities ? [] : ((rawPendingClaims ?? []) as Array<{
-      id: string
-      created_at: string
-      venues: {
-        id: string
-        name: string
-        slug: string
-        location_city: string
-        location_state: string
-      }[] | null
-    }>).map((claim) => ({
-      ...claim,
-      venues: Array.isArray(claim.venues) ? (claim.venues[0] ?? null) : null,
-    }))
-    const hasPendingClaims = pendingClaims.length > 0
-
-    return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
-
-        {showSubmittedBanner && (
-          <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
-            <p className="text-sm font-medium text-yellow-800">
-              Venue submitted for approval.
-            </p>
-            <p className="mt-1 text-sm text-yellow-700">
-              Your venue is now in the admin review queue. Once approved, it will appear in My Venues and be claimable to your account.
-            </p>
-          </div>
-        )}
-
-        {hasPendingClaims && (
-          <section className="mb-8">
-            <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-              Pending Approval
-            </h2>
-            <div className="space-y-3">
-              {pendingClaims.map((claim) => {
-                if (!claim.venues) return null
-
-                return (
-                  <div
-                    key={claim.id}
-                    className="bg-white border border-yellow-200 rounded-xl p-5 flex items-center justify-between gap-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{claim.venues.name}</p>
-                      <p className="text-sm text-[#888888] mt-0.5">
-                        {claim.venues.location_city}, {claim.venues.location_state}
-                      </p>
-                    </div>
-                    <span className="text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5 shrink-0">
-                      Awaiting admin approval
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {!myVenues || myVenues.length === 0 ? (
-          <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
-            <p className="text-[#888888] mb-4">
-              {hasPendingClaims
-                ? "You don&apos;t have any approved venues yet."
-                : "You haven&apos;t claimed any venues yet."}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                href="/dashboard/venues?tab=directory"
-                className="inline-block bg-[#FD6A2F] text-white text-sm font-semibold rounded-lg px-5 py-2.5 hover:bg-[#E55A22] transition-colors"
-              >
-                Browse venue directory
-              </Link>
-              <Link
-                href="/dashboard/venues/new"
-                className="inline-block border border-[#E8E8E8] text-[#252525] text-sm font-semibold rounded-lg px-5 py-2.5 hover:border-[#CCCCCC] hover:bg-[#F0F0F0] transition-colors"
-              >
-                Add your venue
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {myVenues.map((venue) => (
-              <div
-                key={venue.id}
-                className="bg-white border border-[#E8E8E8] rounded-xl p-5 flex items-center justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{venue.name}</p>
-                  <p className="text-sm text-[#888888] mt-0.5">
-                    {venue.location_city}, {venue.location_state}
-                    {venue.capacity && ` · ${venue.capacity.toLocaleString()} cap`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <Link
-                    href={`/venues/${venue.slug}`}
-                    target="_blank"
-                    className="text-sm text-[#888888] hover:text-[#252525] transition-colors"
-                  >
-                    View
-                  </Link>
-                  <Link
-                    href={`/dashboard/venues/${venue.id}/edit`}
-                    className="text-sm font-medium bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-1.5 hover:border-[#CCCCCC] transition-colors"
-                  >
-                    Edit
-                  </Link>
-                </div>
-              </div>
-            ))}
-            <Link
-              href="/dashboard/venues/new"
-              className="block text-center text-xs text-[#FD6A2F] hover:underline py-2"
-            >
-              + Add a venue
-            </Link>
-          </div>
-        )}
-      </div>
-    )
-  }
 
   // ── Directory tab ──────────────────────────────────────────
   let baseQuery = supabase
@@ -696,7 +537,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
+        <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
         {identityNotice && (
           <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
         )}
@@ -722,7 +563,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
             <div className="flex items-center justify-between">
               {total > FEATURED_COUNT ? (
                 <Link
-                  href={`/dashboard/venues?tab=directory&view=all`}
+                  href="/dashboard/venues?view=all"
                   className="inline-flex items-center gap-1.5 text-sm text-[#888888] hover:text-[#252525] transition-colors"
                 >
                   View all {total} venues
@@ -731,9 +572,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
                   </svg>
                 </Link>
               ) : <span />}
-              <Link href="/dashboard/venues/new" className="text-sm text-[#FD6A2F] hover:underline">
-                Don&apos;t see your venue? Add it →
-              </Link>
+              <span />
             </div>
           </>
         )}
@@ -771,13 +610,13 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   }
 
   const searchParamsRecord = Object.fromEntries(
-    Object.entries(filters).filter(([, v]) => v != null)
+    Object.entries(filters).filter(([key, value]) => key !== 'tab' && value != null)
   ) as Record<string, string>
   delete searchParamsRecord.recommendBand
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
+      <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
       {identityNotice && (
         <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
       )}
@@ -791,7 +630,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
         </p>
         {hasFilters && (
           <Link
-            href="/dashboard/venues?tab=directory"
+            href="/dashboard/venues"
             className="text-xs text-[#888888] hover:text-[#FD6A2F] transition-colors"
           >
             Clear filters
@@ -835,39 +674,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       )}
 
       <Pagination page={page} totalPages={totalPages} searchParams={searchParamsRecord} />
-      <p className="mt-6 text-center text-sm text-[#888888]">
-        Don&apos;t see your venue?{' '}
-        <Link href="/dashboard/venues/new" className="text-[#FD6A2F] hover:underline">
-          Add it →
-        </Link>
-      </p>
     </div>
   )
 }
 
-function Tabs({ active, tabHref, hasMine, mineCount = 0 }: { active: string; tabHref: (t: string) => string; hasMine: boolean; mineCount?: number }) {
-  if (!hasMine) {
-    return <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
-  }
-
-  return (
-    <div className="flex items-center gap-1 mb-6 border-b border-[#E8E8E8]">
-      {[
-        { key: 'mine', label: mineCount === 1 ? 'Venue Profile' : 'Managed Venues' },
-        { key: 'directory', label: 'Directory' },
-      ].map(({ key, label }) => (
-        <Link
-          key={key}
-          href={tabHref(key)}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            active === key
-              ? 'border-[#FD6A2F] text-[#FD6A2F]'
-              : 'border-transparent text-[#888888] hover:text-[#252525]'
-          }`}
-        >
-          {label}
-        </Link>
-      ))}
-    </div>
-  )
-}
