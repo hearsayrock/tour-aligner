@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { ArrowRight, CalendarDays, CheckCircle2 } from 'lucide-react'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
 import { VenueAvailabilityCalendar } from '@/components/venues/VenueAvailabilityCalendar'
 import { getEffectiveVenueDateGenreFocus, getVenueShowTypeLabel } from '@/lib/venue-booking-date'
@@ -114,7 +115,18 @@ export function PublicVenueBookingPanel({
 
   return (
     <>
-      <div className="border-t border-[#E8E8E8] pt-8 mb-10">
+      <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Availability</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Booking calendar</h2>
+          </div>
+          <div className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 text-xs font-semibold text-[#666666]">
+            <CalendarDays className="h-4 w-4 text-[#FD6A2F]" />
+            Next six months
+          </div>
+        </div>
+
         <VenueAvailabilityCalendar
           todayIso={todayIso}
           bookingDates={bookingDates}
@@ -122,16 +134,17 @@ export function PublicVenueBookingPanel({
           defaultBillCap={defaultBillCap}
           automatedGenreFocusByBookingDateId={automatedGenreFocusByBookingDateId}
           title="Calendar"
-          intro="Here’s this venue’s current availability for the next six months. Open dates can still take bookings, partially filled dates still have room on the bill, and full dates are capped."
+          intro="Open dates can still take bookings, partially filled dates still have room on the bill, and full dates are capped."
           selectedDate={selectedDate}
           onDateSelect={setSelectedDate}
           monthCount={6}
         />
-        <div className="mt-5 rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-5 py-5">
+
+        <div className="mt-6 border-t border-[#EEEEEE] pt-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">
             Selected date
           </p>
-          <div className="mt-2 flex items-start justify-between gap-4 flex-wrap">
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-[#252525]">
                 {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', {
@@ -143,7 +156,7 @@ export function PublicVenueBookingPanel({
               <p className="mt-1 text-sm text-[#666666]">{selectedHeadline}</p>
             </div>
             {selectedStatus !== 'unavailable' && (
-              <div className="rounded-xl border border-[#E8E8E8] bg-white px-4 py-3 text-sm text-[#252525]">
+              <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-sm text-[#252525]">
                 <p>
                   {selectedCount}/{selectedBillCap} filled
                 </p>
@@ -155,12 +168,12 @@ export function PublicVenueBookingPanel({
           {(selectedShowType || selectedGenreFocus) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {selectedShowType && (
-                <span className="rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-xs font-medium text-[#555555]">
+                <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#555555]">
                   {selectedShowType}
                 </span>
               )}
               {selectedGenreFocus && (
-                <span className="rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-xs font-medium text-[#555555]">
+                <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#555555]">
                   {selectedGenreFocus}
                 </span>
               )}
@@ -173,18 +186,22 @@ export function PublicVenueBookingPanel({
             </p>
           )}
         </div>
-      </div>
+      </section>
 
-      <section className="border-t border-[#E8E8E8] pt-8 mb-8">
-        <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-          Request contact
-        </h2>
+      <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+        <div className="mb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">
+            Request contact
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Start the booking conversation</h2>
+        </div>
 
         {isSignedIn && existingThread ? (
           existingThread.confirmedUpcomingDate ? (
             <div className="rounded-xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-4">
-              <p className="text-sm font-semibold text-[#14584E]">
-                ✓ {activeBandName} is playing here on {formatDateShort(existingThread.confirmedUpcomingDate)}
+              <p className="flex items-center gap-2 text-sm font-semibold text-[#14584E]">
+                <CheckCircle2 className="h-4 w-4" />
+                {activeBandName} is playing here on {formatDateShort(existingThread.confirmedUpcomingDate)}
               </p>
               <p className="mt-1 text-sm text-[#14584E]/80">
                 You already have a confirmed booking with this venue.
@@ -193,7 +210,8 @@ export function PublicVenueBookingPanel({
                 href={`/dashboard/inbox/${existingThread.threadId}`}
                 className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0C7C71] hover:underline"
               >
-                View booking in inbox →
+                View booking in inbox
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           ) : (
@@ -208,7 +226,8 @@ export function PublicVenueBookingPanel({
                 href={`/dashboard/inbox/${existingThread.threadId}`}
                 className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#FD6A2F] hover:underline"
               >
-                Continue conversation →
+                Continue conversation
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           )

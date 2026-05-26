@@ -1,8 +1,38 @@
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
 import { cookies } from 'next/headers'
+import type { ComponentType, ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import {
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  ExternalLink,
+  Globe,
+  Instagram,
+  Mail,
+  MapPin,
+  Music2,
+  PencilLine,
+  Phone,
+  ShieldCheck,
+  Users,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { ClaimButton } from '@/components/venues/ClaimButton'
+import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
+import { Badge, ButtonLink } from '@/components/ui/primitives'
+import { getVenueCalendarRange } from '@/lib/venue-calendar'
+import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  activeIdentityLabel,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
+import type { Venue, VenueBookingDate } from '@/types/database'
 
 export const revalidate = 60
 
@@ -18,16 +48,6 @@ export async function generateStaticParams() {
     .eq('is_unlisted', false)
   return (data ?? []).map(({ slug }) => ({ slug }))
 }
-import { ClaimButton } from '@/components/venues/ClaimButton'
-import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
-import { getVenueCalendarRange } from '@/lib/venue-calendar'
-import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
-import {
-  ACTIVE_IDENTITY_COOKIE,
-  activeIdentityLabel,
-  resolveActiveIdentity,
-  type ManagedIdentity,
-} from '@/lib/managed-identity'
 
 const AGE_LABELS: Record<string, string> = {
   all_ages: 'All ages',
@@ -35,10 +55,41 @@ const AGE_LABELS: Record<string, string> = {
   '21_plus': '21+',
 }
 
-const SOCIAL_LINKS: { key: string; label: string }[] = [
-  { key: 'website_url', label: 'Website' },
-  { key: 'instagram_url', label: 'Instagram' },
-]
+const SOCIAL_LINKS = [
+  { key: 'website_url', label: 'Website', icon: Globe },
+  { key: 'instagram_url', label: 'Instagram', icon: Instagram },
+] as const
+
+function formatVenueLocation(
+  venue: Pick<Venue, 'location_city' | 'location_state' | 'location_address'>
+) {
+  return [
+    [venue.location_city, venue.location_state].filter(Boolean).join(', '),
+    venue.location_address,
+  ].filter(Boolean).join(' / ')
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: string
+  value: ReactNode
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EE] text-[#FD6A2F]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A8A8A]">{label}</p>
+        <div className="mt-1 text-sm leading-6 text-[#2A2A2A]">{value}</div>
+      </div>
+    </div>
+  )
+}
 
 export async function generateMetadata({
   params,
@@ -59,7 +110,7 @@ export async function generateMetadata({
   if (!venue) return {}
   return {
     title: venue.name,
-    description: `${venue.name} — ${venue.location_city}, ${venue.location_state}`,
+    description: `${venue.name} - ${venue.location_city}, ${venue.location_state}`,
   }
 }
 
@@ -80,7 +131,7 @@ export default async function VenueDetailPage({
     supabase.from('venues').select('*').eq('slug', slug).eq('is_active', true).eq('is_unlisted', false).single(),
     supabase.auth.getUser(),
   ])
-  const venue = rawVenue as import('@/types/database').Venue | null
+  const venue = rawVenue as Venue | null
 
   if (!venue) return notFound()
 
@@ -116,14 +167,14 @@ export default async function VenueDetailPage({
   const isClaimed = !!venue.claimed_by_user_id
   const isOwner = !!user && user.id === venue.claimed_by_user_id
   const hasPendingClaim = !!pendingClaim
-  const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key as keyof typeof venue])
+  const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key])
   const bookingDates = (rawBookingDates ?? []) as Array<{
     id: string
     show_date: string
     bill_cap: number
     is_closed_to_more_bands: boolean
     is_unavailable: boolean
-    show_type: import('@/types/database').VenueBookingDate['show_type']
+    show_type: VenueBookingDate['show_type']
     genre_focus: string | null
   }>
   const bookings = (rawBookings ?? []) as Array<{
@@ -143,7 +194,6 @@ export default async function VenueDetailPage({
       ? selectedDateParam
       : todayIso
 
-  // Fetch the logged-in user's bands (skip for venue owner)
   let userBands: { id: string; name: string; genres?: string[] }[] = []
   let userVenues: { id: string; name: string }[] = []
   if (user && !isOwner) {
@@ -206,7 +256,6 @@ export default async function VenueDetailPage({
       }
     : null
 
-  // Check if the active band already has a thread with this venue
   let existingThreadInfo: { threadId: string; confirmedUpcomingDate: string | null } | null = null
   if (contactBands.length > 0) {
     const { data: threadRow } = await supabase
@@ -228,147 +277,232 @@ export default async function VenueDetailPage({
     }
   }
 
+  const locationLine = formatVenueLocation(venue)
+  const primaryGenre = genreNames[0] ?? 'Live music'
+  const claimStatusLabel = isOwner ? 'Managed by you' : isClaimed ? 'Claimed venue' : 'Unclaimed venue'
+  const claimStatusTone = isOwner ? 'success' : isClaimed ? 'muted' : 'brand'
+
   return (
-    <div className="max-w-3xl mx-auto px-6 pt-24 pb-12">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-1">{venue.name}</h1>
-            <p className="text-[#777777]">
-              {venue.location_city}, {venue.location_state}
-              {venue.location_address && ` · ${venue.location_address}`}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            {venue.capacity && (
-              <span className="text-sm text-[#888888] bg-[#FFFFFF] border border-[#E8E8E8] rounded-lg px-3 py-1.5">
-                Capacity: {venue.capacity.toLocaleString()}
-              </span>
-            )}
-            {venue.age_requirement && (
-              <span className="text-sm text-[#888888] bg-[#FFFFFF] border border-[#E8E8E8] rounded-lg px-3 py-1.5">
-                {AGE_LABELS[venue.age_requirement]}
-              </span>
-            )}
+    <div className={`bg-[#F7F4EE] ${user ? '' : 'pt-16'}`}>
+      <section className="relative overflow-hidden border-b border-[#1F1F1F] bg-[#111111] text-white">
+        <Image
+          src="/concert-hero.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover object-center opacity-45"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.44)_0%,rgba(8,8,8,0.78)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,_rgba(253,106,47,0.24),_transparent_28%),radial-gradient(circle_at_82%_18%,_rgba(14,116,144,0.18),_transparent_24%)]" />
+
+        <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
+          <Link
+            href="/venues"
+            className="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-white/72 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Venue directory
+          </Link>
+
+          <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+            <div className="max-w-4xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="brand" className="border-white/15 bg-white/10 text-white">
+                  <Music2 className="h-3.5 w-3.5 text-[#F6B293]" />
+                  {primaryGenre}
+                </Badge>
+                <Badge tone={claimStatusTone}>
+                  {claimStatusLabel}
+                </Badge>
+              </div>
+
+              <h1 className="mt-5 font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-normal text-white sm:text-6xl lg:text-7xl">
+                {venue.name}
+              </h1>
+
+              <p className="mt-5 flex max-w-2xl items-start gap-2 text-base leading-7 text-white/78 sm:text-lg">
+                <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#F6B293]" />
+                <span>{locationLine}</span>
+              </p>
+
+              {venue.description && (
+                <p className="mt-6 max-w-3xl text-base leading-8 text-white/82 sm:text-lg">
+                  {venue.description}
+                </p>
+              )}
+
+              {genreNames.length > 0 && (
+                <div className="mt-7 flex flex-wrap gap-2">
+                  {genreNames.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex min-h-8 items-center rounded-full border border-white/12 bg-white/10 px-3 text-xs font-semibold text-white/84 backdrop-blur"
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[28px] border border-white/12 bg-black/36 p-5 shadow-[0_22px_54px_rgba(0,0,0,0.24)] backdrop-blur-md">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F6B293]">Venue facts</p>
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Capacity</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">
+                    {venue.capacity ? venue.capacity.toLocaleString() : 'Not listed'}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Age policy</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {venue.age_requirement ? AGE_LABELS[venue.age_requirement] : 'Not listed'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Default bill</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {venue.default_bill_cap} act{venue.default_bill_cap === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {genreNames.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {genreNames.map((name) => (
-              <span
-                key={name}
-                className="text-xs px-2.5 py-1 rounded-full border border-[#E8E8E8] text-[#777777]"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-12">
+        <div className="min-w-0 space-y-8">
+          <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Overview</p>
+                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Room profile</h2>
+              </div>
+              <ButtonLink href="/events" tone="secondary">
+                <CalendarDays className="h-4 w-4" />
+                Browse Events
+              </ButtonLink>
+            </div>
 
-      {/* Description */}
-      {venue.description && (
-        <section className="mb-10">
-          <p className="text-[#252525] leading-relaxed">{venue.description}</p>
-        </section>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-10">
-        {/* Contact */}
-        {(venue.booking_email || venue.phone) && (
-          <section>
-            <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-              Booking
-            </h2>
-            <ul className="space-y-2 text-sm">
-              {venue.booking_email && (
-                <li>
-                  <a
-                    href={`mailto:${venue.booking_email}`}
-                    className="text-[#FD6A2F] hover:underline"
-                  >
-                    {venue.booking_email}
-                  </a>
-                </li>
+            <div className="mt-7 grid gap-5 sm:grid-cols-2">
+              <DetailRow icon={MapPin} label="Location" value={locationLine} />
+              {venue.capacity && (
+                <DetailRow icon={Users} label="Capacity" value={`${venue.capacity.toLocaleString()} cap`} />
               )}
-              {venue.phone && (
-                <li className="text-[#252525]">{venue.phone}</li>
+              {venue.age_requirement && (
+                <DetailRow icon={ShieldCheck} label="Age policy" value={AGE_LABELS[venue.age_requirement]} />
               )}
-            </ul>
+              <DetailRow icon={Music2} label="Bill target" value={`${venue.default_bill_cap} act${venue.default_bill_cap === 1 ? '' : 's'} by default`} />
+            </div>
           </section>
-        )}
 
-        {/* Links */}
-        {activeSocials.length > 0 && (
-          <section>
-            <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-4">
-              Links
-            </h2>
-            <ul className="space-y-2">
-              {activeSocials.map(({ key, label }) => (
-                <li key={key}>
-                  <a
-                    href={venue[key as keyof typeof venue] as string}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-[#FD6A2F] hover:underline"
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
-
-      {!isOwner && (
-        <PublicVenueBookingPanel
-          todayIso={todayIso}
-          bookingDates={bookingDates}
-          bookings={bookings}
-          automatedGenreFocusByBookingDateId={automatedGenreFocusByBookingDateId}
-          defaultBillCap={venue.default_bill_cap}
-          venueId={venue.id}
-          venueSlug={venue.slug}
-          userBands={contactBands}
-          isSignedIn={!!user}
-          initialSelectedDate={initialSelectedDate}
-          identityNotice={contactIdentityNotice}
-          existingThread={existingThreadInfo}
-          activeBandName={contactBands[0]?.name ?? null}
-        />
-      )}
-
-      {/* Claim / Owner actions */}
-      <div className="border-t border-[#E8E8E8] pt-8">
-        {isOwner ? (
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-[#00bba5]">✓ You own this venue</span>
-            <a
-              href={`/dashboard/venues/${venue.id}/edit`}
-              className="text-sm font-medium bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-4 py-2 hover:border-[#CCCCCC] transition-colors"
-            >
-              Edit venue info
-            </a>
-          </div>
-        ) : isClaimed ? (
-          <p className="text-sm text-[#888888]">This venue has been claimed.</p>
-        ) : (
-          <div>
-            <p className="text-sm text-[#888888] mb-3">
-              Is this your venue? Claim it to manage your profile and receive contact requests.
-            </p>
-            <ClaimButton
+          {!isOwner && (
+            <PublicVenueBookingPanel
+              todayIso={todayIso}
+              bookingDates={bookingDates}
+              bookings={bookings}
+              automatedGenreFocusByBookingDateId={automatedGenreFocusByBookingDateId}
+              defaultBillCap={venue.default_bill_cap}
               venueId={venue.id}
               venueSlug={venue.slug}
-              isLoggedIn={!!user}
-              hasPendingClaim={hasPendingClaim}
+              userBands={contactBands}
+              isSignedIn={!!user}
+              initialSelectedDate={initialSelectedDate}
+              identityNotice={contactIdentityNotice}
+              existingThread={existingThreadInfo}
+              activeBandName={contactBands[0]?.name ?? null}
             />
-          </div>
-        )}
+          )}
+        </div>
+
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Booking details</p>
+            <div className="mt-5 space-y-4">
+              {venue.booking_email && (
+                <DetailRow
+                  icon={Mail}
+                  label="Booking email"
+                  value={
+                    <a href={`mailto:${venue.booking_email}`} className="font-medium text-[#FD6A2F] hover:underline">
+                      {venue.booking_email}
+                    </a>
+                  }
+                />
+              )}
+              {venue.phone && <DetailRow icon={Phone} label="Phone" value={venue.phone} />}
+              {!venue.booking_email && !venue.phone && (
+                <p className="text-sm leading-6 text-[#777777]">Booking contact details have not been listed yet.</p>
+              )}
+            </div>
+          </section>
+
+          {activeSocials.length > 0 && (
+            <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Links</p>
+              <div className="mt-4 space-y-2">
+                {activeSocials.map(({ key, label, icon: Icon }) => (
+                  <a
+                    key={key}
+                    href={venue[key] as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Icon className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+                      <span className="truncate">{label}</span>
+                    </span>
+                    <ExternalLink className="h-4 w-4 shrink-0 text-[#A0A0A0]" />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+            {isOwner ? (
+              <div>
+                <Badge tone="success">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  You own this venue
+                </Badge>
+                <p className="mt-3 text-sm leading-6 text-[#666666]">
+                  Manage profile details, contact information, and booking availability from the dashboard.
+                </p>
+                <ButtonLink href={`/dashboard/venues/${venue.id}/edit`} tone="dark" className="mt-5 w-full">
+                  <PencilLine className="h-4 w-4" />
+                  Edit venue info
+                </ButtonLink>
+              </div>
+            ) : isClaimed ? (
+              <div>
+                <Badge tone="muted">Claimed venue</Badge>
+                <p className="mt-3 text-sm leading-6 text-[#666666]">This venue is already managed on TourAligner.</p>
+              </div>
+            ) : (
+              <div>
+                <Badge tone="brand">Unclaimed venue</Badge>
+                <p className="mt-3 text-sm leading-6 text-[#666666]">
+                  Claim this profile to manage venue details and receive contact requests.
+                </p>
+                <div className="mt-5">
+                  <ClaimButton
+                    venueId={venue.id}
+                    venueSlug={venue.slug}
+                    isLoggedIn={!!user}
+                    hasPendingClaim={hasPendingClaim}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   )

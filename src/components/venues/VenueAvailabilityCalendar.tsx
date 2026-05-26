@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { buildVenueCalendarMonths, type VenueCalendarMonth } from '@/lib/venue-calendar'
 import { getVenueShowTypeLabel } from '@/lib/venue-booking-date'
 import type { Booking, VenueBookingDate } from '@/types/database'
@@ -74,7 +75,7 @@ function DayCell({
               </p>
               {(day.showType || day.genreFocus) && (
                 <p className="mt-1 truncate opacity-80">
-                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' · ')}
+                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' / ')}
                 </p>
               )}
             </>
@@ -83,7 +84,7 @@ function DayCell({
               <p>No bill cap</p>
               {(day.showType || day.genreFocus) && (
                 <p className="mt-1 truncate opacity-80">
-                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' · ')}
+                  {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' / ')}
                 </p>
               )}
             </>
@@ -170,7 +171,7 @@ export function VenueAvailabilityCalendar({
               <button
                 type="button"
                 onClick={jumpToToday}
-                className="rounded-md border border-[#D8D8D8] px-2.5 py-1.5 text-xs font-medium text-[#252525] transition-colors hover:bg-[#F0F0F0]"
+                className="rounded-lg border border-[#D8D8D8] px-2.5 py-1.5 text-xs font-medium text-[#252525] transition-colors hover:bg-[#F0F0F0]"
               >
                 Today
               </button>
@@ -180,18 +181,18 @@ export function VenueAvailabilityCalendar({
                   onClick={() => setVisibleMonthIndex((current) => Math.max(0, current - 1))}
                   disabled={visibleMonthIndex === 0}
                   aria-label="Previous month"
-                  className="px-2 py-2 text-2xl leading-none text-[#666666] transition-colors hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#666666] transition-colors hover:bg-[#F0F0F0] hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  ‹
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setVisibleMonthIndex((current) => Math.min(months.length - 1, current + 1))}
                   disabled={visibleMonthIndex === months.length - 1}
                   aria-label="Next month"
-                  className="px-2 py-2 text-2xl leading-none text-[#666666] transition-colors hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#666666] transition-colors hover:bg-[#F0F0F0] hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  ›
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
               <h3 className="text-base font-semibold text-[#252525]">{visibleMonth.label}</h3>
