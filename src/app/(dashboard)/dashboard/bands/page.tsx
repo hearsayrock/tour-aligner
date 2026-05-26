@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Suspense } from 'react'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardBandFilters } from '@/components/bands/DashboardBandFilters'
+import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { sortItemsByRank } from '@/lib/fuzzy-search'
+import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Band } from '@/types/database'
 
 export const metadata = { title: 'Bands' }
@@ -151,12 +154,55 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const { count: myBandCount } = await supabase
-    .from('bands')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  const [{ data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
+    supabase
+      .from('bands')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('venues')
+      .select('id, name')
+      .eq('claimed_by_user_id', user.id)
+      .eq('is_active', true)
+      .order('name'),
+  ])
+  const userBands = (rawUserBands ?? []) as Array<{ id: string; name: string }>
+  const userVenues = (rawUserVenues ?? []) as Array<{ id: string; name: string }>
+  const identities: ManagedIdentity[] = [
+    ...userBands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...userVenues.map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const cookieStore = await cookies()
+  const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
 
-  const tab = filters.tab ?? ((myBandCount ?? 0) > 0 ? 'mine' : 'directory')
+  if (requiredIdentity.requiresSelection) {
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <ProfileSelectionModal
+          title="Select a profile to browse Artists"
+          body="Artists are browsed from one active profile at a time. Use the profile selector in the nav to choose the profile you want to browse from."
+          identities={identities}
+        />
+      </div>
+    )
+  }
+
+  const selectedBandId = requiredIdentity.activeIdentity?.kind === 'band' ? requiredIdentity.activeIdentity.id : null
+  const selectedBandCount = selectedBandId ? 1 : 0
+  const requestedTab = filters.tab ?? (selectedBandId ? 'mine' : 'directory')
+  const tab = requestedTab === 'mine' && !selectedBandId ? 'directory' : requestedTab
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.genre || filters.radius || filters.artistType)
   const fullListMode = hasFilters || filters.view === 'all'
@@ -173,12 +219,13 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
       .from('bands')
       .select('*')
       .eq('user_id', user.id)
+      .eq('id', selectedBandId!)
       .order('created_at', { ascending: false })
     const myBands = rawMyBands as Band[] | null
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={selectedBandCount > 0} mineCount={selectedBandCount} />
 
         {!myBands || myBands.length === 0 ? (
           <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
@@ -275,7 +322,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={selectedBandCount > 0} mineCount={selectedBandCount} />
         <Suspense>
           <DashboardBandFilters genres={allGenres ?? []} />
         </Suspense>
@@ -342,7 +389,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={(myBandCount ?? 0) > 0} mineCount={myBandCount ?? 0} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={selectedBandCount > 0} mineCount={selectedBandCount} />
       <Suspense>
         <DashboardBandFilters genres={allGenres ?? []} />
       </Suspense>

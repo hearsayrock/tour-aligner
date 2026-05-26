@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { IdentityRequiredNotice } from '@/components/dashboard/IdentityRequiredNotice'
+import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { DashboardVenueFilters } from '@/components/venues/DashboardVenueFilters'
 import {
   buildVenueDateGenreFocusMap,
@@ -15,7 +16,7 @@ import { sortItemsByRank } from '@/lib/fuzzy-search'
 import {
   ACTIVE_IDENTITY_COOKIE,
   activeIdentityLabel,
-  resolveActiveIdentity,
+  resolveRequiredActiveIdentity,
   type ManagedIdentity,
 } from '@/lib/managed-identity'
 import type { Venue } from '@/types/database'
@@ -307,28 +308,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const [{ count: myVenueCount }, { count: pendingClaimCount }] = await Promise.all([
-    supabase
-      .from('venues')
-      .select('id', { count: 'exact', head: true })
-      .eq('claimed_by_user_id', user.id),
+  const [{ count: pendingClaimCount }, { data: allGenres }, { data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
     supabase
       .from('venue_claims')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'pending'),
-  ])
-
-  const hasMine = (myVenueCount ?? 0) > 0 || (pendingClaimCount ?? 0) > 0
-  const tab = filters.tab ?? (hasMine ? 'mine' : 'directory')
-  const page = Math.max(1, parseInt(filters.page ?? '1', 10))
-  const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
-  const fullListMode = hasFilters || filters.view === 'all'
-  const showSubmittedBanner = filters.submitted === '1'
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const calendarRange = getVenueCalendarRange(todayIso, 6)
-
-  const [{ data: allGenres }, { data: rawUserBands }, { data: rawUserVenues }] = await Promise.all([
     supabase.from('genres').select('id, name').order('name'),
     supabase
       .from('bands')
@@ -371,18 +356,41 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     })),
   ]
   const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
-  const recommendationBands = activeIdentity.kind === 'band'
+  const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+
+  if (requiredIdentity.requiresSelection) {
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <ProfileSelectionModal
+          title="Select a profile to browse Venues"
+          body="Venues are browsed from one active profile at a time. Use the profile selector in the nav to choose the profile you want to browse from."
+          identities={identities}
+        />
+      </div>
+    )
+  }
+
+  const activeIdentity = requiredIdentity.activeIdentity
+  const selectedVenueId = activeIdentity?.kind === 'venue' ? activeIdentity.id : null
+  const selectedVenueCount = selectedVenueId ? 1 : 0
+  const hasMine = selectedVenueCount > 0 || (!requiredIdentity.hasMultipleIdentities && (pendingClaimCount ?? 0) > 0)
+  const requestedTab = filters.tab ?? (hasMine ? 'mine' : 'directory')
+  const tab = requestedTab === 'mine' && !hasMine ? 'directory' : requestedTab
+  const page = Math.max(1, parseInt(filters.page ?? '1', 10))
+  const hasFilters = !!(filters.q || filters.location || filters.capacity || filters.age || filters.genre)
+  const fullListMode = hasFilters || filters.view === 'all'
+  const showSubmittedBanner = filters.submitted === '1'
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const calendarRange = getVenueCalendarRange(todayIso, 6)
+  const recommendationBands = activeIdentity?.kind === 'band'
     ? userBands.filter((band) => band.id === activeIdentity.id)
     : []
-  const identityNotice = userBands.length > 0 && activeIdentity.kind !== 'band'
+  const identityNotice = userBands.length > 0 && activeIdentity?.kind !== 'band'
     ? {
-        title: activeIdentity.kind === 'all'
-          ? 'Select an artist to use venue recommendations'
-          : 'Switch to an artist to use venue recommendations',
-        body: activeIdentity.kind === 'all'
-          ? 'Venue recommendations and contact requests need to know which artist is acting. Choose an artist in the Acting as menu, then come back to venues.'
-          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to an artist before using recommendations or requesting contact with a venue.`,
+        title: 'Switch to an artist to use venue recommendations',
+        body: activeIdentity
+          ? `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the profile selector to an artist before using recommendations or requesting contact with a venue.`
+          : 'Venue recommendations and contact requests need to know which artist is acting. Choose an artist in the profile selector, then come back to venues.',
       }
     : null
 
@@ -485,12 +493,15 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   // ── My Venues tab ─────────────────────────────────────────
   if (tab === 'mine') {
+    let myVenuesQuery = supabase
+      .from('venues')
+      .select('*')
+      .eq('claimed_by_user_id', user.id)
+
+    if (selectedVenueId) myVenuesQuery = myVenuesQuery.eq('id', selectedVenueId)
+
     const [{ data: rawMyVenues }, { data: rawPendingClaims }] = await Promise.all([
-      supabase
-        .from('venues')
-        .select('*')
-        .eq('claimed_by_user_id', user.id)
-        .order('name'),
+      myVenuesQuery.order('name'),
       supabase
         .from('venue_claims')
         .select('id, created_at, venues(id, name, slug, location_city, location_state)')
@@ -499,7 +510,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
         .order('created_at', { ascending: false }),
     ])
     const myVenues = rawMyVenues as Venue[] | null
-    const pendingClaims = ((rawPendingClaims ?? []) as Array<{
+    const pendingClaims = requiredIdentity.hasMultipleIdentities ? [] : ((rawPendingClaims ?? []) as Array<{
       id: string
       created_at: string
       venues: {
@@ -517,7 +528,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
+        <Tabs active="mine" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
 
         {showSubmittedBanner && (
           <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3">
@@ -685,7 +696,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
+        <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
         {identityNotice && (
           <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
         )}
@@ -766,7 +777,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={myVenueCount ?? 0} />
+      <Tabs active="directory" tabHref={tabHref} hasMine={hasMine} mineCount={selectedVenueCount} />
       {identityNotice && (
         <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
       )}

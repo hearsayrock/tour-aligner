@@ -38,7 +38,7 @@ export function Footer() {
             </p>
             <div className="mt-4 space-y-3 text-sm text-[#555555]">
               <Link href="/#audiences" className="block transition-colors hover:text-[#111111]">
-                Who it's for
+                Who it&apos;s for
               </Link>
             </div>
           </div>

@@ -328,6 +328,197 @@ export interface Database {
           updated_at?: string
         }
       }
+      events: {
+        Row: {
+          id: string
+          venue_id: string
+          created_by_user_id: string | null
+          title: string
+          slug: string
+          event_date: string
+          start_time: string
+          artist_need_description: string
+          description: string
+          attendee_capacity: number
+          needed_artist_count: number
+          is_public: boolean
+          is_accepting_artists: boolean
+          status: 'draft' | 'active' | 'completed' | 'cancelled'
+          lineup_published: boolean
+          migrated_booking_group_key: string | null
+          logistics_load_in: string | null
+          logistics_soundcheck: string | null
+          logistics_set_times: string | null
+          logistics_backline: string | null
+          logistics_artist_should_bring: string | null
+          logistics_parking_access: string | null
+          logistics_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          created_by_user_id?: string | null
+          title: string
+          slug: string
+          event_date: string
+          start_time: string
+          artist_need_description: string
+          description: string
+          attendee_capacity: number
+          needed_artist_count: number
+          is_public?: boolean
+          is_accepting_artists?: boolean
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          lineup_published?: boolean
+          migrated_booking_group_key?: string | null
+          logistics_load_in?: string | null
+          logistics_soundcheck?: string | null
+          logistics_set_times?: string | null
+          logistics_backline?: string | null
+          logistics_artist_should_bring?: string | null
+          logistics_parking_access?: string | null
+          logistics_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          created_by_user_id?: string | null
+          title?: string
+          slug?: string
+          event_date?: string
+          start_time?: string
+          artist_need_description?: string
+          description?: string
+          attendee_capacity?: number
+          needed_artist_count?: number
+          is_public?: boolean
+          is_accepting_artists?: boolean
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          lineup_published?: boolean
+          migrated_booking_group_key?: string | null
+          logistics_load_in?: string | null
+          logistics_soundcheck?: string | null
+          logistics_set_times?: string | null
+          logistics_backline?: string | null
+          logistics_artist_should_bring?: string | null
+          logistics_parking_access?: string | null
+          logistics_notes?: string | null
+          updated_at?: string
+        }
+      }
+      event_genres: {
+        Row: {
+          event_id: string
+          genre_id: string
+        }
+        Insert: {
+          event_id: string
+          genre_id: string
+        }
+        Update: {
+          event_id?: string
+          genre_id?: string
+        }
+      }
+      event_artist_memberships: {
+        Row: {
+          id: string
+          event_id: string
+          band_id: string
+          status: 'applied' | 'invited' | 'accepted' | 'declined' | 'removed' | 'removal_requested'
+          source: 'application' | 'invitation' | 'migration' | 'manual'
+          application_note: string | null
+          invite_note: string | null
+          removal_note: string | null
+          applied_at: string | null
+          invited_at: string | null
+          accepted_at: string | null
+          declined_at: string | null
+          removed_at: string | null
+          removal_requested_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          band_id: string
+          status: 'applied' | 'invited' | 'accepted' | 'declined' | 'removed' | 'removal_requested'
+          source?: 'application' | 'invitation' | 'migration' | 'manual'
+          application_note?: string | null
+          invite_note?: string | null
+          removal_note?: string | null
+          applied_at?: string | null
+          invited_at?: string | null
+          accepted_at?: string | null
+          declined_at?: string | null
+          removed_at?: string | null
+          removal_requested_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          event_id?: string
+          band_id?: string
+          status?: 'applied' | 'invited' | 'accepted' | 'declined' | 'removed' | 'removal_requested'
+          source?: 'application' | 'invitation' | 'migration' | 'manual'
+          application_note?: string | null
+          invite_note?: string | null
+          removal_note?: string | null
+          applied_at?: string | null
+          invited_at?: string | null
+          accepted_at?: string | null
+          declined_at?: string | null
+          removed_at?: string | null
+          removal_requested_at?: string | null
+          updated_at?: string
+        }
+      }
+      backstage_messages: {
+        Row: {
+          id: string
+          event_id: string
+          sender_user_id: string | null
+          sender_kind: 'venue' | 'artist' | 'system'
+          sender_band_id: string | null
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          sender_user_id?: string | null
+          sender_kind: 'venue' | 'artist' | 'system'
+          sender_band_id?: string | null
+          body: string
+          created_at?: string
+        }
+        Update: {
+          event_id?: string
+          sender_user_id?: string | null
+          sender_kind?: 'venue' | 'artist' | 'system'
+          sender_band_id?: string | null
+          body?: string
+        }
+      }
+      backstage_read_states: {
+        Row: {
+          event_id: string
+          user_id: string
+          last_read_at: string
+        }
+        Insert: {
+          event_id: string
+          user_id: string
+          last_read_at?: string
+        }
+        Update: {
+          last_read_at?: string
+        }
+      }
       booking_inquiries: {
         Row: {
           id: string
@@ -610,6 +801,19 @@ export interface Database {
         }
         Returns: Json
       }
+      accept_event_invite: {
+        Args: {
+          p_membership_id: string
+        }
+        Returns: Json
+      }
+      request_event_removal: {
+        Args: {
+          p_membership_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
       archive_contact_thread: {
         Args: {
           p_thread_id: string
@@ -656,6 +860,11 @@ export type BandShowDate   = Database['public']['Tables']['band_show_dates']['Ro
 export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']
+export type Event          = Database['public']['Tables']['events']['Row']
+export type EventGenre     = Database['public']['Tables']['event_genres']['Row']
+export type EventArtistMembership = Database['public']['Tables']['event_artist_memberships']['Row']
+export type BackstageMessage = Database['public']['Tables']['backstage_messages']['Row']
+export type BackstageReadState = Database['public']['Tables']['backstage_read_states']['Row']
 export type BookingInquiry = Database['public']['Tables']['booking_inquiries']['Row']
 export type ContactThread  = Database['public']['Tables']['contact_threads']['Row']
 export type VenueBookingDate = Database['public']['Tables']['venue_booking_dates']['Row']
@@ -664,6 +873,8 @@ export type ContactMessage = Database['public']['Tables']['contact_messages']['R
 
 export type InquiryStatus = BookingInquiry['status']
 export type ClaimStatus   = VenueClaim['status']
+export type EventStatus   = Event['status']
+export type EventArtistMembershipStatus = EventArtistMembership['status']
 export type TouringRadius = NonNullable<Band['touring_radius']>
 export type ContactThreadStatus = ContactThread['status']
 export type ConversationSide = NonNullable<ContactThread['requested_by_side']>

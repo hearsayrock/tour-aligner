@@ -1,52 +1,145 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { AlertCircle, CalendarRange, CheckCircle2, Clock3, MapPin, Mic2, Plus, Search, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import {
-  BOOKING_STATUS_LABELS,
-  formatInboxDate,
-  getConversationLabel,
-  getConversationMeta,
-  getThreadBookingStatus,
-  getThreadDisplayStatus,
-  getViewerSide,
-  hasUnread,
-  isThreadArchived,
-  isPendingIncoming,
-  type InboxThread,
-  THREAD_STATUS_LABELS,
-} from '@/lib/contact'
-import {
-  ACTIVE_IDENTITY_COOKIE,
-  activeIdentityLabel,
-  identityMatchesThread,
-  resolveActiveIdentity,
-  type ManagedIdentity,
-} from '@/lib/managed-identity'
-import type { VenueClaim } from '@/types/database'
-
-type SlimBand = { id: string; name: string; slug: string }
-type SlimVenue = {
-  id: string
-  name: string
-  slug: string
-  location_city: string
-  location_state: string
-}
-type SlimProfile = { full_name: string | null }
-type PendingClaim = Pick<VenueClaim, 'id' | 'created_at'> & { venues: SlimVenue | null }
+import { MEMBERSHIP_STATUS_LABELS, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
+import { Badge, ButtonLink, Card, EmptyState, PageHeader, SectionHeading, cx } from '@/components/ui/primitives'
+import type { Event, EventArtistMembership, VenueClaim } from '@/types/database'
 
 export const metadata = { title: 'Dashboard' }
 
-const STATUS_STYLES = {
-  pending: 'text-yellow-700 bg-yellow-50 border-yellow-200',
-  accepted: 'text-sky-700 bg-blue-50 border-blue-200',
-  declined: 'text-[#666666] bg-[#F5F5F5] border-[#E8E8E8]',
-  blocked: 'text-red-600 bg-red-50 border-red-200',
-  confirmed: 'text-[#14584E] bg-[#F3FBF8] border-[#CBEAE2]',
-  cancellation_requested: 'text-[#8A5A12] bg-[#FFF7E8] border-[#F2D7A6]',
-  cancelled: 'text-[#666666] bg-[#F5F5F5] border-[#E8E8E8]',
-} as const
+type DashboardEvent = Event & {
+  venues: {
+    name: string
+    location_city: string
+    location_state: string
+    claimed_by_user_id: string | null
+  } | null
+  event_artist_memberships: Array<Pick<EventArtistMembership, 'status'>> | null
+}
+
+type ActionItem = {
+  href: string
+  title: string
+  detail: string
+  tone: 'brand' | 'warning' | 'success' | 'info'
+  icon: React.ComponentType<{ className?: string }>
+}
+
+function DashboardEventCard({
+  event,
+  label,
+  href,
+}: {
+  event: DashboardEvent
+  label: string
+  href: string
+}) {
+  const memberships = event.event_artist_memberships ?? []
+  const acceptedCount = getAcceptedMemberships(memberships).length
+  const openNeed = getOpenArtistNeed(event, memberships)
+
+  return (
+    <Link
+      href={href}
+      className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold tracking-tight text-[#202020]">{event.title}</h3>
+            <Badge tone="muted">{label}</Badge>
+          </div>
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
+            <span>{event.venues?.name ?? 'Unknown venue'}</span>
+            <span className="text-[#B0B0B0]">/</span>
+            <span>{formatEventDate(event)}</span>
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
+            <MapPin className="h-3.5 w-3.5" />
+            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
+          <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
+          <p className={cx('mt-1 text-xs', openNeed <= 0 ? 'text-[#8A5A12]' : 'text-[#777777]')}>
+            {openNeed <= 0 ? 'Lineup target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
+          </p>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  href,
+}: {
+  label: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
+  href: string
+}) {
+  return (
+    <Link href={href} className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0]">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-3xl font-bold tracking-tight text-[#202020]">{value}</p>
+          <p className="mt-1 text-sm font-medium text-[#777777]">{label}</p>
+        </div>
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+    </Link>
+  )
+}
+
+function ActionQueue({ items }: { items: ActionItem[] }) {
+  if (items.length === 0) {
+    return (
+      <Card className="p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F3FBF8] text-[#0C7C71]">
+            <CheckCircle2 className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="font-semibold text-[#252525]">Nothing urgent right now</h2>
+            <p className="mt-1 text-sm leading-6 text-[#777777]">
+              Your action queue is clear. New invites, applications, and venue claims will appear here.
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {items.map((item) => {
+        const Icon = item.icon
+        return (
+          <Link key={`${item.href}-${item.title}`} href={item.href} className="group flex items-start gap-3 rounded-2xl border border-[#E6E6E6] bg-white p-4 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[#252525]">{item.title}</span>
+                <Badge tone={item.tone}>{item.tone === 'warning' ? 'Needs review' : 'Open'}</Badge>
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-[#777777]">{item.detail}</span>
+            </span>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -55,403 +148,221 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) return redirect('/login')
 
-  const [
-    { data: rawProfile },
-    { data: rawBands },
-    { data: rawVenues },
-    { data: rawPendingClaims },
-    { data: rawThreads },
-  ] = await Promise.all([
+  const [{ data: profile }, { data: bands }, { data: venues }, { data: pendingClaims }] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-    supabase.from('bands').select('id, name, slug').eq('user_id', user.id).eq('is_active', true).order('created_at', { ascending: false }),
-    supabase.from('venues').select('id, name, slug, location_city, location_state').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
+    supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true),
+    supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true),
     supabase
       .from('venue_claims')
       .select('id, created_at, venues(id, name, slug, location_city, location_state)')
       .eq('user_id', user.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
-    supabase
-      .from('contact_threads')
-      .select(`
-        id,
-        band_id,
-        venue_id,
-        status,
-        requested_by_side,
-        blocked_by_side,
-        accepted_at,
-        last_message_at,
-        band_last_read_at,
-        venue_last_read_at,
-        band_archived_at,
-        venue_archived_at,
-        created_at,
-        updated_at,
-        bands (id, name, slug, user_id),
-        venues (id, name, slug, location_city, location_state, claimed_by_user_id)
-      `)
-      .order('last_message_at', { ascending: false })
-      .order('updated_at', { ascending: false }),
   ])
 
-  const threadIds = ((rawThreads ?? []) as Array<{ id: string }>).map((t) => t.id)
-  const { data: rawBookings } = threadIds.length > 0
-    ? await supabase
-        .from('bookings')
-        .select('thread_id, status, updated_at')
-        .in('thread_id', threadIds)
-        .order('updated_at', { ascending: false })
-    : { data: [] }
-
-  const profile = rawProfile as SlimProfile | null
-  const bands = rawBands as SlimBand[] | null
-  const venues = rawVenues as SlimVenue[] | null
-  const pendingClaims = rawPendingClaims as unknown as PendingClaim[] | null
-  const threads = (rawThreads ?? []) as unknown as InboxThread[]
   const identities: ManagedIdentity[] = [
-    ...((bands ?? []).map((band) => ({
+    ...(bands ?? []).map((band) => ({
       kind: 'band' as const,
       id: band.id,
       name: band.name,
       href: `/dashboard/bands/${band.id}/edit`,
-    }))),
-    ...((venues ?? []).map((venue) => ({
+    })),
+    ...(venues ?? []).map((venue) => ({
       kind: 'venue' as const,
       id: venue.id,
       name: venue.name,
       href: `/dashboard/venues/${venue.id}/edit`,
-    }))),
+    })),
   ]
   const cookieStore = await cookies()
   const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const allBandIds = (bands ?? []).map((band) => band.id)
+  const allVenueIds = (venues ?? []).map((venue) => venue.id)
+  const totalProfileCount = allBandIds.length + allVenueIds.length
+  const hasMultipleProfiles = totalProfileCount > 1
+  const bandIds = activeIdentity.kind === 'all'
+    ? allBandIds
+    : activeIdentity.kind === 'band'
+      ? [activeIdentity.id]
+      : []
+  const venueIds = activeIdentity.kind === 'all'
+    ? allVenueIds
+    : activeIdentity.kind === 'venue'
+      ? [activeIdentity.id]
+      : []
 
-  const bookingStatusesByThreadId = new Map<string, Array<'confirmed' | 'cancellation_requested' | 'cancelled'>>()
-  for (const booking of (rawBookings ?? []) as Array<{ thread_id: string | null; status: 'confirmed' | 'cancellation_requested' | 'cancelled' }>) {
-    if (!booking.thread_id) continue
-    bookingStatusesByThreadId.set(booking.thread_id, [
-      ...(bookingStatusesByThreadId.get(booking.thread_id) ?? []),
-      booking.status,
-    ])
-  }
+  const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
+    venueIds.length
+      ? supabase
+          .from('events')
+          .select('*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status)')
+          .in('venue_id', venueIds)
+          .in('status', ['draft', 'active'])
+          .order('event_date', { ascending: true })
+          .limit(8)
+      : Promise.resolve({ data: [] }),
+    bandIds.length
+      ? supabase
+          .from('event_artist_memberships')
+          .select('id, status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
+          .in('band_id', bandIds)
+          .in('status', ['applied', 'invited', 'accepted', 'removal_requested'])
+          .limit(8)
+      : Promise.resolve({ data: [] }),
+  ])
 
-  const bookingStatusByThreadId = new Map<string, 'confirmed' | 'cancellation_requested' | 'cancelled'>()
-  for (const [threadId, statuses] of bookingStatusesByThreadId) {
-    const status = getThreadBookingStatus(statuses)
-    if (status) bookingStatusByThreadId.set(threadId, status)
-  }
+  const artistEvents = ((artistMemberships ?? []) as unknown as Array<{
+    id: string
+    status: EventArtistMembership['status']
+    events: DashboardEvent | DashboardEvent[] | null
+  }>)
+    .map((row) => ({
+      membershipId: row.id,
+      status: row.status,
+      event: Array.isArray(row.events) ? row.events[0] : row.events,
+    }))
+    .filter((row): row is { membershipId: string; status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
 
-  const visibleThreads = threads.filter((thread) => !!getViewerSide(thread, user.id) && identityMatchesThread(activeIdentity, thread))
-  const activeVisibleThreads = visibleThreads.filter((thread) => {
-    const viewerSide = getViewerSide(thread, user.id)
-    return !!viewerSide && !isThreadArchived(thread, viewerSide)
-  })
-  const incomingRequests = activeVisibleThreads.filter((thread) => {
-    const viewerSide = getViewerSide(thread, user.id)
-    return !!viewerSide && isPendingIncoming(thread, viewerSide)
-  })
-  const recentThreads = activeVisibleThreads
-    .filter((thread) => thread.status === 'accepted' || thread.status === 'pending' || bookingStatusByThreadId.has(thread.id))
-    .slice(0, 5)
-  const inboxAlertCount = activeVisibleThreads.filter((thread) => {
-    const viewerSide = getViewerSide(thread, user.id)
-    return !!viewerSide && (isPendingIncoming(thread, viewerSide) || hasUnread(thread, viewerSide))
-  }).length
+  const venueEventRows = (venueEvents ?? []) as unknown as DashboardEvent[]
+  const name = profile?.full_name?.split(' ')[0] ?? 'there'
+  const hasAnyEvents = venueEventRows.length > 0 || artistEvents.length > 0
+  const canCreateEvent = venueIds.length > 0
+  const headerDescription = hasMultipleProfiles
+    ? 'Your dashboard highlights booking work that needs attention, plus the next Backstages for the selected profile.'
+    : 'Your dashboard highlights booking work that needs attention, plus your next Backstages.'
+  const backstageDescription = hasMultipleProfiles
+    ? 'The next events tied to the selected profile.'
+    : 'The next events tied to your profile.'
 
-  const displayName = profile?.full_name?.split(' ')[0] ?? 'there'
-  const bandCount = (bands ?? []).length
-  const venueCount = (venues ?? []).length
-  const pendingClaimCount = (pendingClaims ?? []).length
-  const isNewUser = bandCount === 0 && venueCount === 0 && pendingClaimCount === 0
-  const shownBands = activeIdentity.kind === 'band'
-    ? (bands ?? []).filter((band) => band.id === activeIdentity.id)
-    : bands ?? []
-  const shownVenues = activeIdentity.kind === 'venue'
-    ? (venues ?? []).filter((venue) => venue.id === activeIdentity.id)
-    : venues ?? []
-  const artistSectionTitle = bandCount === 1 ? 'Artist Profile' : 'Managed Artists'
-  const venueSectionTitle = venueCount === 1 ? 'Venue Profile' : 'Managed Venues'
-  const dashboardScopeText = activeIdentity.kind === 'all'
-    ? "Here's what's happening in your tour pipeline."
-    : `Here's what's happening for ${activeIdentityLabel(activeIdentity)}.`
+  const actionItems: ActionItem[] = [
+    ...((pendingClaims ?? []) as unknown as Array<VenueClaim & { venues: { name: string; location_city: string; location_state: string } | null }>).map((claim) => ({
+      href: '/dashboard/venues?tab=mine',
+      title: `${claim.venues?.name ?? 'Venue'} claim is pending`,
+      detail: claim.venues ? [claim.venues.location_city, claim.venues.location_state].filter(Boolean).join(', ') : 'We will show approval here when it changes.',
+      tone: 'warning' as const,
+      icon: Clock3,
+    })),
+    ...artistEvents
+      .filter(({ status }) => status === 'invited' || status === 'removal_requested')
+      .map(({ event, status }) => ({
+        href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
+        title: status === 'invited' ? `Invite from ${event.venues?.name ?? 'a venue'}` : `Removal request: ${event.title}`,
+        detail: `${event.title} / ${formatEventDate(event)}`,
+        tone: status === 'invited' ? 'brand' as const : 'warning' as const,
+        icon: AlertCircle,
+      })),
+    ...venueEventRows
+      .filter((event) => event.status === 'draft' || getOpenArtistNeed(event, event.event_artist_memberships ?? []) > 0)
+      .slice(0, 4)
+      .map((event) => ({
+        href: `/dashboard/backstage/${event.id}`,
+        title: event.status === 'draft' ? `Draft event: ${event.title}` : `${event.title} still needs artists`,
+        detail: `${formatEventDate(event)} / ${getAcceptedMemberships(event.event_artist_memberships ?? []).length}/${event.needed_artist_count} accepted`,
+        tone: event.status === 'draft' ? 'info' as const : 'brand' as const,
+        icon: Users,
+      })),
+  ].slice(0, 6)
+
+  const upcoming = [
+    ...venueEventRows.map((event) => ({ event, label: 'Venue leader', href: `/dashboard/backstage/${event.id}` })),
+    ...artistEvents.map(({ event, status }) => ({
+      event,
+      label: MEMBERSHIP_STATUS_LABELS[status],
+      href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
+    })),
+  ]
+    .sort((a, b) => a.event.event_date.localeCompare(b.event.event_date))
+    .slice(0, 6)
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Hey, {displayName}</h1>
-        <p className="text-[#888888] text-sm mt-1">{dashboardScopeText}</p>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Action center"
+        title={`Hey, ${name}`}
+        description={headerDescription}
+        actions={
+          <>
+            {canCreateEvent && (
+              <ButtonLink href="/dashboard/events/new">
+                <Plus className="h-4 w-4" />
+                Create Event
+              </ButtonLink>
+            )}
+            <ButtonLink href="/events" tone="secondary">
+              <Search className="h-4 w-4" />
+              Browse Events
+            </ButtonLink>
+          </>
+        }
+      />
+
+      <div className={cx('grid gap-4', hasMultipleProfiles ? 'sm:grid-cols-2 lg:grid-cols-3' : 'max-w-sm')}>
+        <StatCard label="Active Backstages" value={venueEventRows.length + artistEvents.length} icon={CalendarRange} href="/dashboard/backstage" />
+        {hasMultipleProfiles && allBandIds.length > 0 && (
+          <StatCard label={allBandIds.length === 1 ? 'Artist profile' : 'Artist profiles'} value={allBandIds.length} icon={Mic2} href="/dashboard/bands?tab=mine" />
+        )}
+        {hasMultipleProfiles && allVenueIds.length > 0 && (
+          <StatCard label={allVenueIds.length === 1 ? 'Venue profile' : 'Venue profiles'} value={allVenueIds.length} icon={MapPin} href="/dashboard/venues?tab=mine" />
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-10">
-        <Link
-          href="/dashboard/bands"
-          className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 hover:border-[#CCCCCC] transition-colors"
-        >
-          <p className="text-3xl font-bold">{bandCount}</p>
-          <p className="text-sm text-[#888888] mt-1">{bandCount === 1 ? 'Artist' : 'Artists'}</p>
-        </Link>
-
-        <Link
-          href="/dashboard/venues"
-          className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 hover:border-[#CCCCCC] transition-colors"
-        >
-          <p className="text-3xl font-bold">{venueCount}</p>
-          <p className="text-sm text-[#888888] mt-1">{venueCount === 1 ? 'Venue' : 'Venues'}</p>
-        </Link>
-
-        <Link
-          href="/dashboard/inbox"
-          className={`bg-[#FFFFFF] border rounded-xl p-5 hover:border-[#CCCCCC] transition-colors ${
-            inboxAlertCount > 0 ? 'border-[#FD6A2F]/30' : 'border-[#E8E8E8]'
-          }`}
-        >
-          <p className={`text-3xl font-bold ${inboxAlertCount > 0 ? 'text-[#FD6A2F]' : ''}`}>
-            {inboxAlertCount}
-          </p>
-          <p className="text-sm text-[#888888] mt-1">Inbox alerts</p>
-        </Link>
-      </div>
-
-      {isNewUser && (
-        <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-2xl p-10 text-center mb-10">
-          <h2 className="text-lg font-semibold mb-2">Get started</h2>
-          <p className="text-sm text-[#888888] mb-6 max-w-sm mx-auto">
-            Create an artist profile to start reaching out to venues, or claim a venue to start receiving contact requests.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/dashboard/bands/new"
-              className="w-full sm:w-auto bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2.5 text-sm hover:bg-[#E55A22] transition-colors"
-            >
-              Create an artist
-            </Link>
-            <Link
-              href="/dashboard/venues"
-              className="w-full sm:w-auto border border-[#E8E8E8] text-[#252525] font-semibold rounded-lg px-5 py-2.5 text-sm hover:border-[#CCCCCC] hover:bg-[#F0F0F0] transition-colors"
-            >
-              Browse venues to claim
-            </Link>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {incomingRequests.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                Needs your response
-              </h2>
-              <Link href="/dashboard/inbox" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
-                View inbox →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {incomingRequests.slice(0, 4).map((thread) => {
-                const viewerSide = getViewerSide(thread, user.id)
-                if (!viewerSide) return null
-
-                return (
-                  <Link
-                    key={thread.id}
-                    href={`/dashboard/inbox/${thread.id}`}
-                    className="block bg-[#FFFFFF] border border-yellow-200 rounded-xl p-4 hover:border-yellow-300 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{getConversationLabel(thread, viewerSide)}</p>
-                        <p className="text-xs text-[#888888] mt-0.5 truncate">
-                          {getConversationMeta(thread, viewerSide)}
-                        </p>
-                        <p className="text-xs text-[#888888] mt-0.5">
-                          {formatInboxDate(thread.last_message_at ?? thread.created_at)}
-                        </p>
-                      </div>
-                      <span className="w-2 h-2 rounded-full bg-[#FD6A2F] mt-1 shrink-0" />
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {recentThreads.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                Recent conversations
-              </h2>
-              <Link href="/dashboard/inbox" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
-                View all →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {recentThreads.map((thread) => {
-                const viewerSide = getViewerSide(thread, user.id)
-                if (!viewerSide) return null
-
-                const unread = hasUnread(thread, viewerSide)
-                const bookingStatus = bookingStatusByThreadId.get(thread.id) ?? null
-                const displayStatus = getThreadDisplayStatus(thread.status, bookingStatus)
-                const displayStatusLabel = bookingStatus ? BOOKING_STATUS_LABELS[bookingStatus] : THREAD_STATUS_LABELS[thread.status]
-                const displayStatusStyle = STATUS_STYLES[displayStatus]
-
-                return (
-                  <Link
-                    key={thread.id}
-                    href={`/dashboard/inbox/${thread.id}`}
-                    className="block bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-4 hover:border-[#CCCCCC] transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{getConversationLabel(thread, viewerSide)}</p>
-                          {unread && <span className="w-2 h-2 rounded-full bg-[#FD6A2F] shrink-0" />}
-                        </div>
-                        <p className="text-xs text-[#888888] mt-0.5 truncate">
-                          {getConversationMeta(thread, viewerSide)}
-                        </p>
-                        <p className="text-xs text-[#888888] mt-0.5">
-                          {formatInboxDate(thread.last_message_at ?? thread.updated_at)}
-                        </p>
-                      </div>
-                      <span
-                        className={`inline-flex text-xs font-medium px-2 py-0.5 rounded border ${displayStatusStyle}`}
-                      >
-                        {displayStatusLabel}
-                      </span>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
-
-        {bandCount > 0 && activeIdentity.kind !== 'venue' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                {artistSectionTitle}
-              </h2>
-              <Link href="/dashboard/bands" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
-                Manage →
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {shownBands.slice(0, 4).map((band) => (
-                <div
-                  key={band.id}
-                  className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl px-4 py-3 flex items-center justify-between gap-4"
-                >
-                  <p className="font-medium text-sm truncate">{band.name}</p>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Link
-                      href={`/bands/${band.slug}`}
-                      target="_blank"
-                      className="text-xs text-[#888888] hover:text-[#252525] transition-colors"
-                    >
-                      View
-                    </Link>
-                    <Link
-                      href={`/dashboard/bands/${band.id}/edit`}
-                      className="text-xs text-[#888888] hover:text-[#252525] transition-colors"
-                    >
-                      Edit
-                    </Link>
-                  </div>
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <main>
+          <SectionHeading
+            title="Upcoming Backstages"
+            description={backstageDescription}
+            action={<Link href="/dashboard/backstage" className="text-sm font-semibold text-[#777777] hover:text-[#252525]">View all</Link>}
+          />
+          {!hasAnyEvents ? (
+            <EmptyState
+              title="No Backstages yet"
+              description="Venues can create Events to open a Backstage. Artists can browse available events and apply."
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  {canCreateEvent ? (
+                    <ButtonLink href="/dashboard/events/new">Create Event</ButtonLink>
+                  ) : allVenueIds.length === 0 ? (
+                    <ButtonLink href="/dashboard/venues">Claim a Venue</ButtonLink>
+                  ) : null}
+                  <ButtonLink href="/events" tone="secondary">Browse Events</ButtonLink>
                 </div>
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              {upcoming.map(({ event, label, href }) => (
+                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} href={href} />
               ))}
-              <Link
-                href="/dashboard/bands/new"
-                className="block text-center text-xs text-[#FD6A2F] hover:underline py-2"
-              >
-                + Add Artist
-              </Link>
             </div>
-          </section>
-        )}
+          )}
+        </main>
 
-        {pendingClaimCount > 0 && (
+        <aside className="space-y-8">
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                Pending claims
-              </h2>
-            </div>
-            <div className="space-y-2">
-              {(pendingClaims ?? []).map((claim) => {
-                if (!claim.venues) return null
-                return (
-                  <div
-                    key={claim.id}
-                    className="bg-[#FFFFFF] border border-yellow-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{claim.venues.name}</p>
-                      <p className="text-xs text-[#888888] mt-0.5">
-                        {claim.venues.location_city}, {claim.venues.location_state}
-                      </p>
-                    </div>
-                    <span className="text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5 shrink-0">
-                      Pending
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
+            <SectionHeading title="Needs Attention" description="Invites, drafts, open spots, and claims." />
+            <ActionQueue items={actionItems} />
           </section>
-        )}
 
-        {venueCount > 0 && activeIdentity.kind !== 'band' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest">
-                {venueSectionTitle}
-              </h2>
-              <Link href="/dashboard/venues" className="text-xs text-[#888888] hover:text-[#252525] transition-colors">
-                Manage →
-              </Link>
+          <Card className="p-5">
+            <SectionHeading title="Quick Starts" description="Common next steps for booking work." />
+            <div className="grid gap-2">
+              {canCreateEvent && (
+                <ButtonLink href="/dashboard/events/new" tone="secondary">
+                  <Plus className="h-4 w-4" />
+                  Create Event
+                </ButtonLink>
+              )}
+              <ButtonLink href="/events" tone="secondary">
+                <Search className="h-4 w-4" />
+                Browse Events
+              </ButtonLink>
+              <ButtonLink href="/venues" tone="secondary">
+                <Search className="h-4 w-4" />
+                Discover Venues
+              </ButtonLink>
             </div>
-            <div className="space-y-2">
-              {shownVenues.slice(0, 4).map((venue) => (
-                <div
-                  key={venue.id}
-                  className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl px-4 py-3 flex items-center justify-between gap-4"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{venue.name}</p>
-                    <p className="text-xs text-[#888888]">
-                      {venue.location_city}, {venue.location_state}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Link
-                      href={`/venues/${venue.slug}`}
-                      target="_blank"
-                      className="text-xs text-[#888888] hover:text-[#252525] transition-colors"
-                    >
-                      View
-                    </Link>
-                    <Link
-                      href={`/dashboard/venues/${venue.id}/edit`}
-                      className="text-xs text-[#888888] hover:text-[#252525] transition-colors"
-                    >
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
-              <Link
-                href="/dashboard/venues"
-                className="block text-center text-xs text-[#FD6A2F] hover:underline py-2"
-              >
-                + Claim a venue
-              </Link>
-            </div>
-          </section>
-        )}
+          </Card>
+        </aside>
       </div>
     </div>
   )

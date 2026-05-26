@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { requestContact } from '@/app/actions/contact'
 import { getVenueDateGenreFit } from '@/lib/venue-booking-date'
@@ -24,6 +24,8 @@ interface Props {
   targetBandId?: string
   targetVenueId?: string
   initialShowDate?: string
+  showDate?: string
+  onShowDateChange?: (showDate: string) => void
   dateFitContextByIso?: Record<string, DateFitContext | undefined>
 }
 
@@ -33,14 +35,17 @@ export function RequestContactForm({
   targetBandId,
   targetVenueId,
   initialShowDate = '',
+  showDate: controlledShowDate,
+  onShowDateChange,
   dateFitContextByIso,
 }: Props) {
   const router = useRouter()
   const [message, setMessage] = useState('')
-  const [showDate, setShowDate] = useState(initialShowDate)
+  const [localShowDate, setLocalShowDate] = useState(initialShowDate)
   const [error, setError] = useState<string | null>(null)
   const [threadIdHint, setThreadIdHint] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const showDate = controlledShowDate ?? localShowDate
 
   const selectedOption = useMemo(
     () => options[0] ?? null,
@@ -63,9 +68,13 @@ export function RequestContactForm({
     [dateFitContext?.effectiveGenreFocus, initiatorSide, selectedOption]
   )
 
-  useEffect(() => {
-    setShowDate(initialShowDate)
-  }, [initialShowDate])
+  function handleShowDateChange(nextShowDate: string) {
+    if (onShowDateChange) {
+      onShowDateChange(nextShowDate)
+      return
+    }
+    setLocalShowDate(nextShowDate)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -113,7 +122,7 @@ export function RequestContactForm({
         <input
           type="date"
           value={showDate}
-          onChange={(event) => setShowDate(event.target.value)}
+          onChange={(event) => handleShowDateChange(event.target.value)}
           className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F] transition-colors"
         />
       </div>

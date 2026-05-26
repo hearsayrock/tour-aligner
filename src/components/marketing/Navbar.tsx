@@ -39,6 +39,12 @@ export async function Navbar() {
             Who it&apos;s for
           </Link>
           <Link
+            href="/events"
+            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
+          >
+            Events
+          </Link>
+          <Link
             href="/venues"
             className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
           >
@@ -65,7 +71,9 @@ export async function Navbar() {
           )}
         </nav>
 
-        {!user && <SignedOutMobileMenu />}
+        <div className="md:hidden">
+          {user ? <NavAccountMenu /> : <SignedOutMobileMenu />}
+        </div>
       </div>
     </header>
   )

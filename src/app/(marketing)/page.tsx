@@ -329,7 +329,7 @@ function AudienceSection() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#A24A22]">
-            Who it's for
+            Who it&apos;s for
           </p>
           <h2 className="mt-4 max-w-5xl text-3xl font-semibold tracking-tight text-[#111111] sm:text-5xl">
             Built for artists, venues, and booking teams.

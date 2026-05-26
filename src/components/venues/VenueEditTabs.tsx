@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { CalendarRange, Info } from 'lucide-react'
 import { VenueAvailabilityManager } from '@/components/venues/VenueAvailabilityManager'
 import { VenueEditForm } from '@/components/venues/VenueEditForm'
 import type { Booking, Genre, Venue, VenueBookingDate } from '@/types/database'
@@ -27,29 +28,34 @@ export function VenueEditTabs({
   const [activeTab, setActiveTab] = useState<VenueEditTab>('calendar')
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#252525]">Edit {venue.name}</h1>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Venue workspace</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#181818]">Edit {venue.name}</h1>
       </div>
 
-      <div className="mb-8 flex gap-1 border-b border-[#E8E8E8]">
+      <div className="mb-8 inline-flex rounded-2xl border border-[#E6E6E6] bg-white p-1 shadow-[0_12px_28px_rgba(20,20,20,0.035)]">
         {([
-          { id: 'calendar', label: 'Calendar' },
-          { id: 'info', label: 'Venue Info' },
-        ] as { id: VenueEditTab; label: string }[]).map((tab) => (
+          { id: 'calendar', label: 'Calendar', icon: CalendarRange },
+          { id: 'info', label: 'Venue Info', icon: Info },
+        ] as { id: VenueEditTab; label: string; icon: typeof CalendarRange }[]).map((tab) => {
+          const Icon = tab.icon
+          return (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`inline-flex min-h-10 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
               activeTab === tab.id
-                ? 'border-[#FD6A2F] text-[#252525]'
-                : 'border-transparent text-[#888888] hover:text-[#252525]'
+                ? 'bg-[#252525] text-white'
+                : 'text-[#777777] hover:bg-[#F5F5F5] hover:text-[#252525]'
             }`}
           >
+            <Icon className="h-4 w-4" />
             {tab.label}
           </button>
-        ))}
+          )
+        })}
       </div>
 
       {activeTab === 'calendar' && (
@@ -72,7 +78,7 @@ export function VenueEditTabs({
             genres={genres}
             selectedGenreIds={selectedGenreIds}
             showHeader={false}
-            className="w-full max-w-2xl px-0 py-0 space-y-12"
+            className="w-full max-w-3xl px-0 py-0 space-y-6"
           />
         </div>
       )}

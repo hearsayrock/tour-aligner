@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 
 export default function InquiriesRedirect() {
-  redirect('/dashboard/inbox')
+  redirect('/dashboard/backstage')
 }
 
 /*

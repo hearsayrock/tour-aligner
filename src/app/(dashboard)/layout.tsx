@@ -12,9 +12,11 @@ export default async function DashboardLayout({
 
   if (user) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA]">
+      <div className="min-h-screen bg-[#F7F7F5]">
         <AppNav />
-        <main>{children}</main>
+        <main className="min-h-screen pb-24 lg:pl-72 lg:pb-0">
+          {children}
+        </main>
       </div>
     )
   }
