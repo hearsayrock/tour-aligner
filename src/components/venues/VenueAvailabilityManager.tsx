@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Layers3, WandSparkles } from 'lucide-react'
 import { saveVenueBookingDate } from '@/app/actions/venues'
 import { CalendarActivityList } from '@/components/calendar/CalendarActivityList'
 import { VenueAvailabilityCalendar } from '@/components/venues/VenueAvailabilityCalendar'
@@ -77,8 +78,7 @@ export function VenueAvailabilityManager({
   }, [bookings])
 
   const selectedEntry = bookingDateMap.get(selectedDate) ?? null
-  const selectedConfirmedCount =
-    selectedEntry ? (bookingCountMap.get(selectedEntry.id) ?? 0) : 0
+  const selectedConfirmedCount = selectedEntry ? (bookingCountMap.get(selectedEntry.id) ?? 0) : 0
   const selectedUnavailableCount = selectedDates.filter(
     (date) => bookingDateMap.get(date)?.is_unavailable
   ).length
@@ -133,17 +133,16 @@ export function VenueAvailabilityManager({
   return (
     <section className="space-y-6">
       {showHeader && (
-        <div>
-          <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-2">
-            Availability Calendar
-          </h2>
-          <p className="text-sm text-[#777777]">
+        <div className="rounded-[28px] border border-[#E8DED2] bg-[linear-gradient(180deg,#FFF8F2_0%,#FFFFFF_100%)] p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Availability calendar</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#181818]">Shape the next six months</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#777777]">
             Click any date to set a custom bill cap, close the bill, or mark dates unavailable. Turn on bulk mode to update multiple dates at once.
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-8">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
         <VenueAvailabilityCalendar
           todayIso={todayIso}
           bookingDates={bookingDates}
@@ -160,7 +159,7 @@ export function VenueAvailabilityManager({
                 <button
                   type="button"
                   onClick={() => setSelectedDates([selectedDate])}
-                  className="text-sm text-[#666666] transition-colors hover:text-[#252525]"
+                  className="rounded-full border border-[#E6DED3] bg-white px-3 py-1.5 text-xs font-semibold text-[#666666] transition-all hover:-translate-y-0.5 hover:text-[#252525]"
                 >
                   Clear selections
                 </button>
@@ -173,10 +172,10 @@ export function VenueAvailabilityManager({
                   setError(null)
                   setSaved(false)
                 }}
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
                   isBulkMode
-                    ? 'border-[rgb(80,128,190)] bg-blue-50 text-[rgb(80,128,190)]'
-                    : 'border-[#E8E8E8] bg-white text-[#555555] hover:border-[#CCCCCC]'
+                    ? 'border-[#0C7C71]/20 bg-[#EAF7F2] text-[#0C7C71] shadow-[0_10px_24px_rgba(12,124,113,0.12)]'
+                    : 'border-[#E6DED3] bg-white text-[#555555] hover:-translate-y-0.5 hover:border-[#D8CCBD]'
                 }`}
               >
                 {isBulkMode ? 'Bulk mode on' : 'Bulk edit dates'}
@@ -186,23 +185,69 @@ export function VenueAvailabilityManager({
           monthCount={6}
         />
 
-        <div className="rounded-2xl border border-[#E8E8E8] bg-white p-5 h-fit sticky top-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">
-            {selectedDates.length > 1 ? 'Selected Dates' : 'Selected Date'}
-          </p>
-          <h3 className="text-lg font-semibold text-[#252525] mt-2">
+        <div className="sticky top-6 h-fit rounded-[30px] border border-[#E8DED2] bg-[linear-gradient(180deg,#FFFDFB_0%,#F8F7F4_100%)] p-5 shadow-[0_18px_42px_rgba(17,17,17,0.06)]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8C7D6F]">
+            <Layers3 className="h-3.5 w-3.5" />
+            {selectedDates.length > 1 ? 'Selected dates' : 'Selected date'}
+          </div>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-[#252525]">
             {selectedDates.length > 1 ? `${selectedDates.length} dates selected` : formatShowDate(selectedDate)}
           </h3>
-          <p className="text-sm text-[#777777] mt-2">
+          <p className="mt-2 text-sm leading-6 text-[#777777]">
             {selectedDates.length > 1
               ? 'Changes below will be applied to every selected date.'
               : selectedEntry
-              ? 'This date already has calendar settings saved.'
-              : 'This date is currently using your venue defaults.'}
+                ? 'This date already has calendar settings saved.'
+                : 'This date is currently using your venue defaults.'}
           </p>
 
+          <div className="mt-6 rounded-[24px] border border-[#EAE1D7] bg-white/80 p-4 text-sm text-[#666666] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <div className="flex items-start gap-3">
+              <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#FFF1E7] text-[#C85A28]">
+                <WandSparkles className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p>
+                  Confirmed bands: <span className="font-semibold text-[#252525]">{selectedConfirmedCount}</span>
+                </p>
+                <p className="mt-1">
+                  Current status:{' '}
+                  <span className="font-semibold text-[#252525]">
+                    {unavailable
+                      ? 'Unavailable'
+                      : closeBill || selectedConfirmedCount >= parseInt(billCap || '0', 10)
+                        ? 'Full'
+                        : selectedConfirmedCount > 0
+                          ? 'Partially filled'
+                          : 'Open'}
+                  </span>
+                </p>
+                {selectedDates.length > 1 && (
+                  <p className="mt-1">
+                    Unavailable dates in selection:{' '}
+                    <span className="font-semibold text-[#252525]">{selectedUnavailableCount}</span>
+                  </p>
+                )}
+                {selectedDates.length === 1 && (showType || genreFocus) && (
+                  <p className="mt-1">
+                    Show context:{' '}
+                    <span className="font-semibold text-[#252525]">
+                      {[getVenueShowTypeLabel(showType), genreFocus.trim() || null].filter(Boolean).join(' / ')}
+                    </span>
+                  </p>
+                )}
+                {selectedDates.length === 1 && effectiveGenreFocus && (
+                  <p className="mt-1">
+                    Date vibe: <span className="font-semibold text-[#252525]">{effectiveGenreFocus}</span>{' '}
+                    <span className="text-[#888888]">({genreFocus.trim() ? 'manual override' : 'auto-detected'})</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="mt-5 space-y-4">
-            <label className="flex items-start gap-3 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3">
+            <label className="flex items-start gap-3 rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
               <input
                 type="checkbox"
                 checked={unavailable}
@@ -213,31 +258,27 @@ export function VenueAvailabilityManager({
                 className="mt-0.5 h-4 w-4 rounded border-[#CCCCCC] text-[#252525] focus:ring-[#252525]"
               />
               <span>
-                <span className="block text-sm font-medium text-[#252525]">
-                  Mark as unavailable
-                </span>
-                <span className="mt-0.5 block text-xs text-[#888888]">
+                <span className="block text-sm font-medium text-[#252525]">Mark as unavailable</span>
+                <span className="mt-0.5 block text-xs leading-5 text-[#888888]">
                   Use this for nights your venue never books shows or events.
                 </span>
               </span>
             </label>
 
-            <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Bill cap</label>
+            <div className="rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
+              <label className="mb-1.5 block text-sm text-[#777777]">Bill cap</label>
               <input
                 type="number"
                 min={1}
                 value={billCap}
                 onChange={(event) => setBillCap(event.target.value)}
                 disabled={unavailable}
-                className="w-full rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
+                className="w-full rounded-2xl border border-[#E8E0D7] bg-[#F8F5F1] px-3 py-2.5 text-sm transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none"
               />
-              <p className="mt-1.5 text-xs text-[#888888]">
-                Default venue cap: {defaultBillCap}
-              </p>
+              <p className="mt-1.5 text-xs text-[#888888]">Default venue cap: {defaultBillCap}</p>
             </div>
 
-            <label className="flex items-start gap-3 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3">
+            <label className="flex items-start gap-3 rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
               <input
                 type="checkbox"
                 checked={closeBill}
@@ -246,68 +287,27 @@ export function VenueAvailabilityManager({
                 className="mt-0.5 h-4 w-4 rounded border-[#CCCCCC] text-[#FD6A2F] focus:ring-[#FD6A2F]"
               />
               <span>
-                <span className="block text-sm font-medium text-[#252525]">
-                  Close this date to more bands
-                </span>
-                <span className="mt-0.5 block text-xs text-[#888888]">
+                <span className="block text-sm font-medium text-[#252525]">Close this date to more bands</span>
+                <span className="mt-0.5 block text-xs leading-5 text-[#888888]">
                   Use this to mark the date full even if the bill cap has not been reached yet.
                 </span>
               </span>
             </label>
 
-            <div className="rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3 text-sm text-[#666666]">
-              <p>
-                Confirmed bands: <span className="font-semibold text-[#252525]">{selectedConfirmedCount}</span>
-              </p>
-              <p className="mt-1">
-                Current status: <span className="font-semibold text-[#252525]">
-                  {unavailable
-                    ? 'Unavailable'
-                    : closeBill || selectedConfirmedCount >= parseInt(billCap || '0', 10)
-                    ? 'Full'
-                    : selectedConfirmedCount > 0
-                      ? 'Partially filled'
-                      : 'Open'}
-                </span>
-              </p>
-              {selectedDates.length > 1 && (
-                <p className="mt-1">
-                  Unavailable dates in selection: <span className="font-semibold text-[#252525]">{selectedUnavailableCount}</span>
-                </p>
-              )}
-              {!selectedDates.length || selectedDates.length > 1 ? null : (showType || genreFocus) ? (
-                <p className="mt-1">
-                  Show context:{' '}
-                  <span className="font-semibold text-[#252525]">
-                    {[getVenueShowTypeLabel(showType), genreFocus.trim() || null].filter(Boolean).join(' · ')}
-                  </span>
-                </p>
-              ) : null}
-              {!selectedDates.length || selectedDates.length > 1 || !effectiveGenreFocus ? null : (
-                <p className="mt-1">
-                  Date vibe:{' '}
-                  <span className="font-semibold text-[#252525]">{effectiveGenreFocus}</span>{' '}
-                  <span className="text-[#888888]">
-                    ({genreFocus.trim() ? 'manual override' : 'auto-detected'})
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium text-[#252525]">Backstages on this date</p>
+            <div className="rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
+              <p className="mb-3 text-sm font-semibold text-[#252525]">Backstages on this date</p>
               <CalendarActivityList
                 items={selectedActivities}
                 emptyMessage="No event workspace is tied to this date yet."
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Show type</label>
+            <div className="rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
+              <label className="mb-1.5 block text-sm text-[#777777]">Show type</label>
               <select
                 value={showType ?? ''}
                 onChange={(event) => setShowType((event.target.value || null) as VenueBookingDate['show_type'])}
-                className="w-full rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
+                className="w-full rounded-2xl border border-[#E8E0D7] bg-[#F8F5F1] px-3 py-2.5 text-sm transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none"
               >
                 <option value="">No specific type</option>
                 {VENUE_SHOW_TYPE_OPTIONS.map((option) => (
@@ -316,21 +316,21 @@ export function VenueAvailabilityManager({
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-xs text-[#888888]">
+              <p className="mt-1.5 text-xs leading-5 text-[#888888]">
                 Give bands a quick read on what kind of night this is shaping into.
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Genre vibe override</label>
+            <div className="rounded-[22px] border border-[#EAE1D7] bg-white/78 px-4 py-3.5 shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
+              <label className="mb-1.5 block text-sm text-[#777777]">Genre vibe override</label>
               <input
                 type="text"
                 value={genreFocus}
                 onChange={(event) => setGenreFocus(event.target.value)}
                 placeholder={automatedGenreFocus ?? 'Indie / psych leaning'}
-                className="w-full rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
+                className="w-full rounded-2xl border border-[#E8E0D7] bg-[#F8F5F1] px-3 py-2.5 text-sm transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none"
               />
-              <p className="mt-1.5 text-xs text-[#888888]">
+              <p className="mt-1.5 text-xs leading-5 text-[#888888]">
                 Leave this blank and TourAligner will infer the vibe from the genres of the bands already booked on this date.
               </p>
             </div>
@@ -342,10 +342,10 @@ export function VenueAvailabilityManager({
               type="button"
               onClick={save}
               disabled={isPending}
-              className="w-full rounded-lg bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:opacity-50"
+              className="w-full rounded-full bg-[#FD6A2F] px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(253,106,47,0.28)] transition-all hover:-translate-y-0.5 hover:bg-[#E55A22] disabled:opacity-50"
             >
               {isPending
-                ? 'Saving…'
+                ? 'Saving...'
                 : selectedDates.length > 1
                   ? 'Apply to selected dates'
                   : selectedEntry
