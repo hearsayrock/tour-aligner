@@ -166,7 +166,6 @@ export default async function VenueDetailPage({
     .filter(Boolean) as string[]
 
   const isClaimed = !!venue.claimed_by_user_id
-  const isOwner = !!user && user.id === venue.claimed_by_user_id
   const hasPendingClaim = !!pendingClaim
   const activeSocials = SOCIAL_LINKS.filter(({ key }) => venue[key])
   const bookingDates = (rawBookingDates ?? []) as Array<{
@@ -197,7 +196,7 @@ export default async function VenueDetailPage({
 
   let userBands: { id: string; name: string; genres?: string[] }[] = []
   let userVenues: { id: string; name: string }[] = []
-  if (user && !isOwner) {
+  if (user) {
     const [{ data: bands }, { data: venues }] = await Promise.all([
       supabase
         .from('bands')
@@ -243,6 +242,7 @@ export default async function VenueDetailPage({
   ]
   const cookieStore = await cookies()
   const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const isSelectedOwner = activeIdentity.kind === 'venue' && activeIdentity.id === venue.id
   const contactBands = activeIdentity.kind === 'band'
     ? userBands.filter((band) => band.id === activeIdentity.id)
     : []
@@ -286,8 +286,8 @@ export default async function VenueDetailPage({
 
   const locationLine = formatVenueLocation(venue)
   const primaryGenre = genreNames[0] ?? 'Live music'
-  const claimStatusLabel = isOwner ? 'Managed by you' : isClaimed ? 'Claimed venue' : 'Unclaimed venue'
-  const claimStatusTone = isOwner ? 'success' : isClaimed ? 'muted' : 'brand'
+  const claimStatusLabel = isSelectedOwner ? 'Managed by this profile' : isClaimed ? 'Claimed venue' : 'Unclaimed venue'
+  const claimStatusTone = isSelectedOwner ? 'success' : isClaimed ? 'muted' : 'brand'
 
   return (
     <div className={`bg-[#F7F4EE] ${user ? '' : 'pt-16'}`}>
@@ -408,7 +408,7 @@ export default async function VenueDetailPage({
             </div>
           </section>
 
-          {!isOwner && (
+          {!isSelectedOwner && (
             <PublicVenueBookingPanel
               todayIso={todayIso}
               bookingDates={bookingDates}
@@ -428,7 +428,7 @@ export default async function VenueDetailPage({
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          {!isOwner && (
+          {!isSelectedOwner && (
             <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Private chat</p>
               <div className="mt-4">
@@ -507,11 +507,11 @@ export default async function VenueDetailPage({
           )}
 
           <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-            {isOwner ? (
+            {isSelectedOwner ? (
               <div>
                 <Badge tone="success">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  You own this venue
+                  This profile manages the venue
                 </Badge>
                 <p className="mt-3 text-sm leading-6 text-[#666666]">
                   Manage profile details, contact information, and booking availability from the dashboard.

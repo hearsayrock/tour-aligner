@@ -198,12 +198,10 @@ export default async function BandProfilePage({
   const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
   const streamingLinks = STREAMING.filter(({ key }) => !!band[key])
   const socialLinks = SOCIALS.filter(({ key }) => !!band[key])
-  const isOwner = !!user && user.id === band.user_id
-
   let userVenues: { id: string; name: string }[] = []
   let userBands: { id: string; name: string }[] = []
 
-  if (user && !isOwner) {
+  if (user) {
     const [{ data: venues }, { data: bands }] = await Promise.all([
       supabase
         .from('venues')
@@ -239,6 +237,7 @@ export default async function BandProfilePage({
   ]
   const cookieStore = await cookies()
   const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const isSelectedOwner = activeIdentity.kind === 'band' && activeIdentity.id === band.id
   const contactVenues = activeIdentity.kind === 'venue'
     ? userVenues.filter((venue) => venue.id === activeIdentity.id)
     : []
@@ -296,10 +295,10 @@ export default async function BandProfilePage({
                   {primaryGenre}
                 </Badge>
                 {artistType && <Badge tone="muted">{artistType}</Badge>}
-                {isOwner && (
+                {isSelectedOwner && (
                   <Badge tone="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Managed by you
+                    Managed by this profile
                   </Badge>
                 )}
               </div>
@@ -528,11 +527,11 @@ export default async function BandProfilePage({
           <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Connect</p>
             <div className="mt-4">
-              {isOwner ? (
+              {isSelectedOwner ? (
                 <div>
                   <Badge tone="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    This is your artist profile
+                    This profile manages the artist page
                   </Badge>
                   <p className="mt-3 text-sm leading-6 text-[#666666]">
                     Manage artist details, links, photos, and booking context from the dashboard.
@@ -570,7 +569,7 @@ export default async function BandProfilePage({
                 </p>
               )}
             </div>
-            {!isOwner && (
+            {!isSelectedOwner && (
               <div className="mt-5 border-t border-[#EEE7DB] pt-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Private chat</p>
                 <div className="mt-3">
