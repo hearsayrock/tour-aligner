@@ -333,6 +333,8 @@ export interface Database {
           id: string
           venue_id: string
           created_by_user_id: string | null
+          event_series_id: string | null
+          series_occurrence_index: number | null
           title: string
           slug: string
           event_date: string
@@ -360,6 +362,8 @@ export interface Database {
           id?: string
           venue_id: string
           created_by_user_id?: string | null
+          event_series_id?: string | null
+          series_occurrence_index?: number | null
           title: string
           slug: string
           event_date: string
@@ -386,6 +390,8 @@ export interface Database {
         Update: {
           venue_id?: string
           created_by_user_id?: string | null
+          event_series_id?: string | null
+          series_occurrence_index?: number | null
           title?: string
           slug?: string
           event_date?: string
@@ -406,6 +412,111 @@ export interface Database {
           logistics_artist_should_bring?: string | null
           logistics_parking_access?: string | null
           logistics_notes?: string | null
+          updated_at?: string
+        }
+      }
+      event_series: {
+        Row: {
+          id: string
+          venue_id: string
+          created_by_user_id: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          start_time: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count: number | null
+          recurrence_end_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          created_by_user_id?: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          start_time: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          created_by_user_id?: string | null
+          recurrence_weekdays?: number[]
+          start_date?: string
+          start_time?: string
+          limit_type?: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          updated_at?: string
+        }
+      }
+      venue_unavailable_series: {
+        Row: {
+          id: string
+          venue_id: string
+          created_by_user_id: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count: number | null
+          recurrence_end_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          created_by_user_id?: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          created_by_user_id?: string | null
+          recurrence_weekdays?: number[]
+          start_date?: string
+          limit_type?: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          updated_at?: string
+        }
+      }
+      venue_unavailable_dates: {
+        Row: {
+          id: string
+          venue_id: string
+          unavailable_series_id: string | null
+          unavailable_date: string
+          reason: string | null
+          created_by_user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          unavailable_series_id?: string | null
+          unavailable_date: string
+          reason?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          unavailable_series_id?: string | null
+          unavailable_date?: string
+          reason?: string | null
+          created_by_user_id?: string | null
           updated_at?: string
         }
       }
@@ -1022,6 +1133,9 @@ export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']
 export type Event          = Database['public']['Tables']['events']['Row']
+export type EventSeries    = Database['public']['Tables']['event_series']['Row']
+export type VenueUnavailableSeries = Database['public']['Tables']['venue_unavailable_series']['Row']
+export type VenueUnavailableDate = Database['public']['Tables']['venue_unavailable_dates']['Row']
 export type EventGenre     = Database['public']['Tables']['event_genres']['Row']
 export type EventArtistMembership = Database['public']['Tables']['event_artist_memberships']['Row']
 export type BackstageMessage = Database['public']['Tables']['backstage_messages']['Row']

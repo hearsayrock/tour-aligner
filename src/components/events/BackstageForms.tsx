@@ -173,7 +173,7 @@ export function BackstageSettingsForm({
           <input type="number" min={1} value={attendeeCapacity} onChange={(event) => setAttendeeCapacity(event.target.value)} className={inputClass} />
         </label>
         <label className="block">
-          <span className={labelClass}>Needed artists</span>
+          <span className={labelClass}>Artist cap</span>
           <input type="number" min={1} value={neededArtistCount} onChange={(event) => setNeededArtistCount(event.target.value)} className={inputClass} />
         </label>
       </div>

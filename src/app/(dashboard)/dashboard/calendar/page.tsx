@@ -1,22 +1,19 @@
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
-import { CalendarDays, MapPin, Mic2, PencilLine, Plus, Search } from 'lucide-react'
+import { CalendarDays, MapPin, Mic2, PencilLine, Search } from 'lucide-react'
 import { ArtistCalendarWorkspace } from '@/components/calendar/ArtistCalendarWorkspace'
+import { VenueEventCalendarWorkspace } from '@/components/calendar/VenueEventCalendarWorkspace'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
-import { VenueAvailabilityManager } from '@/components/venues/VenueAvailabilityManager'
 import { ButtonLink, EmptyState, PageHeader } from '@/components/ui/primitives'
 import {
   buildArtistEventActivity,
   buildArtistEventMarker,
   buildShowDateActivity,
   buildShowDateMarker,
-  buildVenueEventActivity,
-  buildVenueEventMarker,
   type CalendarActivity,
   type CalendarDayMarker,
   type CalendarEventRecord,
 } from '@/lib/calendar-activity'
-import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
 import { getVenueCalendarRange } from '@/lib/venue-calendar'
 import {
   ACTIVE_IDENTITY_COOKIE,
@@ -25,7 +22,7 @@ import {
   type ManagedIdentity,
 } from '@/lib/managed-identity'
 import { createClient } from '@/lib/supabase/server'
-import type { EventArtistMembership, VenueBookingDate } from '@/types/database'
+import type { EventArtistMembership, VenueUnavailableDate } from '@/types/database'
 
 export const metadata = { title: 'Calendar' }
 
@@ -130,25 +127,13 @@ export default async function DashboardCalendarPage({
   const calendarRange = getVenueCalendarRange(todayIso, 6)
 
   if (activeIdentity.kind === 'venue') {
-    const [{ data: venue }, { data: rawBookingDates }, { data: rawBookings }, { data: rawEvents }] = await Promise.all([
+    const [{ data: venue }, { data: rawEvents }, { data: rawUnavailableDates }, { data: genres }] = await Promise.all([
       supabase
         .from('venues')
-        .select('id, name, slug, default_bill_cap')
+        .select('id, name, slug, capacity')
         .eq('id', activeIdentity.id)
         .eq('claimed_by_user_id', user.id)
         .single(),
-      supabase
-        .from('venue_booking_dates')
-        .select('id, show_date, bill_cap, is_closed_to_more_bands, is_unavailable, show_type, genre_focus')
-        .eq('venue_id', activeIdentity.id)
-        .gte('show_date', calendarRange.rangeStart)
-        .lte('show_date', calendarRange.rangeEnd)
-        .order('show_date'),
-      supabase
-        .from('bookings')
-        .select('venue_booking_date_id, status, bands:band_id ( band_genres ( genres ( name ) ) )')
-        .eq('venue_id', activeIdentity.id)
-        .in('status', ['confirmed', 'cancellation_requested']),
       supabase
         .from('events')
         .select('id, title, slug, event_date, status, is_accepting_artists, needed_artist_count, event_artist_memberships(status)')
@@ -156,66 +141,43 @@ export default async function DashboardCalendarPage({
         .gte('event_date', calendarRange.rangeStart)
         .lte('event_date', calendarRange.rangeEnd)
         .order('event_date'),
+      supabase
+        .from('venue_unavailable_dates')
+        .select('id, venue_id, unavailable_series_id, unavailable_date, reason, created_by_user_id, created_at, updated_at')
+        .eq('venue_id', activeIdentity.id)
+        .gte('unavailable_date', calendarRange.rangeStart)
+        .lte('unavailable_date', calendarRange.rangeEnd)
+        .order('unavailable_date'),
+      supabase.from('genres').select('*').order('name'),
     ])
 
     if (!venue) return notFound()
 
-    const bookingDates = (rawBookingDates ?? []) as Array<
-      Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>
-    >
-    const bookings = (rawBookings ?? []) as Array<{
-      venue_booking_date_id: string
-      status: 'confirmed' | 'cancellation_requested' | 'cancelled'
-      bands?:
-        | {
-            band_genres?: Array<{ genres?: { name: string | null } | null }> | null
-          }
-        | null
-    }>
     const events = ((rawEvents ?? []) as Array<CalendarEventRecord>).map((event) => ({
       ...event,
       venues: { name: venue.name },
     }))
-    const automatedGenreFocusByBookingDateId = Object.fromEntries(buildVenueDateGenreFocusMap(bookings))
-    const markersByDate: Record<string, CalendarDayMarker[]> = {}
-    const activitiesByDate: Record<string, CalendarActivity[]> = {}
-
-    for (const event of events) {
-      appendCalendarItem(markersByDate, event.event_date, buildVenueEventMarker(event))
-      appendCalendarItem(activitiesByDate, event.event_date, buildVenueEventActivity(event))
-    }
 
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mx-auto w-full max-w-none px-4 py-6 sm:px-5 lg:px-6 lg:py-8">
         <PageHeader
           eyebrow="Calendar"
           title={`${venue.name} Calendar`}
-          description="Availability settings and event workspaces now live together here, outside the venue profile editor."
+          description="Events and Backstages are the source of truth for this calendar."
           actions={
-            <>
-              <ButtonLink href="/dashboard/events/new">
-                <Plus className="h-4 w-4" />
-                Create Event
-              </ButtonLink>
-              <ButtonLink href={`/dashboard/venues/${venue.id}/edit`} tone="secondary">
-                <PencilLine className="h-4 w-4" />
-                Edit Venue Info
-              </ButtonLink>
-            </>
+            <ButtonLink href={`/dashboard/venues/${venue.id}/edit`} tone="secondary">
+              <PencilLine className="h-4 w-4" />
+              Edit Venue Info
+            </ButtonLink>
           }
         />
 
-        <VenueAvailabilityManager
-          venueId={venue.id}
-          venueSlug={venue.slug}
-          defaultBillCap={venue.default_bill_cap}
+        <VenueEventCalendarWorkspace
           todayIso={todayIso}
-          bookingDates={bookingDates}
-          bookings={bookings}
-          automatedGenreFocusByBookingDateId={automatedGenreFocusByBookingDateId}
-          showHeader={false}
-          markersByDate={markersByDate}
-          activitiesByDate={activitiesByDate}
+          venue={venue}
+          genres={genres ?? []}
+          events={events}
+          unavailableDates={(rawUnavailableDates ?? []) as VenueUnavailableDate[]}
         />
       </div>
     )

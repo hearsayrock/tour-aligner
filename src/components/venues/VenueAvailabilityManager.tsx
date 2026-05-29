@@ -14,6 +14,8 @@ import {
 } from '@/lib/venue-booking-date'
 import type { Booking, VenueBookingDate } from '@/types/database'
 
+// Legacy venue-date availability editor. The dashboard calendar is Event-centered;
+// keep this for existing public booking/date-management surfaces until that model is retired.
 function formatShowDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
     weekday: 'long',
