@@ -78,20 +78,12 @@ function DayCell({
       ? 'border-[#252525]/65 ring-1 ring-[#252525]/45 shadow-[0_18px_30px_rgba(17,17,17,0.08)]'
       : 'shadow-[0_14px_28px_rgba(17,17,17,0.05)]'
   const countLabel = !day.isUnavailable && day.billCap ? `${day.confirmedCount}/${day.billCap}` : null
-  const descriptor = day.isUnavailable
-    ? 'Venue unavailable'
-    : day.status === 'full'
-      ? 'Bill locked'
-      : day.billCap
-        ? `${Math.max(day.billCap - day.confirmedCount, 0)} spots left`
-        : 'Flexible capacity'
-  const detailLabel = day.isUnavailable
+  const capacityTitle = day.billCap ? `${day.confirmedCount} of ${day.billCap} filled` : undefined
+  const availabilityLabel = day.isUnavailable
     ? 'Unavailable'
     : day.status === 'full'
       ? 'Bill closed'
-      : day.billCap
-        ? `${day.confirmedCount}/${day.billCap} filled`
-        : 'No bill cap'
+      : null
   const statusLabel = getStatusLabel(day.status)
 
   return (
@@ -121,9 +113,6 @@ function DayCell({
                 {day.dayOfMonth}
               </span>
             </div>
-            <p className="mt-2 text-[11px] font-medium text-current/72">
-              {descriptor}
-            </p>
           </div>
 
           <div className="flex flex-row flex-wrap items-center gap-2 2xl:flex-col 2xl:items-end">
@@ -136,23 +125,17 @@ function DayCell({
               </span>
             )}
             {countLabel && (
-              <span className="rounded-full border border-black/8 bg-white/75 px-2 py-1 text-[10px] font-semibold text-current/80">
+              <span
+                className="rounded-full border border-black/8 bg-white/75 px-2 py-1 text-[10px] font-semibold text-current/80"
+                title={capacityTitle}
+              >
                 {countLabel}
               </span>
             )}
           </div>
         </div>
 
-        <div className="mt-4 space-y-2 text-[11px] leading-relaxed">
-          <p className="font-medium text-current/78">{detailLabel}</p>
-          {(day.showType || day.genreFocus) && (
-            <p className="truncate text-current/72">
-              {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' / ')}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-auto pt-3">
+        <div className="mt-3">
           {markers.length > 0 ? (
             <div className="space-y-1.5">
               <div className="flex flex-wrap gap-1 sm:hidden">
@@ -185,12 +168,19 @@ function DayCell({
                 )}
               </div>
             </div>
-          ) : (
-            <div className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-current/45 sm:block">
-              No markers
-            </div>
-          )}
+          ) : null}
         </div>
+
+        {(availabilityLabel || day.showType || day.genreFocus) && (
+          <div className="mt-auto space-y-1.5 pt-3 text-[11px] leading-relaxed">
+            {availabilityLabel && <p className="font-medium text-current/72">{availabilityLabel}</p>}
+            {(day.showType || day.genreFocus) && (
+              <p className="truncate text-current/72">
+                {[getVenueShowTypeLabel(day.showType), day.genreFocus].filter(Boolean).join(' / ')}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </button>
   )
