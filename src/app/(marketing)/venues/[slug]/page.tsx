@@ -23,6 +23,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { ClaimButton } from '@/components/venues/ClaimButton'
 import { PublicVenueBookingPanel } from '@/components/venues/PublicVenueBookingPanel'
+import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { Badge, ButtonLink } from '@/components/ui/primitives'
 import { getVenueCalendarRange } from '@/lib/venue-calendar'
 import { buildVenueDateGenreFocusMap } from '@/lib/venue-booking-date'
@@ -255,6 +256,12 @@ export default async function VenueDetailPage({
           : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to an artist before contacting this venue.`,
       }
     : null
+  const privateChatIdentityNotice = user && identities.length > 0 && activeIdentity.kind === 'all'
+    ? {
+        title: 'Select a profile before starting a private chat',
+        body: 'Choose the artist or venue profile you want to use in the Acting as menu, then start the private chat.',
+      }
+    : null
 
   let existingThreadInfo: { threadId: string; confirmedUpcomingDate: string | null } | null = null
   if (contactBands.length > 0) {
@@ -421,6 +428,40 @@ export default async function VenueDetailPage({
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          {!isOwner && (
+            <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Private chat</p>
+              <div className="mt-4">
+                {user && privateChatIdentityNotice ? (
+                  <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
+                    <p className="font-semibold text-[#8A5A12]">{privateChatIdentityNotice.title}</p>
+                    <p className="mt-1 text-[#8A5A12]/85">{privateChatIdentityNotice.body}</p>
+                  </div>
+                ) : user && activeIdentity.kind !== 'all' ? (
+                  <PrivateChatRequestButton
+                    senderIdentity={activeIdentity}
+                    targetKind="venue"
+                    targetId={venue.id}
+                    targetName={venue.name}
+                    buttonLabel="Start private chat"
+                    className="w-full"
+                  />
+                ) : user ? (
+                  <p className="text-sm leading-6 text-[#777777]">
+                    Create or claim an artist or venue profile to start a private chat.
+                  </p>
+                ) : (
+                  <p className="text-sm leading-6 text-[#777777]">
+                    <Link href={`/login?redirectTo=/venues/${venue.slug}`} className="font-semibold text-[#FD6A2F] hover:underline">
+                      Sign in
+                    </Link>{' '}
+                    and choose a profile to start a private chat.
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
           <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Booking details</p>
             <div className="mt-5 space-y-4">

@@ -519,6 +519,66 @@ export interface Database {
           last_read_at?: string
         }
       }
+      private_chat_threads: {
+        Row: {
+          id: string
+          participant_one_kind: 'band' | 'venue'
+          participant_one_id: string
+          participant_two_kind: 'band' | 'venue'
+          participant_two_id: string
+          status: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind: 'band' | 'venue' | null
+          requested_by_id: string | null
+          blocked_by_kind: 'band' | 'venue' | null
+          blocked_by_id: string | null
+          accepted_at: string | null
+          last_message_at: string | null
+          participant_one_last_read_at: string | null
+          participant_two_last_read_at: string | null
+          participant_one_archived_at: string | null
+          participant_two_archived_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          participant_one_kind: 'band' | 'venue'
+          participant_one_id: string
+          participant_two_kind: 'band' | 'venue'
+          participant_two_id: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind?: 'band' | 'venue' | null
+          requested_by_id?: string | null
+          blocked_by_kind?: 'band' | 'venue' | null
+          blocked_by_id?: string | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          participant_one_last_read_at?: string | null
+          participant_two_last_read_at?: string | null
+          participant_one_archived_at?: string | null
+          participant_two_archived_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          participant_one_kind?: 'band' | 'venue'
+          participant_one_id?: string
+          participant_two_kind?: 'band' | 'venue'
+          participant_two_id?: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind?: 'band' | 'venue' | null
+          requested_by_id?: string | null
+          blocked_by_kind?: 'band' | 'venue' | null
+          blocked_by_id?: string | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          participant_one_last_read_at?: string | null
+          participant_two_last_read_at?: string | null
+          participant_one_archived_at?: string | null
+          participant_two_archived_at?: string | null
+          updated_at?: string
+        }
+      }
       booking_inquiries: {
         Row: {
           id: string
@@ -716,9 +776,110 @@ export interface Database {
           created_at?: string
         }
       }
+      private_chat_messages: {
+        Row: {
+          id: string
+          thread_id: string
+          sender_profile_kind: 'band' | 'venue' | null
+          sender_profile_id: string | null
+          sender_user_id: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          sender_profile_kind?: 'band' | 'venue' | null
+          sender_profile_id?: string | null
+          sender_user_id?: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at?: string
+        }
+        Update: {
+          thread_id?: string
+          sender_profile_kind?: 'band' | 'venue' | null
+          sender_profile_id?: string | null
+          sender_user_id?: string | null
+          kind?: 'request' | 'message' | 'system'
+          body?: string
+          created_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: {
+      request_private_chat: {
+        Args: {
+          p_sender_kind: 'band' | 'venue'
+          p_sender_id: string
+          p_recipient_kind: 'band' | 'venue'
+          p_recipient_id: string
+          p_body: string
+        }
+        Returns: Json
+      }
+      respond_to_private_chat_request: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+          p_action: 'accept' | 'deny' | 'deny_and_block'
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      send_private_chat_message: {
+        Args: {
+          p_thread_id: string
+          p_sender_kind: 'band' | 'venue'
+          p_sender_id: string
+          p_body: string
+        }
+        Returns: Json
+      }
+      mark_private_chat_read: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: undefined
+      }
+      archive_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
+      unarchive_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
+      block_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      unblock_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
       request_contact: {
         Args: {
           p_band_id: string
@@ -865,11 +1026,13 @@ export type EventGenre     = Database['public']['Tables']['event_genres']['Row']
 export type EventArtistMembership = Database['public']['Tables']['event_artist_memberships']['Row']
 export type BackstageMessage = Database['public']['Tables']['backstage_messages']['Row']
 export type BackstageReadState = Database['public']['Tables']['backstage_read_states']['Row']
+export type PrivateChatThread = Database['public']['Tables']['private_chat_threads']['Row']
 export type BookingInquiry = Database['public']['Tables']['booking_inquiries']['Row']
 export type ContactThread  = Database['public']['Tables']['contact_threads']['Row']
 export type VenueBookingDate = Database['public']['Tables']['venue_booking_dates']['Row']
 export type Booking = Database['public']['Tables']['bookings']['Row']
 export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
+export type PrivateChatMessage = Database['public']['Tables']['private_chat_messages']['Row']
 
 export type InquiryStatus = BookingInquiry['status']
 export type ClaimStatus   = VenueClaim['status']
@@ -880,3 +1043,5 @@ export type ContactThreadStatus = ContactThread['status']
 export type ConversationSide = NonNullable<ContactThread['requested_by_side']>
 export type ContactMessageKind = ContactMessage['kind']
 export type BookingStatus = Booking['status']
+export type PrivateChatStatus = PrivateChatThread['status']
+export type PrivateChatMessageKind = PrivateChatMessage['kind']

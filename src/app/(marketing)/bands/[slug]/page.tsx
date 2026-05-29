@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { Badge, ButtonLink } from '@/components/ui/primitives'
 import {
   ACTIVE_IDENTITY_COOKIE,
@@ -249,6 +250,12 @@ export default async function BandProfilePage({
         body: activeIdentity.kind === 'all'
           ? 'This contact request needs one venue identity. Choose a venue in the Acting as menu, then request contact.'
           : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to a venue before contacting this artist.`,
+      }
+    : null
+  const privateChatIdentityNotice = user && identities.length > 0 && activeIdentity.kind === 'all'
+    ? {
+        title: 'Select a profile before starting a private chat',
+        body: 'Choose the artist or venue profile you want to use in the Acting as menu, then start the private chat.',
       }
     : null
 
@@ -519,7 +526,7 @@ export default async function BandProfilePage({
           )}
 
           <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Request contact</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Connect</p>
             <div className="mt-4">
               {isOwner ? (
                 <div>
@@ -563,6 +570,39 @@ export default async function BandProfilePage({
                 </p>
               )}
             </div>
+            {!isOwner && (
+              <div className="mt-5 border-t border-[#EEE7DB] pt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Private chat</p>
+                <div className="mt-3">
+                  {user && privateChatIdentityNotice ? (
+                    <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
+                      <p className="font-semibold text-[#8A5A12]">{privateChatIdentityNotice.title}</p>
+                      <p className="mt-1 text-[#8A5A12]/85">{privateChatIdentityNotice.body}</p>
+                    </div>
+                  ) : user && activeIdentity.kind !== 'all' ? (
+                    <PrivateChatRequestButton
+                      senderIdentity={activeIdentity}
+                      targetKind="band"
+                      targetId={band.id}
+                      targetName={band.name}
+                      buttonLabel="Start private chat"
+                      className="w-full"
+                    />
+                  ) : user ? (
+                    <p className="text-sm leading-6 text-[#777777]">
+                      Create or claim an artist or venue profile to start a private chat.
+                    </p>
+                  ) : (
+                    <p className="text-sm leading-6 text-[#777777]">
+                      <Link href={`/login?redirectTo=/bands/${band.slug}`} className="font-semibold text-[#FD6A2F] hover:underline">
+                        Sign in
+                      </Link>{' '}
+                      and choose a profile to start a private chat.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
         </aside>
       </div>

@@ -5,6 +5,7 @@ import { CalendarRange, ClipboardList, FileText, Settings, SlidersHorizontal, Us
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
+import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { Badge, Card, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
 import {
   BackstageComposer,
@@ -304,6 +305,15 @@ export default async function BackstageDetailPage({
               <Users className="h-3.5 w-3.5" />
               {acceptedCount}/{event.needed_artist_count} accepted
             </Badge>
+            {activeIdentity && (
+              <PrivateChatRequestButton
+                senderIdentity={activeIdentity}
+                targetKind="venue"
+                targetId={event.venue_id}
+                targetName={event.venues?.name ?? 'Venue'}
+                buttonLabel="Private chat with venue"
+              />
+            )}
           </div>
         }
       />
@@ -382,6 +392,16 @@ export default async function BackstageDetailPage({
                       </div>
                       {isVenueLeader && (
                         <div className="mt-3 flex flex-wrap gap-2">
+                          {membership.bands && (
+                            <PrivateChatRequestButton
+                              senderIdentity={activeIdentity}
+                              targetKind="band"
+                              targetId={membership.bands.id}
+                              targetName={membership.bands.name}
+                              buttonLabel="Private chat"
+                              className="min-h-9 rounded-lg px-3 py-2"
+                            />
+                          )}
                           {membership.status === 'applied' && (
                             <>
                               <MembershipActionButton membershipId={membership.id} status="accepted" label="Accept" />
@@ -396,6 +416,18 @@ export default async function BackstageDetailPage({
                       {!isVenueLeader && membership.id === viewerMembership?.id && membership.status === 'accepted' && (
                         <div className="mt-3">
                           <MembershipActionButton membershipId={membership.id} status="removal_requested" label="Request removal" />
+                        </div>
+                      )}
+                      {!isVenueLeader && membership.id !== viewerMembership?.id && membership.bands && (
+                        <div className="mt-3">
+                          <PrivateChatRequestButton
+                            senderIdentity={activeIdentity}
+                            targetKind="band"
+                            targetId={membership.bands.id}
+                            targetName={membership.bands.name}
+                            buttonLabel="Private chat"
+                            className="min-h-9 rounded-lg px-3 py-2"
+                          />
                         </div>
                       )}
                     </div>

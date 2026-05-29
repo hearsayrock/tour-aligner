@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   CalendarRange,
+  Inbox,
   LayoutDashboard,
   MapPin,
   Mic2,
@@ -19,6 +20,7 @@ import { Badge, cx } from '@/components/ui/primitives'
 import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 
 interface Notifications {
+  inbox: boolean
   backstage: boolean
   pendingClaims: boolean
   adminClaims: boolean
@@ -26,6 +28,7 @@ interface Notifications {
 
 const NAV_LINKS = [
   { label: 'Dashboard', shortLabel: 'Home', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Inbox', shortLabel: 'Inbox', href: '/dashboard/inbox', icon: Inbox },
   { label: 'Backstages', shortLabel: 'Backstage', href: '/dashboard/backstage', icon: CalendarRange },
   { label: 'Available Events', shortLabel: 'Events', href: '/events', icon: Search },
   { label: 'Artists', shortLabel: 'Artists', href: '/dashboard/bands', icon: Mic2 },
@@ -60,6 +63,7 @@ export function DashboardNav({
 
   function dotForLink(href: string) {
     if (!notifications) return false
+    if (href === '/dashboard/inbox') return notifications.inbox
     if (href === '/dashboard/backstage') return notifications.backstage
     if (href === '/dashboard/venues') return notifications.pendingClaims
     return false
@@ -180,7 +184,7 @@ export function DashboardNav({
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#E3E1DC] bg-white/96 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#E3E1DC] bg-white/96 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
         {NAV_LINKS.map(({ href, shortLabel, icon: Icon }) => {
           const active = isActive(href)
           const hasDot = dotForLink(href)
