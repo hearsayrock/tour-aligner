@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  CalendarDays,
   CalendarRange,
   Inbox,
   LayoutDashboard,
@@ -30,6 +31,7 @@ const NAV_LINKS = [
   { label: 'Dashboard', shortLabel: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Inbox', shortLabel: 'Inbox', href: '/dashboard/inbox', icon: Inbox },
   { label: 'Backstages', shortLabel: 'Backstage', href: '/dashboard/backstage', icon: CalendarRange },
+  { label: 'Calendar', shortLabel: 'Calendar', href: '/dashboard/calendar', icon: CalendarDays },
   { label: 'Available Events', shortLabel: 'Events', href: '/events', icon: Search },
   { label: 'Artists', shortLabel: 'Artists', href: '/dashboard/bands', icon: Mic2 },
   { label: 'Venues', shortLabel: 'Venues', href: '/dashboard/venues', icon: MapPin },
@@ -184,7 +186,7 @@ export function DashboardNav({
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#E3E1DC] bg-white/96 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-[#E3E1DC] bg-white/96 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
         {NAV_LINKS.map(({ href, shortLabel, icon: Icon }) => {
           const active = isActive(href)
           const hasDot = dotForLink(href)

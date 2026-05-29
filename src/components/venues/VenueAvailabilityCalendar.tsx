@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import type { CalendarDayMarker, CalendarMarkerTone } from '@/lib/calendar-activity'
 import { buildVenueCalendarMonths, type VenueCalendarMonth } from '@/lib/venue-calendar'
 import { getVenueShowTypeLabel } from '@/lib/venue-booking-date'
 import type { Booking, VenueBookingDate } from '@/types/database'
@@ -15,16 +16,28 @@ const STATUS_STYLES = {
   unavailable: 'border-[#D8D8D8] bg-[#F4F4F4] text-[#666666]',
 } as const
 
+const MARKER_STYLES: Record<CalendarMarkerTone, string> = {
+  default: 'border-[#E2E2E2] bg-white text-[#2A2A2A]',
+  muted: 'border-[#E8E8E8] bg-[#F6F6F6] text-[#666666]',
+  brand: 'border-[#FFD5C4] bg-[#FFF3EE] text-[#A84216]',
+  success: 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]',
+  warning: 'border-[#F2D7A6] bg-[#FFF7E8] text-[#8A5A12]',
+  danger: 'border-[#F3C6C6] bg-[#FFF1F1] text-[#9D2020]',
+  info: 'border-[#BFE7EF] bg-[#F1FBFD] text-[#0E6275]',
+}
+
 function DayCell({
   day,
   isSelected,
   onSelect,
   selectedDates,
+  markers = [],
 }: {
   day: VenueCalendarMonth['cells'][number]
   isSelected?: boolean
   onSelect?: (date: string) => void
   selectedDates?: string[]
+  markers?: CalendarDayMarker[]
 }) {
   const isInteractive = !!onSelect
   const isMultiSelected = selectedDates?.includes(day.date) ?? false
@@ -43,7 +56,7 @@ function DayCell({
       type="button"
       onClick={() => onSelect?.(day.date)}
       style={day.isToday ? { backgroundColor: '#F0F0F0' } : undefined}
-      className={`min-h-[68px] sm:min-h-[86px] w-full rounded-xl border p-2 text-left transition-colors ${STATUS_STYLES[day.status]} ${
+      className={`min-h-[84px] sm:min-h-[122px] w-full rounded-xl border p-2 text-left transition-colors ${STATUS_STYLES[day.status]} ${
         day.inCurrentMonth ? '' : 'opacity-45'
       } ${selectionRing} ${todayStyles} ${isInteractive ? 'cursor-pointer hover:border-[#252525]' : 'cursor-default'}`}
       aria-pressed={isSelected}
@@ -91,6 +104,37 @@ function DayCell({
           )}
         </div>
       </div>
+      {markers.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <div className="flex flex-wrap gap-1 sm:hidden">
+            <span
+              className={`inline-flex min-h-5 items-center rounded-full border px-1.5 text-[10px] font-semibold ${MARKER_STYLES[markers[0].tone]}`}
+              title={markers[0].label}
+            >
+              {markers[0].shortLabel}
+            </span>
+            {markers.length > 1 && (
+              <span className="inline-flex min-h-5 items-center rounded-full border border-[#E2E2E2] bg-white px-1.5 text-[10px] font-semibold text-[#666666]">
+                +{markers.length - 1}
+              </span>
+            )}
+          </div>
+          <div className="hidden sm:flex sm:flex-col sm:gap-1">
+            {markers.slice(0, 2).map((marker) => (
+              <span
+                key={marker.id}
+                className={`truncate rounded-md border px-1.5 py-1 text-[10px] font-semibold ${MARKER_STYLES[marker.tone]}`}
+                title={marker.label}
+              >
+                {marker.shortLabel}
+              </span>
+            ))}
+            {markers.length > 2 && (
+              <span className="text-[10px] font-medium text-[#666666]">+{markers.length - 2} more</span>
+            )}
+          </div>
+        </div>
+      )}
     </button>
   )
 }
@@ -108,6 +152,7 @@ export function VenueAvailabilityCalendar({
   selectedDates,
   headerActions,
   monthCount = 6,
+  markersByDate = {},
 }: {
   todayIso: string
   bookingDates: Array<Pick<VenueBookingDate, 'id' | 'show_date' | 'bill_cap' | 'is_closed_to_more_bands' | 'is_unavailable' | 'show_type' | 'genre_focus'>>
@@ -121,6 +166,7 @@ export function VenueAvailabilityCalendar({
   selectedDates?: string[]
   headerActions?: React.ReactNode
   monthCount?: number
+  markersByDate?: Record<string, CalendarDayMarker[]>
 }) {
   const months = useMemo(
     () =>
@@ -211,14 +257,15 @@ export function VenueAvailabilityCalendar({
           </div>
           <div className="grid grid-cols-7 gap-2">
             {visibleMonth.cells.map((day) => (
-                <DayCell
-                  key={day.date}
-                  day={day}
-                  isSelected={selectedDate === day.date}
-                  onSelect={onDateSelect}
-                  selectedDates={selectedDates}
-                />
-              ))}
+              <DayCell
+                key={day.date}
+                day={day}
+                isSelected={selectedDate === day.date}
+                onSelect={onDateSelect}
+                selectedDates={selectedDates}
+                markers={markersByDate[day.date] ?? []}
+              />
+            ))}
           </div>
         </div>
       )}

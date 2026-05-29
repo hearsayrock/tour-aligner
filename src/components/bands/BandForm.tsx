@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
+import { ButtonLink } from '@/components/ui/primitives'
 import type { Genre, Band } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ interface BandFormProps {
   userId: string
   genres: Genre[]
   initial?: Partial<BandFormInitial>
+  calendarHref?: string
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -253,7 +255,7 @@ function PhotoUpload({
 // Form
 // ─────────────────────────────────────────────────────────────
 
-export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) {
+export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: BandFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -485,15 +487,22 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
           <h1 className="text-3xl font-bold tracking-tight text-[#181818]">
             {mode === 'create' ? 'Add an artist' : 'Edit artist'}
           </h1>
-          <p className="mt-2 text-sm text-[#777777]">Keep the profile complete so venues can evaluate fit quickly.</p>
+          <p className="mt-2 text-sm text-[#777777]">Keep the profile complete so venues can evaluate fit quickly. Shows and Backstages now roll up into Calendar Workspace.</p>
         </div>
-        <button
+        <div className="flex flex-wrap gap-2">
+          {calendarHref && (
+            <ButtonLink href={calendarHref} tone="secondary">
+              Calendar Workspace
+            </ButtonLink>
+          )}
+          <button
           type="submit"
           disabled={loading}
           className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? 'Saving…' : mode === 'create' ? 'Create band' : 'Save changes'}
-        </button>
+          </button>
+        </div>
       </div>
 
       {error && (

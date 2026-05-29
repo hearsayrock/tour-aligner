@@ -3,7 +3,9 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveVenueBookingDate } from '@/app/actions/venues'
+import { CalendarActivityList } from '@/components/calendar/CalendarActivityList'
 import { VenueAvailabilityCalendar } from '@/components/venues/VenueAvailabilityCalendar'
+import type { CalendarActivity, CalendarDayMarker } from '@/lib/calendar-activity'
 import {
   VENUE_SHOW_TYPE_OPTIONS,
   getEffectiveVenueDateGenreFocus,
@@ -29,6 +31,8 @@ export function VenueAvailabilityManager({
   bookings,
   automatedGenreFocusByBookingDateId,
   showHeader = true,
+  markersByDate = {},
+  activitiesByDate = {},
 }: {
   venueId: string
   venueSlug: string
@@ -38,6 +42,8 @@ export function VenueAvailabilityManager({
   bookings: Array<Pick<Booking, 'venue_booking_date_id' | 'status'>>
   automatedGenreFocusByBookingDateId: Record<string, string | null>
   showHeader?: boolean
+  markersByDate?: Record<string, CalendarDayMarker[]>
+  activitiesByDate?: Record<string, CalendarActivity[]>
 }) {
   const router = useRouter()
   const [selectedDates, setSelectedDates] = useState<string[]>([todayIso])
@@ -78,6 +84,7 @@ export function VenueAvailabilityManager({
   ).length
   const automatedGenreFocus = selectedEntry ? automatedGenreFocusByBookingDateId[selectedEntry.id] ?? null : null
   const effectiveGenreFocus = getEffectiveVenueDateGenreFocus(genreFocus, automatedGenreFocus)
+  const selectedActivities = activitiesByDate[selectedDate] ?? []
 
   function syncSelectedDate(nextDate: string) {
     if (isBulkMode) {
@@ -146,6 +153,7 @@ export function VenueAvailabilityManager({
           selectedDate={selectedDate}
           selectedDates={selectedDates}
           onDateSelect={syncSelectedDate}
+          markersByDate={markersByDate}
           headerActions={
             <>
               {selectedDates.length > 1 && (
@@ -284,6 +292,14 @@ export function VenueAvailabilityManager({
                   </span>
                 </p>
               )}
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-medium text-[#252525]">Backstages on this date</p>
+              <CalendarActivityList
+                items={selectedActivities}
+                emptyMessage="No event workspace is tied to this date yet."
+              />
             </div>
 
             <div>

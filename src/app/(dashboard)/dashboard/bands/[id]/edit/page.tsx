@@ -28,6 +28,7 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
       mode="edit"
       userId={user.id}
       genres={genres ?? []}
+      calendarHref={`/dashboard/calendar?profile=band:${band.id}`}
       initial={{
         id: band.id,
         name: band.name,

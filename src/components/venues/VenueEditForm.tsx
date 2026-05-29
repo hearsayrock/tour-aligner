@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ButtonLink } from '@/components/ui/primitives'
 import type { Genre, Venue } from '@/types/database'
 
 interface VenueEditFormProps {
@@ -11,6 +12,7 @@ interface VenueEditFormProps {
   selectedGenreIds: string[]
   showHeader?: boolean
   className?: string
+  calendarHref?: string
 }
 
 const inputClass =
@@ -38,6 +40,7 @@ export function VenueEditForm({
   selectedGenreIds,
   showHeader = true,
   className = 'mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10 space-y-6',
+  calendarHref,
 }: VenueEditFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -124,15 +127,22 @@ export function VenueEditForm({
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Venue profile</p>
             <h1 className="text-3xl font-bold tracking-tight text-[#181818]">{venue.name}</h1>
-            <p className="mt-2 text-sm text-[#777777]">Edit venue info and booking contact details.</p>
+            <p className="mt-2 text-sm text-[#777777]">Edit venue info and booking contact details. Availability now lives in Calendar Workspace.</p>
           </div>
-          <button
+          <div className="flex flex-wrap gap-2">
+            {calendarHref && (
+              <ButtonLink href={calendarHref} tone="secondary">
+                Calendar Workspace
+              </ButtonLink>
+            )}
+            <button
             type="submit"
             disabled={loading}
             className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Saving…' : 'Save changes'}
-          </button>
+            </button>
+          </div>
         </div>
       )}
 
