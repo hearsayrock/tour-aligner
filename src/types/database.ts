@@ -348,6 +348,7 @@ export interface Database {
           status: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published: boolean
           migrated_booking_group_key: string | null
+          venue_booking_date_id: string | null
           logistics_load_in: string | null
           logistics_soundcheck: string | null
           logistics_set_times: string | null
@@ -377,6 +378,7 @@ export interface Database {
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
+          venue_booking_date_id?: string | null
           logistics_load_in?: string | null
           logistics_soundcheck?: string | null
           logistics_set_times?: string | null
@@ -405,6 +407,7 @@ export interface Database {
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
+          venue_booking_date_id?: string | null
           logistics_load_in?: string | null
           logistics_soundcheck?: string | null
           logistics_set_times?: string | null
@@ -822,6 +825,7 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
+          event_id: string | null
           status: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side: 'band' | 'venue' | null
           cancellation_requested_at: string | null
@@ -837,6 +841,7 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
+          event_id?: string | null
           status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side?: 'band' | 'venue' | null
           cancellation_requested_at?: string | null
@@ -851,6 +856,7 @@ export interface Database {
           venue_id?: string
           show_date?: string
           venue_booking_date_id?: string
+          event_id?: string | null
           status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side?: 'band' | 'venue' | null
           cancellation_requested_at?: string | null
