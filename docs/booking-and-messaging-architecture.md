@@ -1,5 +1,11 @@
 # Booking And Messaging Architecture
 
+> This doc predates the Events/Backstage system and does not cover how a
+> confirmed booking should relate to a calendar-visible event. For that, see
+> [`booking-lifecycle.md`](./booking-lifecycle.md). This doc remains the
+> source of truth for `contact_threads` vs. `private_chat_threads` vs.
+> legacy `booking_inquiries` semantics.
+
 This note is the current source of truth for how TourAligner should think about inquiries, conversations, and eventual bookings.
 
 It exists because the app currently has two overlapping concepts:
