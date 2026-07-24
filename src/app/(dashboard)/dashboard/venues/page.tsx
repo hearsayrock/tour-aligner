@@ -572,7 +572,9 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
                   </svg>
                 </Link>
               ) : <span />}
-              <span />
+              <Link href="/dashboard/venues/new" className="text-sm text-[#FD6A2F] hover:underline">
+                Don&apos;t see your venue? Add it →
+              </Link>
             </div>
           </>
         )}
@@ -674,6 +676,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       )}
 
       <Pagination page={page} totalPages={totalPages} searchParams={searchParamsRecord} />
+      <p className="mt-6 text-center text-sm text-[#888888]">
+        Don&apos;t see your venue?{' '}
+        <Link href="/dashboard/venues/new" className="text-[#FD6A2F] hover:underline">
+          Add it →
+        </Link>
+      </p>
     </div>
   )
 }
