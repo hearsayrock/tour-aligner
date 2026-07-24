@@ -174,14 +174,57 @@ async function ensureEventOwner(
 ) {
   const { data: event } = await supabase
     .from('events')
-    .select('id, venue_id, slug, venues(claimed_by_user_id)')
+    .select('id, venue_id, slug, title, venues(claimed_by_user_id)')
     .eq('id', eventId)
     .single()
 
   const rawVenue = Array.isArray(event?.venues) ? event?.venues[0] : event?.venues
   if (!event || rawVenue?.claimed_by_user_id !== userId) return null
 
-  return event as Pick<Event, 'id' | 'venue_id' | 'slug'>
+  return event as Pick<Event, 'id' | 'venue_id' | 'slug' | 'title'>
+}
+
+async function sendEventPrivateChat(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    senderKind: 'band' | 'venue'
+    senderId: string
+    recipientKind: 'band' | 'venue'
+    recipientId: string
+    body: string
+  }
+) {
+  const { data, error } = await supabase.rpc('request_private_chat', {
+    p_sender_kind: input.senderKind,
+    p_sender_id: input.senderId,
+    p_recipient_kind: input.recipientKind,
+    p_recipient_id: input.recipientId,
+    p_body: input.body,
+  })
+
+  if (error) return { error: error.message }
+
+  const result = data as { thread_id?: string; action?: string } | null
+  if (!result?.thread_id || !result.action) {
+    return { error: 'Unable to start the private chat.' }
+  }
+
+  if (result.action === 'incoming_pending') {
+    return { error: 'A private chat request from this profile is waiting in your Inbox. Respond there before continuing.' }
+  }
+
+  if (result.action === 'existing') {
+    const { error: messageError } = await supabase.rpc('send_private_chat_message', {
+      p_thread_id: result.thread_id,
+      p_sender_kind: input.senderKind,
+      p_sender_id: input.senderId,
+      p_body: input.body,
+    })
+
+    if (messageError) return { error: messageError.message }
+  }
+
+  return { threadId: result.thread_id }
 }
 
 async function uniqueEventSlug(
@@ -587,7 +630,7 @@ export async function applyToEvent(input: {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, slug, is_public, is_accepting_artists, status')
+    .select('id, venue_id, slug, title, is_public, is_accepting_artists, status')
     .eq('id', input.eventId)
     .single()
 
@@ -608,12 +651,20 @@ export async function applyToEvent(input: {
   }
   if (existing?.status === 'applied') return { error: 'This artist has already applied.' }
 
+  const privateChatResult = await sendEventPrivateChat(supabase, {
+    senderKind: 'band',
+    senderId: input.bandId,
+    recipientKind: 'venue',
+    recipientId: event.venue_id,
+    body: `Application for ${event.title}\n\n${normalizeText(input.note)}`,
+  })
+  if (privateChatResult.error) return privateChatResult
+
   const payload = {
     event_id: input.eventId,
     band_id: input.bandId,
     status: 'applied' as const,
     source: 'application' as const,
-    application_note: normalizeText(input.note),
     applied_at: now,
   }
 
@@ -624,6 +675,7 @@ export async function applyToEvent(input: {
   if (error) return { error: error.message }
 
   eventPaths(input.eventId, event.slug)
+  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 
@@ -638,8 +690,22 @@ export async function inviteArtistToEvent(input: {
   const event = await ensureEventOwner(supabase, input.eventId, userId)
   if (!event) return { error: 'Only the venue leader can invite artists.' }
 
+  const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+  if (activeIdentity.kind !== 'venue' || activeIdentity.id !== event.venue_id) {
+    return { error: 'Switch to the venue profile that owns this Backstage before inviting an artist.' }
+  }
+
   const { data: band } = await supabase.from('bands').select('id, name').eq('id', input.bandId).single()
   if (!band) return { error: 'Artist not found.' }
+
+  const privateChatResult = await sendEventPrivateChat(supabase, {
+    senderKind: 'venue',
+    senderId: event.venue_id,
+    recipientKind: 'band',
+    recipientId: input.bandId,
+    body: `Invitation to perform at ${event.title}${normalizeText(input.note) ? `\n\n${normalizeText(input.note)}` : ''}`,
+  })
+  if (privateChatResult.error) return privateChatResult
 
   const now = new Date().toISOString()
   const payload = {
@@ -647,7 +713,6 @@ export async function inviteArtistToEvent(input: {
     band_id: input.bandId,
     status: 'invited' as const,
     source: 'invitation' as const,
-    invite_note: normalizeText(input.note),
     invited_at: now,
   }
 
@@ -657,14 +722,8 @@ export async function inviteArtistToEvent(input: {
 
   if (error) return { error: error.message }
 
-  await supabase.from('backstage_messages').insert({
-    event_id: input.eventId,
-    sender_user_id: userId,
-    sender_kind: 'system',
-    body: `Venue invited ${band.name} to this event.`,
-  })
-
   eventPaths(input.eventId, event.slug)
+  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 

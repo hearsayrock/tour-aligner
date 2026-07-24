@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { CalendarRange, ClipboardList, FileText, Settings, SlidersHorizontal, Users } from 'lucide-react'
+import { CalendarRange, Check, ClipboardList, FileText, RotateCcw, Settings, SlidersHorizontal, UserMinus, Users, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
@@ -25,7 +25,7 @@ import {
   type EventWithVenue,
 } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
-import type { EventGenre, Genre } from '@/types/database'
+import type { EventGenre, Genre, PrivateChatThread } from '@/types/database'
 
 export const metadata = { title: 'Backstage' }
 
@@ -253,6 +253,7 @@ export default async function BackstageDetailPage({
     : null
   const isVenueLeader =
     activeIdentity?.kind === 'venue' && event.venue_id === activeIdentity.id && event.venues?.claimed_by_user_id === user.id
+  const lineupMemberships = isVenueLeader ? memberships : getAcceptedMemberships(memberships)
   const canEnterBackstage =
     isVenueLeader || viewerMembership?.status === 'accepted' || viewerMembership?.status === 'removal_requested'
 
@@ -269,8 +270,31 @@ export default async function BackstageDetailPage({
   const selectedGenreIds = eventGenres.map((entry) => entry.genre_id)
   const genreNames = eventGenres.map((entry) => entry.genres?.name).filter(Boolean) as string[]
   const messages = (rawMessages ?? []) as unknown as BackstageMessageSummary[]
-  const acceptedCount = getAcceptedMemberships(memberships).length
+  const confirmedMemberships = getAcceptedMemberships(memberships)
+  const acceptedCount = confirmedMemberships.length
   const openNeed = getOpenArtistNeed(event, memberships)
+  const removedMemberships = memberships.filter((membership) => membership.status === 'removed')
+
+  const [{ data: rawVenuePrivateChatsOne }, { data: rawVenuePrivateChatsTwo }] = isVenueLeader && removedMemberships.length > 0
+    ? await Promise.all([
+        supabase
+          .from('private_chat_threads')
+          .select('participant_one_kind, participant_one_id, participant_two_kind, participant_two_id, status, blocked_by_kind, blocked_by_id')
+          .eq('participant_one_kind', 'venue')
+          .eq('participant_one_id', event.venue_id),
+        supabase
+          .from('private_chat_threads')
+          .select('participant_one_kind, participant_one_id, participant_two_kind, participant_two_id, status, blocked_by_kind, blocked_by_id')
+          .eq('participant_two_kind', 'venue')
+          .eq('participant_two_id', event.venue_id),
+      ])
+    : [{ data: [] }, { data: [] }]
+  const blockedBandIds = new Set(
+    ([...(rawVenuePrivateChatsOne ?? []), ...(rawVenuePrivateChatsTwo ?? [])] as Array<Pick<PrivateChatThread, 'status' | 'blocked_by_kind' | 'blocked_by_id'>>)
+      .filter((thread) => thread.status === 'blocked' && thread.blocked_by_kind === 'band')
+      .map((thread) => thread.blocked_by_id)
+      .filter((bandId): bandId is string => !!bandId)
+  )
 
   const [{ data: allGenres }, { data: inviteBands }] = isVenueLeader
     ? await Promise.all([
@@ -373,25 +397,18 @@ export default async function BackstageDetailPage({
                 description={openNeed <= 0 ? 'Lineup target reached.' : `${openNeed} open artist spot${openNeed === 1 ? '' : 's'}.`}
               />
               <div className="mt-4 space-y-3">
-                {memberships.length === 0 ? (
-                  <p className="text-sm text-[#888888]">No artists yet.</p>
+                {lineupMemberships.length === 0 ? (
+                  <p className="text-sm text-[#888888]">{isVenueLeader ? 'No artists yet.' : 'No confirmed artists yet.'}</p>
                 ) : (
-                  memberships.map((membership) => (
+                  lineupMemberships.map((membership) => (
                     <div key={membership.id} className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#252525]">{membership.bands?.name ?? 'Unknown artist'}</p>
-                          <div className="mt-1">
-                            <Badge tone={membershipTone(membership.status)}>
-                              {MEMBERSHIP_STATUS_LABELS[membership.status]}
-                            </Badge>
-                          </div>
-                          {membership.application_note && <p className="mt-2 text-xs leading-5 text-[#666666]">{membership.application_note}</p>}
-                          {membership.invite_note && <p className="mt-2 text-xs leading-5 text-[#666666]">{membership.invite_note}</p>}
-                        </div>
-                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-[#252525]">{membership.bands?.name ?? 'Unknown artist'}</p>
+                        <Badge tone={membershipTone(membership.status)}>
+                          {MEMBERSHIP_STATUS_LABELS[membership.status]}
+                        </Badge>
                       {isVenueLeader && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <>
                           {membership.bands && (
                             <PrivateChatRequestButton
                               senderIdentity={activeIdentity}
@@ -399,37 +416,64 @@ export default async function BackstageDetailPage({
                               targetId={membership.bands.id}
                               targetName={membership.bands.name}
                               buttonLabel="Private chat"
-                              className="min-h-9 rounded-lg px-3 py-2"
+                              className="!h-8 !min-h-8 !w-8 !rounded-lg !p-0"
+                              iconOnly
                             />
                           )}
                           {membership.status === 'applied' && (
                             <>
-                              <MembershipActionButton membershipId={membership.id} status="accepted" label="Accept" />
-                              <MembershipActionButton membershipId={membership.id} status="declined" label="Decline" />
+                              <MembershipActionButton membershipId={membership.id} status="accepted" label="Accept" icon={<Check className="h-4 w-4" aria-hidden="true" />} compact />
+                              <MembershipActionButton membershipId={membership.id} status="declined" label="Decline" icon={<X className="h-4 w-4" aria-hidden="true" />} compact />
                             </>
                           )}
                           {(membership.status === 'accepted' || membership.status === 'removal_requested') && (
-                            <MembershipActionButton membershipId={membership.id} status="removed" label="Remove" />
+                            <MembershipActionButton
+                              membershipId={membership.id}
+                              status="removed"
+                              label={membership.status === 'removal_requested' ? 'Confirm removal' : 'Remove artist'}
+                              icon={<UserMinus className="h-4 w-4" aria-hidden="true" />}
+                              compact
+                            />
                           )}
-                        </div>
+                          {membership.status === 'removed' && !blockedBandIds.has(membership.band_id) && (
+                            <MembershipActionButton
+                              membershipId={membership.id}
+                              status="invited"
+                              label="Re-invite artist"
+                              icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
+                              eventId={event.id}
+                              bandId={membership.band_id}
+                              compact
+                            />
+                          )}
+                        </>
                       )}
                       {!isVenueLeader && membership.id === viewerMembership?.id && membership.status === 'accepted' && (
-                        <div className="mt-3">
-                          <MembershipActionButton membershipId={membership.id} status="removal_requested" label="Request removal" />
-                        </div>
+                        <MembershipActionButton
+                          membershipId={membership.id}
+                          status="removal_requested"
+                          label="Request removal"
+                          icon={<UserMinus className="h-4 w-4" aria-hidden="true" />}
+                          confirmation={{
+                            title: 'Request removal from Backstage?',
+                            body: 'The venue will need to approve your request. You can keep coordinating until they do.',
+                            confirmLabel: 'Request removal',
+                          }}
+                          compact
+                        />
                       )}
                       {!isVenueLeader && membership.id !== viewerMembership?.id && membership.bands && (
-                        <div className="mt-3">
-                          <PrivateChatRequestButton
-                            senderIdentity={activeIdentity}
-                            targetKind="band"
-                            targetId={membership.bands.id}
-                            targetName={membership.bands.name}
-                            buttonLabel="Private chat"
-                            className="min-h-9 rounded-lg px-3 py-2"
-                          />
-                        </div>
+                        <PrivateChatRequestButton
+                          senderIdentity={activeIdentity}
+                          targetKind="band"
+                          targetId={membership.bands.id}
+                          targetName={membership.bands.name}
+                          buttonLabel="Private chat"
+                          className="!h-8 !min-h-8 !w-8 !rounded-lg !p-0"
+                          iconOnly
+                        />
                       )}
+                      </div>
                     </div>
                   ))
                 )}

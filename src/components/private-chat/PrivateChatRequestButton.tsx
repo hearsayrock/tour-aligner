@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { MessageCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { requestPrivateChat } from '@/app/actions/private-chat'
 import { buttonBaseClass, cx } from '@/components/ui/primitives'
@@ -15,6 +16,7 @@ type Props = {
   className?: string
   tone?: 'primary' | 'secondary' | 'ghost' | 'dark'
   placeholder?: string
+  iconOnly?: boolean
 }
 
 export function PrivateChatRequestButton({
@@ -26,6 +28,7 @@ export function PrivateChatRequestButton({
   className,
   tone = 'secondary',
   placeholder = 'Say hello and let them know why you want to connect.',
+  iconOnly = false,
 }: Props) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
@@ -44,8 +47,14 @@ export function PrivateChatRequestButton({
 
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} className={cx(buttonBaseClass(tone), className)}>
-        {buttonLabel}
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className={cx(buttonBaseClass(tone), className)}
+        aria-label={iconOnly ? buttonLabel : undefined}
+        title={iconOnly ? buttonLabel : undefined}
+      >
+        {iconOnly ? <MessageCircle className="h-4 w-4" aria-hidden="true" /> : buttonLabel}
       </button>
 
       {isOpen && (

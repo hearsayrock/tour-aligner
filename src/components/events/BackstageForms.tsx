@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import type { ReactNode } from 'react'
 import { buttonBaseClass, inputClass, labelClass } from '@/components/ui/primitives'
 import {
   inviteArtistToEvent,
@@ -303,37 +304,96 @@ export function MembershipActionButton({
   status,
   label,
   note,
+  compact = false,
+  icon,
+  confirmation,
+  eventId,
+  bandId,
 }: {
   membershipId: string
   status: EventArtistMembership['status']
   label: string
   note?: string
+  compact?: boolean
+  icon?: ReactNode
+  confirmation?: { title: string; body: string; confirmLabel: string }
+  eventId?: string
+  bandId?: string
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const [isConfirming, setIsConfirming] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  function runAction() {
+    setError(null)
+    startTransition(async () => {
+      const result = status === 'invited' && eventId && bandId
+        ? await inviteArtistToEvent({ eventId, bandId, note: '' })
+        : await updateMembershipStatus({ membershipId, status, note })
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      setIsConfirming(false)
+      router.refresh()
+    })
+  }
 
   return (
     <div>
       <button
         type="button"
         onClick={() => {
-          setError(null)
-          startTransition(async () => {
-            const result = await updateMembershipStatus({ membershipId, status, note })
-            if (result.error) {
-              setError(result.error)
-              return
-            }
-            router.refresh()
-          })
+          if (confirmation) {
+            setIsConfirming(true)
+            return
+          }
+          runAction()
         }}
         disabled={isPending}
-        className={`${buttonBaseClass('secondary')} min-h-9 rounded-lg px-3 py-1.5`}
+        aria-label={icon ? label : undefined}
+        title={icon ? label : undefined}
+        className={compact
+          ? `${buttonBaseClass('secondary')} !h-8 !min-h-8 !w-8 !rounded-lg !p-0`
+          : `${buttonBaseClass('secondary')} min-h-9 rounded-lg px-3 py-1.5`}
       >
-        {isPending ? 'Working...' : label}
+        {isPending ? '...' : icon ?? label}
       </button>
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {isConfirming && confirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <button
+            type="button"
+            aria-label="Close confirmation dialog"
+            onClick={() => setIsConfirming(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[#E8E8E8] bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-[#252525]">{confirmation.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-[#777777]">{confirmation.body}</p>
+            {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirming(false)}
+                disabled={isPending}
+                className="rounded-lg px-3 py-2 text-sm text-[#777777] transition-colors hover:text-[#252525] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={runAction}
+                disabled={isPending}
+                className={buttonBaseClass('danger')}
+              >
+                {isPending ? 'Requesting...' : confirmation.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
