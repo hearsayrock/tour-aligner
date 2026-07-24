@@ -259,8 +259,8 @@ function DayCell({
         </div>
 
         {isUnavailable && (
-          <div className="mt-3">
-            <span className="inline-flex min-h-7 rounded-full border border-[#D2D2D2] bg-white/75 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#666666]">
+          <div className="-mx-2 mt-3 sm:-mx-2.5">
+            <span className="flex min-h-6 w-full items-center justify-center rounded-md border border-[#D2D2D2] bg-white/75 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#666666] sm:text-[10px]">
               Unavailable
             </span>
           </div>
