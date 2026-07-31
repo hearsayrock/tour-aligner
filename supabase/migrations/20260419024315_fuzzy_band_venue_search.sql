@@ -1,5 +1,13 @@
 create extension if not exists pg_trgm with schema extensions;
 
+-- Ensure legacy `tagline` column exists before it is indexed/queried below.
+-- Originally created by a legacy migration that was moved out of the active
+-- chain (duplicate timestamp); re-added defensively here so from-scratch local
+-- applies are reproducible. Idempotent and inert on environments where the
+-- column already exists (e.g. the remote project).
+alter table public.bands
+  add column if not exists tagline text;
+
 create index if not exists bands_name_trgm_idx
 on public.bands
 using gin (lower(name) extensions.gin_trgm_ops);
