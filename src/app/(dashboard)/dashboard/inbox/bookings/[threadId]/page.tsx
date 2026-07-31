@@ -3,8 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
-import { ChatPane } from '@/components/contact/ChatPane'
-import { DirectMessageComposer } from '@/components/contact/DirectMessageComposer'
+import { LiveConversation } from '@/components/contact/LiveConversation'
 import { ArchiveThreadControl, InboxThreadActions } from '@/components/contact/InboxThreadActions'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
 import { ThreadReadTracker } from '@/components/contact/ThreadReadTracker'
@@ -16,6 +15,7 @@ import {
 } from '@/lib/managed-identity'
 import {
   formatInboxDate,
+  formatShowDate,
   getConversationMeta,
   getConversationTitle,
   getPartnerEntity,
@@ -167,6 +167,9 @@ export default async function BookingInboxThreadPage({
         description={getConversationMeta(thread, viewerSide)}
         actions={
           <>
+            {thread.working_date && (
+              <Badge tone="brand">Proposed date: {formatShowDate(thread.working_date)}</Badge>
+            )}
             <Badge tone={displayStatus === 'confirmed' ? 'success' : displayStatus === 'pending' ? 'warning' : displayStatus === 'blocked' ? 'danger' : 'muted'}>
               {bookingStatusLabel(displayStatus)}
             </Badge>
@@ -214,12 +217,17 @@ export default async function BookingInboxThreadPage({
             <h2 className="text-lg font-semibold text-[#252525]">{partner.name}</h2>
             <p className="mt-1 text-sm text-[#777777]">{partner.meta || 'Booking conversation'}</p>
           </div>
-          <ChatPane messages={messages} thread={thread} viewerSide={viewerSide} lastReadAt={lastReadAt} />
-          {thread.status === 'accepted' && (
-            <div className="border-t border-[#ECECEC] px-6 py-5">
-              <DirectMessageComposer threadId={thread.id} replyingAsName={activeIdentity.name} />
-            </div>
-          )}
+          <LiveConversation
+            key={thread.id}
+            threadId={thread.id}
+            thread={thread}
+            viewerSide={viewerSide}
+            viewerUserId={user.id}
+            initialMessages={messages}
+            lastReadAt={lastReadAt}
+            canReply={thread.status === 'accepted'}
+            replyingAsName={activeIdentity.name}
+          />
         </main>
       </div>
     </div>

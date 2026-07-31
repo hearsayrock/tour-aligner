@@ -4,8 +4,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
-import { PrivateChatComposer } from '@/components/private-chat/PrivateChatComposer'
-import { PrivateChatPane } from '@/components/private-chat/PrivateChatPane'
+import { LivePrivateConversation } from '@/components/private-chat/LivePrivateConversation'
 import { PrivateChatReadTracker } from '@/components/private-chat/PrivateChatReadTracker'
 import { PrivateChatThreadActions } from '@/components/private-chat/PrivateChatThreadActions'
 import { Badge, Card, PageHeader } from '@/components/ui/primitives'
@@ -219,12 +218,16 @@ export default async function PrivateInboxThreadPage({
             <h2 className="text-lg font-semibold text-[#252525]">{partner.name}</h2>
             <p className="mt-1 text-sm text-[#777777]">{partner.meta || 'Private chat'}</p>
           </div>
-          <PrivateChatPane messages={messages} thread={thread} actorIdentity={activeIdentity} lastReadAt={lastReadAt} />
-          {thread.status === 'accepted' && (
-            <div className="border-t border-[#ECECEC] px-6 py-5">
-              <PrivateChatComposer threadId={thread.id} senderIdentity={activeIdentity} />
-            </div>
-          )}
+          <LivePrivateConversation
+            key={thread.id}
+            threadId={thread.id}
+            thread={thread}
+            actorIdentity={activeIdentity}
+            lookupEntries={Array.from(lookup.entries())}
+            initialMessages={messages}
+            lastReadAt={lastReadAt}
+            canReply={thread.status === 'accepted'}
+          />
         </main>
       </div>
     </div>

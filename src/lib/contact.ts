@@ -108,6 +108,15 @@ export function isThreadArchived(thread: InboxThread, viewerSide: ConversationSi
   return viewerSide === 'band' ? !!thread.band_archived_at : !!thread.venue_archived_at
 }
 
+/**
+ * Whether the thread's proposed/working date has already passed. Booking threads are
+ * persistent conversations (like DMs) — this is used only to style the date badge, not
+ * to hide the thread from any list.
+ */
+export function isThreadPast(thread: InboxThread, todayIso: string) {
+  return !!thread.working_date && thread.working_date < todayIso
+}
+
 export function getPartnerLabel(thread: InboxThread, viewerSide: ConversationSide) {
   return viewerSide === 'band' ? thread.venues?.name ?? 'Unknown venue' : thread.bands?.name ?? 'Unknown artist'
 }

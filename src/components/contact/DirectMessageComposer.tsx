@@ -1,16 +1,16 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { sendDirectMessage } from '@/app/actions/contact'
 
 interface Props {
   threadId: string
   replyingAsName?: string
+  onOptimisticSend: (body: string) => string
+  onSendError: (tempId: string) => void
 }
 
-export function DirectMessageComposer({ threadId, replyingAsName }: Props) {
-  const router = useRouter()
+export function DirectMessageComposer({ threadId, replyingAsName, onOptimisticSend, onSendError }: Props) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -19,16 +19,20 @@ export function DirectMessageComposer({ threadId, replyingAsName }: Props) {
     event.preventDefault()
     setError(null)
 
+    const body = message.trim()
+    if (!body) return
+    setMessage('')
+
+    const tempId = onOptimisticSend(body)
+
     startTransition(async () => {
-      const result = await sendDirectMessage(threadId, message)
+      const result = await sendDirectMessage(threadId, body)
 
       if (result.error) {
+        onSendError(tempId)
         setError(result.error)
-        return
+        setMessage(body)
       }
-
-      setMessage('')
-      router.refresh()
     })
   }
 

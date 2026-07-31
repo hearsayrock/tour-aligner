@@ -147,6 +147,7 @@ export default async function BackstageListPage() {
   const activeIdentity = requiredIdentity.activeIdentity
   const bandIds = activeIdentity?.kind === 'band' ? [activeIdentity.id] : []
   const venueIds = activeIdentity?.kind === 'venue' ? [activeIdentity.id] : []
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     venueIds.length
@@ -159,6 +160,7 @@ export default async function BackstageListPage() {
             event_artist_memberships(id, status, bands(name, slug, user_id))
           `)
           .in('venue_id', venueIds)
+          .gte('event_date', todayIso)
           .order('event_date', { ascending: true })
       : Promise.resolve({ data: [] }),
     bandIds.length
@@ -191,6 +193,7 @@ export default async function BackstageListPage() {
       event: Array.isArray(row.events) ? row.events[0] : row.events,
     }))
     .filter((row): row is { membership: { id: string; status: EventArtistMembership['status'] }; event: EventCardRecord } => !!row.event)
+    .filter((row) => row.event.event_date >= todayIso)
 
   const total = venueEventRows.length + artistEvents.length
 

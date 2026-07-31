@@ -1,17 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { sendPrivateChatMessage } from '@/app/actions/private-chat'
 import type { ManagedIdentity } from '@/lib/managed-identity'
 
 interface Props {
   threadId: string
   senderIdentity: ManagedIdentity
+  onOptimisticSend: (body: string) => string
+  onSendError: (tempId: string) => void
 }
 
-export function PrivateChatComposer({ threadId, senderIdentity }: Props) {
-  const router = useRouter()
+export function PrivateChatComposer({ threadId, senderIdentity, onOptimisticSend, onSendError }: Props) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -20,21 +20,25 @@ export function PrivateChatComposer({ threadId, senderIdentity }: Props) {
     event.preventDefault()
     setError(null)
 
+    const body = message.trim()
+    if (!body) return
+    setMessage('')
+
+    const tempId = onOptimisticSend(body)
+
     startTransition(async () => {
       const result = await sendPrivateChatMessage(
         threadId,
         senderIdentity.kind,
         senderIdentity.id,
-        message
+        body
       )
 
       if (result.error) {
+        onSendError(tempId)
         setError(result.error)
-        return
+        setMessage(body)
       }
-
-      setMessage('')
-      router.refresh()
     })
   }
 

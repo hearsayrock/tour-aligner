@@ -179,6 +179,8 @@ export default async function EventsPage({
     ? ((eventIdResult.data ?? []) as Array<{ event_id: string }>).map((row) => row.event_id)
     : null
 
+  const todayIso = new Date().toISOString().slice(0, 10)
+
   let query = supabase
     .from('events')
     .select(`
@@ -190,6 +192,7 @@ export default async function EventsPage({
     .eq('is_public', true)
     .eq('is_accepting_artists', true)
     .in('status', ['draft', 'active'])
+    .gte('event_date', todayIso)
     .order('event_date', { ascending: true })
 
   if (matchingEventIds) {

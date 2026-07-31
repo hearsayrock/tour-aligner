@@ -9,6 +9,7 @@ import { InboxViewSelect } from '@/components/contact/InboxViewSelect'
 import { Badge, Card, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
 import {
   formatInboxDate,
+  formatShowDate,
   getPartnerEntity,
   getThreadBookingStatus,
   getThreadDisplayStatus,
@@ -16,6 +17,7 @@ import {
   isPendingIncoming,
   isPendingOutgoing,
   isThreadArchived,
+  isThreadPast,
   THREAD_STATUS_LABELS,
   type InboxThread,
 } from '@/lib/contact'
@@ -161,15 +163,18 @@ function PrivateChatListCard({
 function BookingThreadListCard({
   thread,
   activeIdentity,
+  todayIso,
 }: {
   thread: BookingThreadRow
   activeIdentity: ManagedIdentity
+  todayIso: string
 }) {
   const viewerSide = activeIdentity.kind
   const partner = getPartnerEntity(thread, viewerSide)
   const bookingStatus = getThreadBookingStatus((thread.bookings ?? []).map((booking) => booking.status))
   const displayStatus = getThreadDisplayStatus(thread.status, bookingStatus)
   const unread = hasUnread(thread, viewerSide)
+  const isPast = isThreadPast(thread, todayIso)
 
   return (
     <Link
@@ -183,6 +188,9 @@ function BookingThreadListCard({
             <Badge tone={displayStatus === 'confirmed' ? 'success' : displayStatus === 'pending' ? 'warning' : displayStatus === 'blocked' ? 'danger' : 'muted'}>
               {bookingStatusLabel(displayStatus)}
             </Badge>
+            {thread.working_date && (
+              <Badge tone={isPast ? 'muted' : 'brand'}>{formatShowDate(thread.working_date)}</Badge>
+            )}
             {unread && <Badge tone="brand">Unread</Badge>}
           </div>
           <p className="mt-2 text-sm text-[#666666]">{partner.meta || 'Booking conversation'}</p>
@@ -295,6 +303,7 @@ export default async function InboxPage({
   ])
 
   const bookingThreads = (rawBookingThreadsResult.data ?? []) as unknown as BookingThreadRow[]
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const visiblePrivateThreads = privateThreads.filter((thread) =>
     view === 'archived'
@@ -391,7 +400,7 @@ export default async function InboxPage({
             ) : (
               <div className="space-y-4">
                 {visibleBookingThreads.map((thread) => (
-                  <BookingThreadListCard key={thread.id} thread={thread} activeIdentity={activeIdentity} />
+                  <BookingThreadListCard key={thread.id} thread={thread} activeIdentity={activeIdentity} todayIso={todayIso} />
                 ))}
               </div>
             )}

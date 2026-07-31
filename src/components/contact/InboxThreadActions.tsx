@@ -252,10 +252,15 @@ export function InboxThreadActions({
   bookingCountByDateId,
 }: ActionProps) {
   const router = useRouter()
+  const todayStr = new Date().toISOString().split('T')[0]
+  const isWorkingDatePast = !!workingDate && workingDate < todayStr
+
   const [note, setNote] = useState('')
   const [modalNote, setModalNote] = useState('')
-  const [workingDateDraft, setWorkingDateDraft] = useState(workingDate ?? '')
-  const [confirmDate, setConfirmDate] = useState(workingDate ?? '')
+  // Don't pre-fill a stale, already-past working date into the editable draft — a passed
+  // proposed date is a closed record, not something to keep re-offering as if still live.
+  const [workingDateDraft, setWorkingDateDraft] = useState(isWorkingDatePast ? '' : workingDate ?? '')
+  const [confirmDate, setConfirmDate] = useState(isWorkingDatePast ? '' : workingDate ?? '')
   const [billCap, setBillCap] = useState(String(defaultBillCap))
   const [closeBill, setCloseBill] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -269,7 +274,6 @@ export function InboxThreadActions({
   const isOutgoingPending = status === 'pending' && requestedBySide === viewerSide
   const canUnblock = status === 'blocked' && blockedBySide === viewerSide
   const hasPendingCancellation = bookings.some((booking) => booking.status === 'cancellation_requested')
-  const todayStr = new Date().toISOString().split('T')[0]
   const sortedBookings = [...bookings].sort((a, b) => a.show_date.localeCompare(b.show_date))
   const upcomingBookings = sortedBookings.filter((b) => b.show_date >= todayStr)
   const pastBookings = sortedBookings.filter((b) => b.show_date < todayStr)
@@ -397,18 +401,32 @@ export function InboxThreadActions({
       {status === 'accepted' && !hasConfirmedUpcomingBooking && (
         <section className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] p-4">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">Current booking</p>
-          <h2 className="mt-2 text-lg font-semibold text-[#252525]">
-            {workingDate ? formatShowDate(workingDate) : 'Set a working date'}
-          </h2>
-          <p className="mt-1 text-sm text-[#777777]">
-            Use the working date to line up the next show you are discussing in this thread.
-          </p>
+          {isWorkingDatePast ? (
+            <>
+              <h2 className="mt-2 text-lg font-semibold text-[#888888]">Proposed date passed</h2>
+              <p className="mt-1 text-sm text-[#AAAAAA]">
+                {formatShowDate(workingDate!)} came and went with nothing confirmed. Pick a new date to keep booking in this thread — the conversation itself stays open either way.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-2 text-lg font-semibold text-[#252525]">
+                {workingDate ? formatShowDate(workingDate) : 'Set a working date'}
+              </h2>
+              <p className="mt-1 text-sm text-[#777777]">
+                Use the working date to line up the next show you are discussing in this thread.
+              </p>
+            </>
+          )}
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="sm:max-w-[220px]">
-              <label className="mb-1.5 block text-sm text-[#777777]">Working date</label>
+              <label className="mb-1.5 block text-sm text-[#777777]">
+                {isWorkingDatePast ? 'New working date' : 'Working date'}
+              </label>
               <input
                 type="date"
+                min={todayStr}
                 value={workingDateDraft}
                 onChange={(event) => {
                   const value = event.target.value
@@ -428,10 +446,10 @@ export function InboxThreadActions({
                     () => setConfirmDate(workingDateDraft)
                   )
                 }
-                disabled={isPending}
+                disabled={isPending || (!!workingDateDraft && workingDateDraft < todayStr)}
                 className="rounded-lg border border-[#E8E8E8] bg-white px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:opacity-50"
               >
-                {workingDate ? 'Update date' : 'Save date'}
+                {workingDate && !isWorkingDatePast ? 'Update date' : 'Save date'}
               </button>
             )}
 
@@ -439,7 +457,7 @@ export function InboxThreadActions({
               <button
                 type="button"
                 onClick={() => setActiveModal('confirm')}
-                disabled={!confirmDate}
+                disabled={!confirmDate || confirmDate < todayStr}
                 className="rounded-lg bg-[#0C7C71] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0A695F] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Confirm booking
@@ -585,6 +603,7 @@ export function InboxThreadActions({
               <label className="mb-1.5 block text-sm text-[#777777]">Show date</label>
               <input
                 type="date"
+                min={todayStr}
                 value={confirmDate}
                 onChange={(event) => setConfirmDate(event.target.value)}
                 className="w-full rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-3 text-sm transition-colors focus:outline-none focus:border-[#FD6A2F]"
@@ -640,7 +659,7 @@ export function InboxThreadActions({
                       })
                   )
                 }
-                disabled={isPending || !confirmDate}
+                disabled={isPending || !confirmDate || confirmDate < todayStr}
                 className="rounded-lg bg-[#0C7C71] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0A695F] disabled:opacity-50"
               >
                 {isPending ? 'Confirming…' : 'Confirm booking'}
