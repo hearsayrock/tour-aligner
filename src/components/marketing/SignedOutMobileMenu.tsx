@@ -2,18 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { WaitlistButton } from '@/components/marketing/WaitlistButton'
 
 export function SignedOutMobileMenu() {
   const [open, setOpen] = useState(false)
 
   return (
     <div className="flex items-center gap-2 md:hidden">
-      <Link
-        href="/signup"
-        className="rounded-xl bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
-      >
-        Start free
-      </Link>
+      <WaitlistButton label="Join Wait List" onOpenChange={(modalOpen) => modalOpen && setOpen(false)} />
 
       <button
         onClick={() => setOpen((o) => !o)}
@@ -53,20 +49,6 @@ export function SignedOutMobileMenu() {
             className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
           >
             Who it&apos;s for
-          </Link>
-          <Link
-            href="/venues"
-            onClick={() => setOpen(false)}
-            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
-          >
-            Venues
-          </Link>
-          <Link
-            href="/events"
-            onClick={() => setOpen(false)}
-            className="block px-6 py-3 text-sm text-[#252525] transition-colors hover:bg-[#F5F5F5]"
-          >
-            Events
           </Link>
           <Link
             href="/login"

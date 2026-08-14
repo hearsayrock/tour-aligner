@@ -73,6 +73,24 @@ export interface Database {
           updated_at?: string
         }
       }
+      artist_waitlist_entries: {
+        Row: {
+          id: string
+          email: string
+          booking_process_gripe: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          booking_process_gripe?: string | null
+          created_at?: string
+        }
+        Update: {
+          email?: string
+          booking_process_gripe?: string | null
+        }
+      }
       genres: {
         Row: {
           id: string
@@ -1131,6 +1149,7 @@ export interface Database {
 // Convenience row types
 // ─────────────────────────────────────────────────────────────
 export type Profile        = Database['public']['Tables']['profiles']['Row']
+export type ArtistWaitlistEntry = Database['public']['Tables']['artist_waitlist_entries']['Row']
 export type Genre          = Database['public']['Tables']['genres']['Row']
 export type Band           = Database['public']['Tables']['bands']['Row']
 export type BandGenre      = Database['public']['Tables']['band_genres']['Row']

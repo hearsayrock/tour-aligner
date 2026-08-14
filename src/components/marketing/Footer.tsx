@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { WaitlistButton } from '@/components/marketing/WaitlistButton'
 
 export function Footer() {
   return (
@@ -9,8 +10,8 @@ export function Footer() {
             Tour<span className="text-[#FD6A2F]">Aligner</span>
           </Link>
           <p className="mt-4 text-sm leading-7 text-[#666666]">
-            The modern operating system for booking live shows. Built for artists,
-            venues, agents, and managers who want a cleaner way to move dates forward.
+            TourAligner is opening first for independent artists building stronger
+            profiles and shaping a cleaner way to book live shows.
           </p>
         </div>
 
@@ -25,9 +26,6 @@ export function Footer() {
               </Link>
               <Link href="/#workflow" className="block transition-colors hover:text-[#111111]">
                 How it works
-              </Link>
-              <Link href="/venues" className="block transition-colors hover:text-[#111111]">
-                Venue directory
               </Link>
             </div>
           </div>
@@ -48,9 +46,7 @@ export function Footer() {
               Access
             </p>
             <div className="mt-4 space-y-3 text-sm text-[#555555]">
-              <Link href="/signup" className="block transition-colors hover:text-[#111111]">
-                Start free
-              </Link>
+              <WaitlistButton label="Join Wait List" />
               <Link href="/login" className="block transition-colors hover:text-[#111111]">
                 Sign in
               </Link>

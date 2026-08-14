@@ -1,0 +1,19 @@
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+AuthApiError: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Failed to join artist waitlist {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.event_artist_memberships'",
+  message: "Could not find the table 'public.artist_waitlist_entries' in the schema cache"
+}
