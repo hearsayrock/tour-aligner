@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { sendWaitlistConfirmation } from '@/lib/waitlist-email'
 
 export type WaitlistActionResult =
   | { ok: true }
@@ -43,6 +44,8 @@ export async function joinArtistWaitlist(input: {
       message: 'We could not save that just now. Give it another try in a moment.',
     }
   }
+
+  await sendWaitlistConfirmation(email)
 
   return { ok: true }
 }
