@@ -30,6 +30,13 @@ export async function joinArtistWaitlist(input: {
   })
 
   if (error) {
+    if (error.code === '23505') {
+      return {
+        ok: false,
+        message: "Whoa! We love the tenacity but you're already on the waiting list.",
+      }
+    }
+
     console.error('Failed to join artist waitlist', error)
     return {
       ok: false,
