@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BandForm } from '@/components/bands/BandForm'
-import type { Band, BandGenre, BandShowDate } from '@/types/database'
+import type { Band, BandGenre, BandLyric, BandShowDate } from '@/types/database'
 
 export const metadata = { title: 'Edit Artist' }
 
@@ -15,19 +15,22 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
 
   if (!band) return notFound()
 
-  const [{ data: genres }, { data: rawBandGenres }, { data: rawShowDates }] = await Promise.all([
+  const [{ data: genres }, { data: rawBandGenres }, { data: rawShowDates }, { data: rawLyrics }] = await Promise.all([
     supabase.from('genres').select('*').order('name'),
     supabase.from('band_genres').select('genre_id').eq('band_id', id),
     supabase.from('band_show_dates').select('*').eq('band_id', id).order('show_date'),
+    supabase.from('band_lyrics').select('*').eq('band_id', id).order('sort_order').order('created_at'),
   ])
   const bandGenres = rawBandGenres as Pick<BandGenre, 'genre_id'>[] | null
   const showDates = rawShowDates as BandShowDate[] | null
+  const lyrics = rawLyrics as BandLyric[] | null
 
   return (
     <BandForm
       mode="edit"
       userId={user.id}
       genres={genres ?? []}
+      calendarHref={`/dashboard/calendar?profile=band:${band.id}`}
       initial={{
         id: band.id,
         name: band.name,
@@ -60,6 +63,7 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
           state: d.state,
           ticket_url: d.ticket_url ?? '',
         })),
+        lyrics: (lyrics ?? []).map((lyric) => ({ title: lyric.title, body: lyric.body })),
       }}
     />
   )

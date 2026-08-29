@@ -201,8 +201,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
   const selectedBandId = requiredIdentity.activeIdentity?.kind === 'band' ? requiredIdentity.activeIdentity.id : null
   const selectedBandCount = selectedBandId ? 1 : 0
-  const requestedTab = filters.tab ?? (selectedBandId ? 'mine' : 'directory')
-  const tab = requestedTab === 'mine' && !selectedBandId ? 'directory' : requestedTab
+  const tab: string = 'directory'
   const page = Math.max(1, parseInt(filters.page ?? '1', 10))
   const hasFilters = !!(filters.q || filters.genre || filters.radius || filters.artistType)
   const fullListMode = hasFilters || filters.view === 'all'
@@ -322,7 +321,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
 
     return (
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <Tabs active="directory" tabHref={tabHref} hasMine={selectedBandCount > 0} mineCount={selectedBandCount} />
+        <h1 className="text-2xl font-bold mb-6">Artist Directory</h1>
         <Suspense>
           <DashboardBandFilters genres={allGenres ?? []} />
         </Suspense>
@@ -339,7 +338,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
             {total > FEATURED_COUNT && (
               <div className="text-center">
                 <Link
-                  href="/dashboard/bands?tab=directory&view=all"
+                  href="/dashboard/bands?view=all"
                   className="inline-flex items-center gap-1.5 text-sm text-[#888888] hover:text-[#252525] transition-colors"
                 >
                   View all {total} bands
@@ -384,12 +383,12 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
   }
 
   const searchParamsRecord = Object.fromEntries(
-    Object.entries(filters).filter(([, v]) => v != null)
+    Object.entries(filters).filter(([key, value]) => key !== 'tab' && value != null)
   ) as Record<string, string>
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Tabs active="directory" tabHref={tabHref} hasMine={selectedBandCount > 0} mineCount={selectedBandCount} />
+      <h1 className="text-2xl font-bold mb-6">Artist Directory</h1>
       <Suspense>
         <DashboardBandFilters genres={allGenres ?? []} />
       </Suspense>
@@ -400,7 +399,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
         </p>
         {hasFilters && (
           <Link
-            href="/dashboard/bands?tab=directory"
+            href="/dashboard/bands"
             className="text-xs text-[#888888] hover:text-[#FD6A2F] transition-colors"
           >
             Clear filters

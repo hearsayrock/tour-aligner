@@ -4,7 +4,14 @@ import { usePathname } from 'next/navigation'
 import { cx } from '@/components/ui/primitives'
 
 function usesAuthenticatedAppShell(pathname: string) {
-  return pathname === '/events' || pathname.startsWith('/events/')
+  return (
+    pathname === '/events' ||
+    pathname.startsWith('/events/') ||
+    pathname === '/venues' ||
+    pathname.startsWith('/venues/') ||
+    pathname === '/bands' ||
+    pathname.startsWith('/bands/')
+  )
 }
 
 export function MarketingRouteShell({

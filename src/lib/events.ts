@@ -70,10 +70,8 @@ export function formatEventDateLong(event: Pick<Event, 'event_date' | 'start_tim
   })
 }
 
-export function getAcceptedMemberships(memberships: Array<Pick<EventArtistMembership, 'status'>>) {
-  return memberships.filter(
-    (membership) => membership.status === 'accepted' || membership.status === 'removal_requested'
-  )
+export function getAcceptedMemberships<T extends Pick<EventArtistMembership, 'status'>>(memberships: T[]) {
+  return memberships.filter((membership) => membership.status === 'accepted')
 }
 
 export function getOpenArtistNeed(

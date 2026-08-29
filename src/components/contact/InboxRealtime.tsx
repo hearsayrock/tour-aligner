@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
-  threadId?: string
+  bookingThreadId?: string
+  privateThreadId?: string
 }
 
-export function InboxRealtime({ threadId }: Props) {
+export function InboxRealtime({ bookingThreadId, privateThreadId }: Props) {
   const router = useRouter()
 
   useEffect(() => {
@@ -22,27 +23,94 @@ export function InboxRealtime({ threadId }: Props) {
       }, 150)
     }
 
-    const channel = supabase.channel(threadId ? `inbox-thread-${threadId}` : 'inbox-list')
+    const mode = bookingThreadId
+      ? `booking-${bookingThreadId}`
+      : privateThreadId
+        ? `private-${privateThreadId}`
+        : 'all'
+    const channel = supabase.channel(`inbox-${mode}`)
 
-    channel.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'contact_threads',
-        ...(threadId ? { filter: `id=eq.${threadId}` } : {}),
-      },
-      queueRefresh
-    )
+    if (bookingThreadId) {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_threads',
+          filter: `id=eq.${bookingThreadId}`,
+        },
+        queueRefresh
+      )
 
-    if (threadId) {
       channel.on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'contact_messages',
-          filter: `thread_id=eq.${threadId}`,
+          filter: `thread_id=eq.${bookingThreadId}`,
+        },
+        queueRefresh
+      )
+    } else if (privateThreadId) {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_chat_threads',
+          filter: `id=eq.${privateThreadId}`,
+        },
+        queueRefresh
+      )
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_chat_messages',
+          filter: `thread_id=eq.${privateThreadId}`,
+        },
+        queueRefresh
+      )
+    } else {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_threads',
+        },
+        queueRefresh
+      )
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_messages',
+        },
+        queueRefresh
+      )
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_chat_threads',
+        },
+        queueRefresh
+      )
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_chat_messages',
         },
         queueRefresh
       )
@@ -54,7 +122,7 @@ export function InboxRealtime({ threadId }: Props) {
       if (refreshTimer) clearTimeout(refreshTimer)
       supabase.removeChannel(channel)
     }
-  }, [router, threadId])
+  }, [bookingThreadId, privateThreadId, router])
 
   return null
 }

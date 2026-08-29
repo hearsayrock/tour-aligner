@@ -1,11 +1,18 @@
 # Booking And Messaging Architecture
 
+> This doc predates the Events/Backstage system and does not cover how a
+> confirmed booking should relate to a calendar-visible event. For that, see
+> [`booking-lifecycle.md`](./booking-lifecycle.md). This doc remains the
+> source of truth for `contact_threads` vs. `private_chat_threads` vs.
+> legacy `booking_inquiries` semantics.
+
 This note is the current source of truth for how TourAligner should think about inquiries, conversations, and eventual bookings.
 
 It exists because the app currently has two overlapping concepts:
 
 - `booking_inquiries`
 - `contact_threads` / `contact_messages`
+- `private_chat_threads` / `private_chat_messages`
 
 Those concepts are related, but they are not the same thing.
 
@@ -13,6 +20,8 @@ Those concepts are related, but they are not the same thing.
 
 - `contact_threads` are the communication channel between one band and one venue.
 - `contact_messages` are the messages inside that channel.
+- `private_chat_threads` are generic solo chats between any managed artist or venue profiles.
+- `private_chat_messages` are the messages inside those solo chats.
 - `bookings` are now the live structured booking objects.
 - `booking_inquiries` are legacy records kept mainly for admin/history.
 
@@ -26,7 +35,10 @@ The inbox system is powered by:
 
 - `contact_threads`
 - `contact_messages`
+- `private_chat_threads`
+- `private_chat_messages`
 - Supabase RPC functions like `request_contact`, `respond_to_contact_request`, `send_contact_message`, and `mark_contact_thread_read`
+- Supabase RPC functions like `request_private_chat`, `respond_to_private_chat_request`, `send_private_chat_message`, and `mark_private_chat_read`
 
 This layer currently handles:
 
@@ -35,6 +47,7 @@ This layer currently handles:
 - ongoing conversation
 - unread/read tracking
 - realtime inbox refresh
+- inbox badge notifications for unread private chats and pending approvals
 
 This is the app's main day-to-day workflow today.
 
@@ -86,6 +99,22 @@ Threads answer:
 
 Threads should not be the only source of truth for booking state.
 
+### `private_chat_threads`
+
+Use this as the generic solo conversation layer.
+
+One thread represents:
+
+- one managed artist or venue profile
+- one other managed artist or venue profile
+- one private chat relationship between those profiles
+
+Private chat threads answer:
+
+- have these two profiles already approved private contact?
+- is private contact pending, active, declined, or blocked?
+- what solo messages have they exchanged outside booking or Backstage?
+
 ### `booking_inquiries`
 
 Use this as the structured booking request layer.
@@ -121,6 +150,17 @@ That covers:
 - venue reaching out to an artist
 - screening whether the fit is real
 - discussing basics before a concrete booking request is finalized
+
+### Private chat flow
+
+Use private chat when one managed profile wants a solo conversation with another managed profile, regardless of booking state or Backstage membership.
+
+That covers:
+
+- artist to artist coordination
+- venue to venue coordination
+- venue to artist direct messages outside the booking-thread model
+- artist to venue direct messages that should not be tied to booking workflow
 
 ### Booking flow
 
@@ -217,6 +257,8 @@ When changing this area, follow these rules:
 If there is ever a question about which system should own what:
 
 - conversation belongs to `contact_threads`
+- solo profile-to-profile chat belongs to `private_chat_threads`
 - live booking state belongs to `bookings`
 - `booking_inquiries` are legacy records, not the future booking model
 - public show history belongs to a public show/bookings source, not the inbox
+- Backstage chat belongs to the event workspace, not the inbox

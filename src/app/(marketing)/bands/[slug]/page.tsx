@@ -1,18 +1,26 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
-import { cookies } from 'next/headers'
+import Link from 'next/link'
+import type { ComponentType, ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
-import { CoverBanner } from './CoverBanner'
-import { RequestContactForm } from '@/components/contact/RequestContactForm'
 import {
-  ACTIVE_IDENTITY_COOKIE,
-  activeIdentityLabel,
-  resolveActiveIdentity,
-  type ManagedIdentity,
-} from '@/lib/managed-identity'
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  ExternalLink,
+  Globe,
+  Instagram,
+  MapPin,
+  Mic2,
+  PencilLine,
+  Radio,
+  Route,
+  Users,
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { Badge, ButtonLink } from '@/components/ui/primitives'
+import type { Band } from '@/types/database'
 
 export const revalidate = 60
 
@@ -25,46 +33,90 @@ export async function generateStaticParams() {
   return (data ?? []).map(({ slug }) => ({ slug }))
 }
 
-// ─────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────
-
 const TOURING_RADIUS_LABELS: Record<string, string> = {
-  local:         'Local (within ~100 mi)',
-  regional:      'Regional (multi-state)',
-  national:      'Nationwide',
+  local: 'Local',
+  regional: 'Regional',
+  national: 'Nationwide',
   international: 'Worldwide',
 }
 
-// Streaming: key → DB field, label, icon circle bg, Simple Icons slug (white version)
-const STREAMING: { key: string; label: string; bg: string; slug: string }[] = [
-  { key: 'spotify_url',     label: 'Spotify',     bg: '#1DB954', slug: 'spotify'     },
-  { key: 'apple_music_url', label: 'Apple Music', bg: '#FC3C44', slug: 'applemusic'  },
-  { key: 'youtube_url',     label: 'YouTube',      bg: '#FF0000', slug: 'youtube'     },
-  { key: 'soundcloud_url',  label: 'SoundCloud',  bg: '#FF3300', slug: 'soundcloud'  },
-  { key: 'bandcamp_url',    label: 'Bandcamp',    bg: '#1DA0C3', slug: 'bandcamp'    },
-]
-
-const SOCIALS: { key: string; label: string; bg: string; slug: string }[] = [
-  { key: 'facebook_url',  label: 'Facebook',  bg: '#1877F2', slug: 'facebook'   },
-  { key: 'instagram_url', label: 'Instagram', bg: '#E1306C', slug: 'instagram'  },
-  { key: 'tiktok_url',    label: 'TikTok',    bg: '#010101', slug: 'tiktok'     },
-  { key: 'twitter_url',   label: 'X',         bg: '#000000', slug: 'x'          },
-]
-
-// ─────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────
-
-function toSpotifyEmbed(url: string): string | null {
-  const m = url.match(/spotify\.com\/(track|album|playlist|artist)\/([A-Za-z0-9]+)/)
-  if (!m) return null
-  return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator&theme=0`
+const ARTIST_TYPE_LABELS: Record<string, string> = {
+  solo: 'Solo artist',
+  band: 'Band',
 }
 
-// ─────────────────────────────────────────────────────────────
-// Metadata
-// ─────────────────────────────────────────────────────────────
+const STREAMING = [
+  { key: 'spotify_url', label: 'Spotify', slug: 'spotify' },
+  { key: 'apple_music_url', label: 'Apple Music', slug: 'applemusic' },
+  { key: 'youtube_url', label: 'YouTube', slug: 'youtube' },
+  { key: 'soundcloud_url', label: 'SoundCloud', slug: 'soundcloud' },
+  { key: 'bandcamp_url', label: 'Bandcamp', slug: 'bandcamp' },
+] as const
+
+const SOCIALS = [
+  { key: 'website_url', label: 'Website', icon: Globe },
+  { key: 'instagram_url', label: 'Instagram', icon: Instagram },
+  { key: 'facebook_url', label: 'Facebook', slug: 'facebook' },
+  { key: 'tiktok_url', label: 'TikTok', slug: 'tiktok' },
+  { key: 'twitter_url', label: 'X', slug: 'x' },
+] as const
+
+function toSpotifyEmbed(url: string): string | null {
+  const match = url.match(/spotify\.com\/(track|album|playlist|artist)\/([A-Za-z0-9]+)/)
+  if (!match) return null
+  return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`
+}
+
+function formatLocation(band: Pick<Band, 'location_city' | 'location_state'>) {
+  return [band.location_city, band.location_state].filter(Boolean).join(', ')
+}
+
+function DetailRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: string
+  value: ReactNode
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EE] text-[#FD6A2F]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A8A8A]">{label}</p>
+        <div className="mt-1 text-sm leading-6 text-[#2A2A2A]">{value}</div>
+      </div>
+    </div>
+  )
+}
+
+function SectionCard({
+  eyebrow,
+  title,
+  children,
+  action,
+}: {
+  eyebrow: string
+  title: string
+  children: ReactNode
+  action?: ReactNode
+}) {
+  return (
+    <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">{eyebrow}</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">{title}</h2>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
 
 export async function generateMetadata({
   params,
@@ -82,10 +134,6 @@ export async function generateMetadata({
   if (!data) return {}
   return { title: data.name, description: data.tagline ?? undefined }
 }
-
-// ─────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────
 
 export default async function BandProfilePage({
   params,
@@ -106,10 +154,10 @@ export default async function BandProfilePage({
     supabase.auth.getUser(),
   ])
 
-  const band = rawBand as import('@/types/database').Band | null
+  const band = rawBand as Band | null
   if (!band) return notFound()
 
-  const [{ data: bandGenres }, { data: rawShows }] = await Promise.all([
+  const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }] = await Promise.all([
     supabase
       .from('band_genres')
       .select('genre_id, genres(name)')
@@ -122,6 +170,12 @@ export default async function BandProfilePage({
       .gte('show_date', today)
       .order('show_date')
       .limit(8),
+    supabase
+      .from('band_lyrics')
+      .select('id, title, body, sort_order')
+      .eq('band_id', band.id)
+      .order('sort_order')
+      .order('created_at'),
   ])
 
   type ShowRow = {
@@ -130,6 +184,7 @@ export default async function BandProfilePage({
     venues: { name: string; location_city: string; location_state: string } | null
   }
   const shows = (rawShows ?? []) as unknown as ShowRow[]
+  const lyrics = (rawLyrics ?? []) as { id: string; title: string; body: string; sort_order: number }[]
 
   const genreNames = (
     (bandGenres ?? []) as unknown as { genres: { name: string } | null }[]
@@ -137,111 +192,99 @@ export default async function BandProfilePage({
     .map((bg) => bg.genres?.name)
     .filter(Boolean) as string[]
 
-  const hasCover   = !!band.cover_photo_url
-  const hasProfile = !!band.profile_photo_url
-  const embedUrl   = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
+  const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
+  const streamingLinks = STREAMING.filter(({ key }) => !!band[key])
+  const socialLinks = SOCIALS.filter(({ key }) => !!band[key])
+  const isOwner = user?.id === band.user_id
 
-  const streamingLinks = STREAMING.filter(({ key }) => !!band[key as keyof typeof band])
-  const socialLinks    = SOCIALS.filter(({ key })    => !!band[key as keyof typeof band])
-  const isOwner = !!user && user.id === band.user_id
-
-  let userVenues: { id: string; name: string }[] = []
-  let userBands: { id: string; name: string }[] = []
-
-  if (user && !isOwner) {
-    const [{ data: venues }, { data: bands }] = await Promise.all([
-      supabase
-        .from('venues')
-        .select('id, name')
-        .eq('claimed_by_user_id', user.id)
-        .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('bands')
-        .select('id, name')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('name'),
-    ])
-
-    userVenues = venues ?? []
-    userBands = bands ?? []
-  }
-  const identities: ManagedIdentity[] = [
-    ...userBands.map((userBand) => ({
-      kind: 'band' as const,
-      id: userBand.id,
-      name: userBand.name,
-      href: `/dashboard/bands/${userBand.id}/edit`,
-    })),
-    ...userVenues.map((venue) => ({
-      kind: 'venue' as const,
-      id: venue.id,
-      name: venue.name,
-      href: `/dashboard/venues/${venue.id}/edit`,
-    })),
-  ]
-  const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
-  const contactVenues = activeIdentity.kind === 'venue'
-    ? userVenues.filter((venue) => venue.id === activeIdentity.id)
-    : []
-  const contactIdentityNotice = user && userVenues.length > 0 && activeIdentity.kind !== 'venue'
-    ? {
-        title: activeIdentity.kind === 'all'
-          ? 'Select a venue before requesting contact'
-          : 'Switch to a venue before requesting contact',
-        body: activeIdentity.kind === 'all'
-          ? 'This contact request needs one venue identity. Choose a venue in the Acting as menu, then request contact.'
-          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to a venue before contacting this artist.`,
-      }
-    : null
+  const location = formatLocation(band)
+  const heroImage = band.cover_photo_url ?? '/concert-hero.jpg'
+  const primaryGenre = genreNames[0] ?? 'Artist'
+  const artistType = band.artist_type ? ARTIST_TYPE_LABELS[band.artist_type] : null
+  const touringRadius = band.touring_radius ? TOURING_RADIUS_LABELS[band.touring_radius] : null
 
   return (
-    <div className="pt-14">
+    <div className={`bg-[#F7F4EE] ${user ? '' : 'pt-16'}`}>
+      <section className="relative overflow-hidden border-b border-[#1F1F1F] bg-[#111111] text-white">
+        <Image
+          src={heroImage}
+          alt=""
+          fill
+          priority
+          className="object-cover object-center opacity-45"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.42)_0%,rgba(8,8,8,0.82)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,_rgba(253,106,47,0.24),_transparent_28%),radial-gradient(circle_at_82%_18%,_rgba(14,116,144,0.18),_transparent_24%)]" />
 
-      {/* ── Cover photo — full-bleed ── */}
-      {hasCover && (
-        <CoverBanner coverUrl={band.cover_photo_url!} bandName={band.name} />
-      )}
+        <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
+          <Link
+            href="/"
+            className="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-white/72 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Tour Aligner
+          </Link>
 
-      {/* ── Identity section — sits on white, below cover ── */}
-      <div className="bg-white border-b border-[#EEEEEE]">
-        <div className="max-w-[976px] mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center gap-5">
-
-            {/* Profile photo */}
-            {hasProfile && (
-              <div className="relative w-[88px] h-[88px] rounded-full border-[3px] border-white shadow-md shrink-0 overflow-hidden bg-[#E0E0E0]">
-                <Image
-                  src={band.profile_photo_url!}
-                  alt={band.name}
-                  fill
-                  className="object-cover"
-                  sizes="88px"
-                />
+          <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+            <div className="max-w-4xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="brand" className="border-white/15 bg-white/10 text-white">
+                  <Mic2 className="h-3.5 w-3.5 text-[#F6B293]" />
+                  {primaryGenre}
+                </Badge>
+                {artistType && <Badge tone="muted">{artistType}</Badge>}
+                {isOwner && (
+                  <Badge tone="success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Managed by this profile
+                  </Badge>
+                )}
               </div>
-            )}
 
-            {/* Name + tagline + genres */}
-            <div>
-              <h1
-                className="font-barlow font-semibold uppercase leading-none tracking-wide text-[#1A1A1A]"
-                style={{ fontSize: '50px' }}
-              >
-                {band.name}
-              </h1>
+              <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end">
+                {band.profile_photo_url && (
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl border border-white/20 bg-white/10 shadow-[0_18px_40px_rgba(0,0,0,0.24)] sm:h-28 sm:w-28">
+                    <Image
+                      src={band.profile_photo_url}
+                      alt={`${band.name} profile photo`}
+                      fill
+                      className="object-cover"
+                      sizes="112px"
+                    />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-normal text-white sm:text-6xl lg:text-7xl">
+                    {band.name}
+                  </h1>
+                  {band.tagline && (
+                    <p className="mt-4 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">
+                      {band.tagline}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {location && (
+                <p className="mt-5 flex max-w-2xl items-start gap-2 text-base leading-7 text-white/78 sm:text-lg">
+                  <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#F6B293]" />
+                  <span>{location}</span>
+                </p>
+              )}
+
               {band.description && (
-                <p className="text-sm text-[#777777] mt-1 max-w-xl line-clamp-2">
+                <p className="mt-6 max-w-3xl text-base leading-8 text-white/82 sm:text-lg">
                   {band.description}
                 </p>
               )}
+
               {genreNames.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <div className="mt-7 flex flex-wrap gap-2">
                   {genreNames.map((name) => (
                     <span
                       key={name}
-                      className="text-[10px] font-bold uppercase tracking-wider border border-[#F1CABD] text-[#252525] p-2 rounded"
+                      className="inline-flex min-h-8 items-center rounded-full border border-white/12 bg-white/10 px-3 text-xs font-semibold text-white/84 backdrop-blur"
                     >
                       {name}
                     </span>
@@ -249,313 +292,202 @@ export default async function BandProfilePage({
                 </div>
               )}
             </div>
+
+            <div className="rounded-[28px] border border-white/12 bg-black/36 p-5 shadow-[0_22px_54px_rgba(0,0,0,0.24)] backdrop-blur-md">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F6B293]">Artist facts</p>
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Home base</p>
+                  <p className="mt-1 text-xl font-semibold text-white">{location || 'Not listed'}</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Touring</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{touringRadius ?? 'Not listed'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Set length</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {band.set_length_min ? `${band.set_length_min} min` : 'Not listed'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Main content ── */}
-      <div className="max-w-[976px] mx-auto px-4 sm:px-6 py-8 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_272px] gap-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-12">
+        <div className="min-w-0 space-y-8">
+          <SectionCard eyebrow="Overview" title="Artist profile">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {location && <DetailRow icon={MapPin} label="Home base" value={location} />}
+              {touringRadius && <DetailRow icon={Route} label="Touring radius" value={touringRadius} />}
+              {artistType && <DetailRow icon={Users} label="Artist type" value={artistType} />}
+              {band.set_length_min && <DetailRow icon={Radio} label="Set length" value={`${band.set_length_min} minutes`} />}
+            </div>
+          </SectionCard>
 
-          {/* ────────── LEFT COLUMN ────────── */}
-          <div className="space-y-8 min-w-0">
+          {embedUrl && (
+            <SectionCard eyebrow="Listen" title="Featured track">
+              <iframe
+                src={embedUrl}
+                width="100%"
+                height="152"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="rounded-2xl border-0"
+              />
+            </SectionCard>
+          )}
 
-            {/* Featured Track */}
-            {embedUrl && (
-              <section>
-                <h2
-                  className="font-barlow font-bold text-[#1A1A1A] mb-3"
-                  style={{ fontSize: '22px' }}
-                >
-                  Featured Track
-                </h2>
-                <iframe
-                  src={embedUrl}
-                  width="100%"
-                  height="152"
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                  className="border-0 rounded-xl"
-                  style={{ borderRadius: '12px' }}
-                />
-              </section>
-            )}
+          {lyrics.length > 0 && (
+            <SectionCard eyebrow="Words" title="Lyrics">
+              <div className="space-y-6">
+                {lyrics.map((lyric) => (
+                  <article key={lyric.id}>
+                    <h3 className="text-lg font-semibold text-[#252525]">{lyric.title}</h3>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#555555]">{lyric.body}</p>
+                  </article>
+                ))}
+              </div>
+            </SectionCard>
+          )}
 
-            {/* Upcoming Shows */}
-            <section>
-              <h2
-                className="font-barlow font-semibold text-[#1A1A1A] mb-4"
-                style={{ fontSize: '22px' }}
-              >
-                Upcoming Shows
-              </h2>
+          <SectionCard eyebrow="Shows" title="Upcoming shows">
+            {shows.length > 0 ? (
+              <div className="divide-y divide-[#EEEEEE]">
+                {shows.map((show) => {
+                  const date = new Date(`${show.show_date}T00:00:00`)
+                  const month = date.toLocaleDateString('en-US', { month: 'short' })
+                  const day = date.toLocaleDateString('en-US', { day: 'numeric' })
+                  const venue = show.venues
 
-              {shows.length > 0 ? (
-                <div className="divide-y divide-[#F0F0F0]">
-                  {shows.map((show) => {
-                    const d     = new Date(show.show_date + 'T00:00:00')
-                    const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
-                    const day   = d.getDate()
-                    const v     = show.venues
-
-                    return (
-                      <div
-                        key={show.id}
-                        className="flex items-center gap-4 py-3.5"
-                      >
-                        {/* Date block */}
-                        <div className="w-[46px] h-[52px] rounded-lg bg-[#E8724E] flex flex-col items-center justify-center text-white shrink-0">
-                          <span className="text-[9px] font-extrabold uppercase leading-none tracking-wider">{month}</span>
-                          <span className="text-[22px] font-black leading-none mt-0.5">{day}</span>
-                        </div>
-
-                        {/* Venue + location */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#1A1A1A] truncate">
-                            {v?.name ?? 'TBA'}
-                          </p>
-                        </div>
-
-                        {/* City, State — right aligned */}
-                        {v && (
-                          <p className="text-xs text-[#888888] shrink-0 text-right">
-                            {[v.location_city, v.location_state].filter(Boolean).join(', ')}
+                  return (
+                    <div key={show.id} className="grid gap-4 py-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
+                      <div className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl border border-[#FFD5C4] bg-[#FFF3EE] text-[#A84216]">
+                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">{month}</span>
+                        <span className="text-2xl font-bold leading-none">{day}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#252525]">{venue?.name ?? 'TBA'}</p>
+                        {venue && (
+                          <p className="mt-1 text-sm text-[#777777]">
+                            {[venue.location_city, venue.location_state].filter(Boolean).join(', ')}
                           </p>
                         )}
                       </div>
-                    )
-                  })}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-[#E4DED4] bg-[#FCFBF8] px-6 py-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+                  <CalendarDays className="h-5 w-5" />
                 </div>
-              ) : (
-                /* Empty state */
-                <div className="border-2 border-dashed border-[#E8E8E8] rounded-2xl py-10 px-6 flex flex-col items-center text-center">
-                  {/* Tour van illustration */}
-                  <svg width="180" height="90" viewBox="0 0 180 90" fill="none" className="mb-5">
-                    {/* Road */}
-                    <rect x="0" y="76" width="180" height="3" rx="1.5" fill="#EEEEEE" />
-                    {/* Dashed center line */}
-                    <rect x="20" y="77" width="16" height="1" rx="0.5" fill="#DDDDDD" />
-                    <rect x="52" y="77" width="16" height="1" rx="0.5" fill="#DDDDDD" />
-                    <rect x="84" y="77" width="16" height="1" rx="0.5" fill="#DDDDDD" />
-                    <rect x="116" y="77" width="16" height="1" rx="0.5" fill="#DDDDDD" />
-                    <rect x="148" y="77" width="16" height="1" rx="0.5" fill="#DDDDDD" />
-
-                    {/* Van body */}
-                    <rect x="22" y="32" width="108" height="42" rx="4" fill="#F0F0F0" stroke="#DDDDDD" strokeWidth="1.5" />
-
-                    {/* Cab bump (raised roof over driver) */}
-                    <rect x="96" y="20" width="34" height="14" rx="3" fill="#F0F0F0" stroke="#DDDDDD" strokeWidth="1.5" />
-
-                    {/* Windshield */}
-                    <rect x="99" y="23" width="28" height="9" rx="2" fill="#D8EEF7" stroke="#CCCCCC" strokeWidth="1" />
-
-                    {/* Side windows — two small porthole windows on the cargo area */}
-                    <rect x="32" y="40" width="18" height="13" rx="2" fill="#D8EEF7" stroke="#CCCCCC" strokeWidth="1" />
-                    <rect x="58" y="40" width="18" height="13" rx="2" fill="#D8EEF7" stroke="#CCCCCC" strokeWidth="1" />
-
-                    {/* Rear door seam */}
-                    <line x1="22" y1="53" x2="22" y2="74" stroke="#DDDDDD" strokeWidth="1" />
-
-                    {/* Side body crease */}
-                    <line x1="22" y1="58" x2="130" y2="58" stroke="#E4E4E4" strokeWidth="1" />
-
-                    {/* Headlight */}
-                    <rect x="126" y="48" width="5" height="8" rx="1.5" fill="#FFF5CC" stroke="#DDDDDD" strokeWidth="1" />
-
-                    {/* Tail light */}
-                    <rect x="22" y="48" width="4" height="8" rx="1.5" fill="#FFD0CC" stroke="#DDDDDD" strokeWidth="1" />
-
-                    {/* Door handle */}
-                    <rect x="88" y="55" width="8" height="2" rx="1" fill="#CCCCCC" />
-
-                    {/* Front wheel */}
-                    <circle cx="112" cy="76" r="10" fill="#E0E0E0" stroke="#CCCCCC" strokeWidth="1.5" />
-                    <circle cx="112" cy="76" r="5" fill="#EBEBEB" stroke="#CCCCCC" strokeWidth="1" />
-                    <circle cx="112" cy="76" r="1.5" fill="#CCCCCC" />
-
-                    {/* Rear wheel */}
-                    <circle cx="46" cy="76" r="10" fill="#E0E0E0" stroke="#CCCCCC" strokeWidth="1.5" />
-                    <circle cx="46" cy="76" r="5" fill="#EBEBEB" stroke="#CCCCCC" strokeWidth="1" />
-                    <circle cx="46" cy="76" r="1.5" fill="#CCCCCC" />
-
-                    {/* Wheel well arches */}
-                    <path d="M100 74 Q112 62 124 74" stroke="#CCCCCC" strokeWidth="1.5" fill="none" />
-                    <path d="M34 74 Q46 62 58 74" stroke="#CCCCCC" strokeWidth="1.5" fill="none" />
-
-                    {/* Bumper sticker vibes — tiny rectangle on back */}
-                    <rect x="27" y="63" width="14" height="5" rx="1" fill="#FD6A2F" opacity="0.35" />
-
-                    {/* Exhaust smoke puffs */}
-                    <circle cx="18" cy="71" r="3" fill="#EEEEEE" />
-                    <circle cx="12" cy="68" r="2.5" fill="#F3F3F3" />
-                    <circle cx="7" cy="65" r="2" fill="#F7F7F7" />
-                  </svg>
-
-                  <p className="text-[17px] font-semibold text-[#444444]">The van is empty</p>
-                  <p className="text-sm text-[#888888] mt-1 max-w-[200px] leading-relaxed">
-                    No upcoming shows… yet.<br />Book some.
-                  </p>
-                  <Link
-                    href="/venues"
-                    className="mt-3 text-sm font-semibold text-[#FD6A2F] hover:underline"
-                  >
-                    Find venues →
-                  </Link>
-                </div>
-              )}
-            </section>
-
-            {/* ── Touring info ── */}
-            {(band.touring_radius || band.location_city || band.location_state) && (
-              <div className="mt-[36px] bg-white border border-[#E8E8E8] rounded-[4px] p-6 grid grid-cols-2 gap-8">
-                {band.touring_radius && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#AAAAAA] mb-1">
-                      Travel Radius
-                    </p>
-                    <p className="text-sm text-[#252525]">
-                      {TOURING_RADIUS_LABELS[band.touring_radius] ?? band.touring_radius}
-                    </p>
-                    {(band.location_city || band.location_state) && (
-                      <p className="text-xs text-[#888888] mt-0.5">
-                        from {[band.location_city, band.location_state].filter(Boolean).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {(band.location_city || band.location_state) && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#AAAAAA] mb-1">
-                      Home Base
-                    </p>
-                    <p className="text-sm text-[#252525]">
-                      {[band.location_city, band.location_state].filter(Boolean).join(', ')}
-                    </p>
-                  </div>
-                )}
+                <h3 className="mt-4 text-lg font-semibold text-[#252525]">No upcoming shows listed</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#777777]">
+                  Confirmed future dates will appear here once this artist starts locking in shows.
+                </p>
               </div>
             )}
-
-          </div>
-
-          {/* ────────── RIGHT COLUMN ────────── */}
-          <div className="space-y-6">
-
-            {/* Listen */}
-            {streamingLinks.length > 0 && (
-              <section>
-                <p className="font-barlow font-medium text-[#888888] pb-[4px] mb-[16px] border-b border-[#ADADAD]" style={{ fontSize: '18px' }}>
-                  Listen
-                </p>
-                <div className="space-y-1.5">
-                  {streamingLinks.map(({ key, label, bg, slug }) => (
-                    <a
-                      key={key}
-                      href={band[key as keyof typeof band] as string}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 bg-white border border-[#EEEEEE] rounded-xl px-3.5 py-2.5 hover:border-[#CCCCCC] hover:shadow-sm transition-all group"
-                    >
-                      {/* Colored circle icon */}
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: bg }}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={`https://cdn.simpleicons.org/${slug}/ffffff`}
-                          alt={label}
-                          width="15"
-                          height="15"
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-[#252525] flex-1">{label}</span>
-                      <svg
-                        width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="#CCCCCC" strokeWidth="2.5"
-                        className="group-hover:stroke-[#888888] transition-colors shrink-0"
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Connect */}
-            {socialLinks.length > 0 && (
-              <section className="mt-4">
-                <p className="font-barlow font-medium text-[#888888] pb-[4px] mb-[16px] border-b border-[#ADADAD]" style={{ fontSize: '18px' }}>
-                  Connect
-                </p>
-                <div className="flex gap-2.5">
-                  {socialLinks.map(({ key, label, slug }) => (
-                    <a
-                      key={key}
-                      href={band[key as keyof typeof band] as string}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={label}
-                      className="hover:opacity-60 transition-opacity"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`https://cdn.simpleicons.org/${slug}/444444`}
-                        alt={label}
-                        width="20"
-                        height="20"
-                      />
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Book Us */}
-            <section className="bg-[#F5F5F5] rounded-2xl p-5">
-              <h3
-                className="font-barlow font-medium uppercase text-[#1A1A1A] mb-2"
-                style={{ fontSize: '22px' }}
-              >
-                Request Contact
-              </h3>
-              {isOwner ? (
-                <p className="text-sm text-[#777777] leading-relaxed">
-                  This is your artist profile.
-                </p>
-              ) : user && contactIdentityNotice ? (
-                <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
-                  <p className="font-semibold text-[#8A5A12]">{contactIdentityNotice.title}</p>
-                  <p className="mt-1 text-[#8A5A12]/85">{contactIdentityNotice.body}</p>
-                </div>
-              ) : user && contactVenues.length > 0 ? (
-                <RequestContactForm
-                  initiatorSide="venue"
-                  targetBandId={band.id}
-                  options={contactVenues}
-                />
-              ) : user ? (
-                <p className="text-sm text-[#777777] leading-relaxed">
-                  Claim a venue to start contacting artists from inside the app.{' '}
-                  <Link href="/dashboard/venues" className="text-[#FD6A2F] hover:underline">
-                    Manage venues
-                  </Link>
-                  .
-                </p>
-              ) : (
-                <p className="text-sm text-[#777777] leading-relaxed">
-                  <Link href={`/login?redirectTo=/bands/${band.slug}`} className="text-[#FD6A2F] hover:underline">
-                    Sign in
-                  </Link>{' '}
-                  and claim a venue to request contact.
-                </p>
-              )}
-            </section>
-
-          </div>
+          </SectionCard>
         </div>
 
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          {streamingLinks.length > 0 && (
+            <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Listen</p>
+              <div className="mt-4 space-y-2">
+                {streamingLinks.map(({ key, label, slug }) => (
+                  <a
+                    key={key}
+                    href={band[key] as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://cdn.simpleicons.org/${slug}/FD6A2F`}
+                        alt=""
+                        width="16"
+                        height="16"
+                        className="shrink-0"
+                      />
+                      <span className="truncate">{label}</span>
+                    </span>
+                    <ExternalLink className="h-4 w-4 shrink-0 text-[#A0A0A0]" />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {socialLinks.length > 0 && (
+            <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Connect</p>
+              <div className="mt-4 space-y-2">
+                {socialLinks.map((link) => {
+                  return (
+                    <a
+                      key={link.key}
+                      href={band[link.key] as string}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        {'icon' in link ? (
+                          <link.icon className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`https://cdn.simpleicons.org/${link.slug}/FD6A2F`}
+                            alt=""
+                            width="16"
+                            height="16"
+                            className="shrink-0"
+                          />
+                        )}
+                        <span className="truncate">{link.label}</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 shrink-0 text-[#A0A0A0]" />
+                    </a>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Connect</p>
+            <div className="mt-4">
+              {isOwner ? (
+                <div>
+                  <Badge tone="success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    This profile manages the artist page
+                  </Badge>
+                  <p className="mt-3 text-sm leading-6 text-[#666666]">
+                    Manage artist details, links, photos, and booking context from the dashboard.
+                  </p>
+                  <ButtonLink href={`/dashboard/bands/${band.id}/edit`} tone="dark" className="mt-5 w-full">
+                    <PencilLine className="h-4 w-4" />
+                    Edit artist profile
+                  </ButtonLink>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-[#777777]">
+                  This is a public, read-only artist profile. Follow the artist&apos;s links to listen, connect, and stay up to date.
+                </p>
+              )}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   )

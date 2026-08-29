@@ -1,75 +1,74 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import type { Metadata } from 'next'
 import {
-  ArrowRight,
   CalendarRange,
   CheckCircle2,
   Compass,
   Inbox,
   Radar,
 } from 'lucide-react'
+import { WaitlistButton } from '@/components/marketing/WaitlistButton'
 
 export const metadata: Metadata = {
   title: 'TourAligner',
   description:
-    'TourAligner is a modern booking platform for artists, venues, and booking teams. Discover the right rooms, match with the right dates, manage inquiries, and keep bookings moving in one place.',
+    'TourAligner helps independent artists build stronger booking profiles, join the launch waitlist, and get ready for a cleaner way to route tours and book live shows.',
 }
 
 const pillars = [
   {
     icon: Compass,
-    title: 'Find the right room and the right date',
-    body: 'See more than a venue list. TourAligner helps you evaluate fit, availability, and what kind of night a room is actually booking.',
+    title: 'Start with an artist profile that works harder',
+    body: 'Put your sound, socials, draw, tour radius, and show history in one place so booking conversations start with the right context.',
   },
   {
     icon: Inbox,
-    title: 'Keep booking conversations in one place',
-    body: 'Move inquiries, replies, working dates, and confirmed bookings out of scattered email threads and into a cleaner shared workflow.',
+    title: 'Tell us what booking keeps breaking',
+    body: 'The waitlist is not just a signup form. Your feedback helps shape the tools independent artists need first.',
   },
   {
     icon: CalendarRange,
-    title: 'Keep calendars clean',
-    body: 'Venues can manage availability, bill caps, confirmed dates, and requests without losing track of what is still in play.',
+    title: 'Get ready before the wider launch',
+    body: 'Join early, build your artist presence, and be ready when routing, availability, and booking workflows open up at scale.',
   },
   {
     icon: Radar,
-    title: 'Useful whether you book direct or with a team',
-    body: 'Artists, venues, agents, and managers can all use the same system without changing how they actually work.',
+    title: 'Built for artists booking direct or with a team',
+    body: 'Solo artists, bands, agents, and managers can organize the details that make a booking pitch easier to trust.',
   },
 ]
 
 const workflow = [
   {
-    step: 'Discover',
-    body: 'Find rooms that make sense.',
+    step: 'Join',
+    body: 'Get on the artist waitlist and tell us what should be fixed first.',
   },
   {
-    step: 'Inquire',
-    body: 'Reach out without the usual DM roulette.',
+    step: 'Create',
+    body: 'Create an account and start building out your artist profile.',
   },
   {
-    step: 'Respond',
-    body: 'Keep the conversation in one place.',
+    step: 'Prepare',
+    body: 'Collect the links, dates, and context that help your pitch land.',
   },
   {
-    step: 'Book',
-    body: 'Lock in the date and move on.',
+    step: 'Launch',
+    body: 'Be ready when the full booking workflow opens for early artists.',
   },
 ]
 
 const audiences = [
   {
     title: 'Artists',
-    body: 'Send better inquiries, stop guessing which rooms are worth the time, and keep active dates organized while you build a route.',
+    body: 'Independent artists can claim early access, shape the roadmap, and start turning scattered booking details into a real profile.',
   },
   {
-    title: 'Venues',
-    body: 'Review incoming requests with more context, keep the calendar cleaner, and manage booking flow without living in your inbox.',
+    title: 'Bands',
+    body: 'Bands can keep members, music links, social proof, show history, and tour readiness organized before outreach starts.',
   },
   {
     title: 'Agents and managers',
-    body: 'Work multiple artists from one system, keep booking motion visible, and manage outreach without the usual spreadsheet sprawl.',
+    body: 'Teams can prepare cleaner artist records now, then move faster when routing and booking tools come online.',
   },
 ]
 
@@ -90,36 +89,27 @@ function Hero() {
       <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-6 pb-10 sm:pb-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-end lg:px-8 lg:pb-14">
         <div className="max-w-3xl rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:p-9">
           <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[5.1rem]">
-            A better way to book live shows.
+            Get your artist profile ready before the tour starts.
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-8 text-white/82 sm:text-xl">
-            TourAligner brings artists, venues, agents, and managers into one cleaner
-            booking workflow.
+            TourAligner is opening first for independent artists who want cleaner booking,
+            stronger profiles, and less chaos between the first message and the confirmed show.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/signup"
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#E55A22]"
-            >
-              Start free
-              <ArrowRight size={16} />
-            </Link>
-            <Link
-              href="/venues"
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/14"
-            >
-              Browse venues
-              <ArrowRight size={16} />
-            </Link>
+            <WaitlistButton
+              label="Join Wait List"
+              icon
+              className="min-h-[52px] px-6 py-3.5"
+            />
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
-              'Built for artists, venues, and booking teams',
-              'Better fit between rooms, dates, and artists',
-              'One workflow from first inquiry to confirmed show',
+              'Early access for independent artists',
+              'Build your artist profile before launch',
+              'Help shape the booking workflow from day one',
             ].map((item) => (
               <div
                 key={item}
@@ -149,14 +139,14 @@ function Hero() {
               <div className="mt-3 rounded-[18px] border border-white/10 bg-[#101010]/88 p-3 shadow-[0_10px_22px_rgba(0,0,0,0.16)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Higher Law ↔ The Blue Room</p>
+                    <p className="text-sm font-semibold">Higher Law artist profile</p>
                     <p className="mt-1 text-xs text-white/65">Salt Lake City, UT</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                      Working date
+                      Tour ready
                     </p>
-                    <p className="mt-1 text-sm font-medium text-white">May 14, 2026</p>
+                    <p className="mt-1 text-sm font-medium text-white">Spring 2027</p>
                   </div>
                 </div>
 
@@ -164,31 +154,31 @@ function Hero() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                        Working date
+                        Profile
                       </p>
-                      <p className="mt-1 text-sm font-medium text-white">May 14, 2026</p>
+                      <p className="mt-1 text-sm font-medium text-white">82% complete</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                        Bill
+                        Draw
                       </p>
-                      <p className="mt-1 text-sm font-medium text-white">1 / 4 filled</p>
+                      <p className="mt-1 text-sm font-medium text-white">150-250</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-3 space-y-2">
                   <div className="mr-8 rounded-[15px] border border-white/8 bg-white/[0.04] px-3 py-2.5">
-                    <p className="mb-1 text-[11px] font-medium text-[#8E8E93]">Venue</p>
+                    <p className="mb-1 text-[11px] font-medium text-[#8E8E93]">Booking gripe</p>
                     <p className="text-sm leading-relaxed text-white/88">
-                      May 14 looks open. Want to put a hold on it and keep talking?
+                      We lose too much time hunting for the right contact and resending the same links.
                     </p>
                   </div>
 
                   <div className="ml-8 rounded-[15px] bg-[#FD6A2F] px-3 py-2.5 text-white">
-                    <p className="mb-1 text-[11px] font-medium text-white/75">Artist</p>
+                    <p className="mb-1 text-[11px] font-medium text-white/75">TourAligner</p>
                     <p className="text-sm leading-relaxed">
-                      Yes. That date works for us. We can bring a psych-leaning bill.
+                      Got it. Build the profile now, and we will line up the workflow around artists first.
                     </p>
                   </div>
                 </div>
@@ -199,21 +189,21 @@ function Hero() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#79D7CC]">
-                    Calendar
+                    Artist kit
                   </p>
-                  <h3 className="mt-1 text-[15px] font-semibold">The Blue Room</h3>
+                  <h3 className="mt-1 text-[15px] font-semibold">Higher Law</h3>
                 </div>
                 <button
                   type="button"
                   className="rounded-md border border-white/14 px-2.5 py-1.5 text-[11px] font-medium text-white/85"
                 >
-                  Today
+                  Ready
                 </button>
               </div>
 
               <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-2.5">
                 <div className="mb-2.5 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">May 2026</span>
+                  <span className="text-sm font-semibold text-white">Launch prep</span>
                   <div className="flex items-center gap-2 text-lg text-white/70">
                     <span>‹</span>
                     <span>›</span>
@@ -222,9 +212,9 @@ function Hero() {
 
                 <div className="space-y-1.5">
                   {[
-                    ['May 14', 'Open', 'indie / psych leaning', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
-                    ['May 18', '1 / 4 filled', '', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
-                    ['May 24', 'All booked up', '', 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]'],
+                    ['Music', 'Links added', 'spotify / bandcamp', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
+                    ['Socials', 'Profile connected', '', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
+                    ['Routing', 'Coming soon', '', 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]'],
                   ].map(([date, status, note, styles]) => (
                     <div
                       key={date}
@@ -258,8 +248,8 @@ function Pillars() {
             Why it works
           </p>
           <h2 className="mt-4 max-w-5xl text-2xl font-semibold tracking-tight text-[#111111] sm:text-4xl">
-            TourAligner is built for the people sending the inquiry, reviewing the
-            request, and managing the calendar on the other side.
+            TourAligner is starting with independent artists: the people chasing replies,
+            sharing links, proving fit, and trying to turn momentum into booked dates.
           </h2>
         </div>
 
@@ -295,11 +285,11 @@ function WorkflowSection() {
             How it works
           </p>
           <h2 className="mt-4 font-[var(--font-barlow)] text-4xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white sm:text-5xl">
-            Find the room. Send the inquiry. Book the show.
+            Join early. Build the profile. Shape what comes next.
           </h2>
           <p className="mt-5 text-base leading-8 text-white/72 sm:text-lg">
-            TourAligner gives artists, agents, and venues a cleaner way to connect than
-            hoping an Instagram message gets seen.
+            The first launch wave is about artist acquisition and profile building, so the
+            booking workflow is grounded in real artist problems from the beginning.
           </p>
         </div>
 
@@ -332,7 +322,7 @@ function AudienceSection() {
             Who it&apos;s for
           </p>
           <h2 className="mt-4 max-w-5xl text-3xl font-semibold tracking-tight text-[#111111] sm:text-5xl">
-            Built for artists, venues, and booking teams.
+            Built first for artists getting ready to move.
           </h2>
         </div>
 
@@ -366,28 +356,20 @@ function FinalCta() {
                 Ready when you are
               </p>
               <h2 className="mt-4 font-[var(--font-barlow)] text-4xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white sm:text-5xl">
-                Built to make booking shows a whole lot easier.
+                Get on the list before the next route comes together.
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-8 text-white/74 sm:text-lg">
-                Create an account, explore venues, and start working from a booking system
-                that feels more streamlined than the old way because it is.
+                Join the artist waitlist, tell us what makes booking painful, then create
+                your account and start building the profile venues and booking teams will see.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#E55A22]"
-              >
-                Create your account
-                <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/venues"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/14 bg-white/6 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Browse venues
-              </Link>
+              <WaitlistButton
+                label="Join Wait List"
+                icon
+                className="px-6 py-3.5"
+              />
             </div>
           </div>
         </div>

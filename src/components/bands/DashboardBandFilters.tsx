@@ -58,7 +58,6 @@ export function DashboardBandFilters({ genres }: DashboardBandFiltersProps) {
         if (value) params.set(key, value)
         else params.delete(key)
       }
-      params.set('tab', 'directory')
       params.delete('page')
       params.delete('view')
       router.push(`/dashboard/bands?${params.toString()}`)

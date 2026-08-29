@@ -26,6 +26,16 @@ This file contains repo-specific instructions for automated coding agents workin
 - For docs-only changes, explain why code checks were not run.
 - For schema or Supabase migration changes, also run the duplicate migration timestamp check before reporting completion.
 
+## Linear change logging
+
+- If this session created one or more git commits, run the `log-changes-to-linear` skill before ending the session or reporting the work complete, so those commits get cross-checked against Linear and documented — as a comment on any issue they overlap, or as an entry in the "Engineering Log" team document otherwise.
+- Skip this only if the Linear MCP tools aren't connected in this session, and say so to the developer rather than silently skipping.
+- This applies regardless of branch — documenting work is not itself a code/schema change and isn't gated by the production-branch-safety rule above.
+- Use the agent-native version of the skill:
+  - Claude Code: `.claude/skills/log-changes-to-linear/SKILL.md`
+  - Codex: `.agents/skills/log-changes-to-linear/SKILL.md`
+- Other agents that cannot load either skill must follow the Engineering Log document's own "Process" section, which is the tool-agnostic specification.
+
 ## Supabase migrations
 
 - Before any schema change or Supabase migration work, verify the linked project ref:

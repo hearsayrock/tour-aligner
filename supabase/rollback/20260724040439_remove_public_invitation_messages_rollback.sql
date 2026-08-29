@@ -1,0 +1,2 @@
+-- This data cleanup is not safely reversible: the deleted legacy invitation
+-- system messages do not contain enough information to reconstruct their original rows.

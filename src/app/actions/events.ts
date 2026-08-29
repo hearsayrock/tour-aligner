@@ -8,6 +8,15 @@ import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } f
 import type { Event, EventArtistMembership } from '@/types/database'
 
 type ActionResult<T extends object = object> = T & { error?: string; success?: true }
+type RecurrenceInput = {
+  weekdays: number[]
+  limitType: 'count' | 'end_date'
+  occurrenceCount?: number | null
+  endDate?: string | null
+}
+
+const DEFAULT_RECURRENCE_COUNT = 12
+const MAX_RECURRENCE_OCCURRENCES = 104
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim() ?? ''
@@ -16,9 +25,95 @@ function normalizeText(value: string | null | undefined) {
 function eventPaths(eventId?: string, slug?: string) {
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/backstage')
+  revalidatePath('/dashboard/calendar')
   revalidatePath('/events')
   if (eventId) revalidatePath(`/dashboard/backstage/${eventId}`)
   if (slug) revalidatePath(`/events/${slug}`)
+}
+
+function parseIsoDate(isoDate: string) {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  if (!year || !month || !day) return null
+
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  return date
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date.getTime())
+  next.setUTCDate(next.getUTCDate() + days)
+  return next
+}
+
+function normalizeWeekdays(weekdays: number[]) {
+  return Array.from(
+    new Set(
+      weekdays
+        .map((weekday) => Number(weekday))
+        .filter((weekday) => Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)
+    )
+  ).sort((a, b) => a - b)
+}
+
+function normalizeIsoDates(dates: string[]) {
+  return Array.from(
+    new Set(
+      dates.filter((date) => parseIsoDate(date))
+    )
+  ).sort()
+}
+
+function buildOccurrenceDates(startIso: string, recurrence?: RecurrenceInput | null) {
+  if (!recurrence) return { dates: [startIso] }
+
+  const startDate = parseIsoDate(startIso)
+  if (!startDate) return { error: 'Event date is invalid.' }
+
+  const weekdays = normalizeWeekdays(recurrence.weekdays)
+  if (weekdays.length === 0) return { error: 'Choose at least one recurring weekday.' }
+
+  if (recurrence.limitType === 'count') {
+    const occurrenceCount = recurrence.occurrenceCount ?? DEFAULT_RECURRENCE_COUNT
+    if (!Number.isInteger(occurrenceCount) || occurrenceCount < 1) {
+      return { error: 'Occurrence count must be at least 1.' }
+    }
+    if (occurrenceCount > MAX_RECURRENCE_OCCURRENCES) {
+      return { error: `Recurring events are limited to ${MAX_RECURRENCE_OCCURRENCES} occurrences.` }
+    }
+
+    const dates: string[] = []
+    for (let cursor = startDate; dates.length < occurrenceCount; cursor = addDays(cursor, 1)) {
+      if (weekdays.includes(cursor.getUTCDay())) dates.push(toIsoDate(cursor))
+    }
+    return { dates, weekdays, occurrenceCount }
+  }
+
+  const endDate = recurrence.endDate ? parseIsoDate(recurrence.endDate) : null
+  if (!endDate) return { error: 'Choose an end date for recurring events.' }
+  if (endDate < startDate) return { error: 'Recurring end date must be on or after the first event date.' }
+
+  const dates: string[] = []
+  for (let cursor = startDate; cursor <= endDate; cursor = addDays(cursor, 1)) {
+    if (weekdays.includes(cursor.getUTCDay())) dates.push(toIsoDate(cursor))
+    if (dates.length > MAX_RECURRENCE_OCCURRENCES) {
+      return { error: `Recurring events are limited to ${MAX_RECURRENCE_OCCURRENCES} occurrences.` }
+    }
+  }
+
+  if (dates.length === 0) return { error: 'The recurrence settings do not create any events.' }
+  return { dates, weekdays, endDate: toIsoDate(endDate) }
 }
 
 async function getUserId() {
@@ -79,14 +174,57 @@ async function ensureEventOwner(
 ) {
   const { data: event } = await supabase
     .from('events')
-    .select('id, venue_id, slug, venues(claimed_by_user_id)')
+    .select('id, venue_id, slug, title, venues(claimed_by_user_id)')
     .eq('id', eventId)
     .single()
 
   const rawVenue = Array.isArray(event?.venues) ? event?.venues[0] : event?.venues
   if (!event || rawVenue?.claimed_by_user_id !== userId) return null
 
-  return event as Pick<Event, 'id' | 'venue_id' | 'slug'>
+  return event as Pick<Event, 'id' | 'venue_id' | 'slug' | 'title'>
+}
+
+async function sendEventPrivateChat(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    senderKind: 'band' | 'venue'
+    senderId: string
+    recipientKind: 'band' | 'venue'
+    recipientId: string
+    body: string
+  }
+) {
+  const { data, error } = await supabase.rpc('request_private_chat', {
+    p_sender_kind: input.senderKind,
+    p_sender_id: input.senderId,
+    p_recipient_kind: input.recipientKind,
+    p_recipient_id: input.recipientId,
+    p_body: input.body,
+  })
+
+  if (error) return { error: error.message }
+
+  const result = data as { thread_id?: string; action?: string } | null
+  if (!result?.thread_id || !result.action) {
+    return { error: 'Unable to start the private chat.' }
+  }
+
+  if (result.action === 'incoming_pending') {
+    return { error: 'A private chat request from this profile is waiting in your Inbox. Respond there before continuing.' }
+  }
+
+  if (result.action === 'existing') {
+    const { error: messageError } = await supabase.rpc('send_private_chat_message', {
+      p_thread_id: result.thread_id,
+      p_sender_kind: input.senderKind,
+      p_sender_id: input.senderId,
+      p_body: input.body,
+    })
+
+    if (messageError) return { error: messageError.message }
+  }
+
+  return { threadId: result.thread_id }
 }
 
 async function uniqueEventSlug(
@@ -110,13 +248,15 @@ export async function createEvent(input: {
   venueId: string
   title: string
   eventDate: string
+  eventDates?: string[]
   startTime: string
   genreIds: string[]
   artistNeedDescription: string
   description: string
   attendeeCapacity: number
   neededArtistCount: number
-}): Promise<ActionResult<{ eventId?: string }>> {
+  recurrence?: RecurrenceInput | null
+}): Promise<ActionResult<{ eventId?: string; eventIds?: string[]; createdCount?: number; seriesId?: string }>> {
   const { supabase, userId } = await getUserId()
   if (!userId) return { error: 'You must be signed in to create an event.' }
 
@@ -141,15 +281,64 @@ export async function createEvent(input: {
     return { error: 'Needed artist count must be at least 1.' }
   }
 
-  const slug = await uniqueEventSlug(supabase, title, input.eventDate)
-  const { data: event, error } = await supabase
-    .from('events')
-    .insert({
+  const isRecurring = !!input.recurrence
+  const recurrenceResult = isRecurring
+    ? buildOccurrenceDates(input.eventDate, input.recurrence)
+    : { dates: normalizeIsoDates([input.eventDate, ...(input.eventDates ?? [])]) }
+  if (recurrenceResult.error) return { error: recurrenceResult.error }
+
+  const occurrenceDates = recurrenceResult.dates ?? [input.eventDate]
+  if (occurrenceDates.length === 0) return { error: 'Choose at least one event date.' }
+  if (occurrenceDates.length > MAX_RECURRENCE_OCCURRENCES) {
+    return { error: `Event creation is limited to ${MAX_RECURRENCE_OCCURRENCES} dates.` }
+  }
+  let seriesId: string | null = null
+
+  const { data: unavailableDates } = await supabase
+    .from('venue_unavailable_dates')
+    .select('unavailable_date')
+    .eq('venue_id', input.venueId)
+    .in('unavailable_date', occurrenceDates)
+
+  if ((unavailableDates ?? []).length > 0) {
+    const blockedDate = unavailableDates?.[0]?.unavailable_date
+    return { error: blockedDate ? `${blockedDate} is marked unavailable.` : 'One or more dates are marked unavailable.' }
+  }
+
+  if (isRecurring) {
+    const { data: series, error: seriesError } = await supabase
+      .from('event_series')
+      .insert({
+        venue_id: input.venueId,
+        created_by_user_id: userId,
+        recurrence_weekdays: recurrenceResult.weekdays ?? normalizeWeekdays(input.recurrence?.weekdays ?? []),
+        start_date: input.eventDate,
+        start_time: input.startTime,
+        limit_type: input.recurrence?.limitType ?? 'count',
+        occurrence_count: input.recurrence?.limitType === 'count'
+          ? input.recurrence.occurrenceCount ?? DEFAULT_RECURRENCE_COUNT
+          : null,
+        recurrence_end_date: input.recurrence?.limitType === 'end_date'
+          ? input.recurrence.endDate
+          : null,
+      })
+      .select('id')
+      .single()
+
+    if (seriesError || !series) return { error: seriesError?.message ?? 'Unable to create recurring event series.' }
+    seriesId = series.id
+  }
+
+  const eventRows = []
+  for (const [index, eventDate] of occurrenceDates.entries()) {
+    eventRows.push({
       venue_id: input.venueId,
       created_by_user_id: userId,
+      event_series_id: seriesId,
+      series_occurrence_index: seriesId ? index + 1 : null,
       title,
-      slug,
-      event_date: input.eventDate,
+      slug: await uniqueEventSlug(supabase, title, eventDate),
+      event_date: eventDate,
       start_time: input.startTime,
       artist_need_description: artistNeedDescription,
       description,
@@ -157,28 +346,160 @@ export async function createEvent(input: {
       needed_artist_count: input.neededArtistCount,
       is_public: false,
       is_accepting_artists: true,
-      status: 'draft',
+      status: 'draft' as const,
     })
-    .select('id, slug')
-    .single()
+  }
 
-  if (error || !event) return { error: error?.message ?? 'Unable to create event.' }
+  const { data: events, error } = await supabase
+    .from('events')
+    .insert(eventRows)
+    .select('id, slug')
+
+  if (error || !events || events.length === 0) {
+    if (seriesId) await supabase.from('event_series').delete().eq('id', seriesId)
+    return { error: error?.message ?? 'Unable to create event.' }
+  }
 
   const { error: genreError } = await supabase
     .from('event_genres')
-    .insert(genreIds.map((genreId) => ({ event_id: event.id, genre_id: genreId })))
+    .insert(events.flatMap((event) => genreIds.map((genreId) => ({ event_id: event.id, genre_id: genreId }))))
 
   if (genreError) return { error: genreError.message }
 
-  await supabase.from('backstage_messages').insert({
-    event_id: event.id,
-    sender_user_id: userId,
-    sender_kind: 'system',
-    body: 'Backstage was created for this event.',
-  })
+  const { error: messageError } = await supabase.from('backstage_messages').insert(
+    events.map((event) => ({
+      event_id: event.id,
+      sender_user_id: userId,
+      sender_kind: 'system' as const,
+      body: 'Backstage was created for this event.',
+    }))
+  )
 
-  eventPaths(event.id, event.slug)
-  return { success: true, eventId: event.id }
+  if (messageError) return { error: messageError.message }
+
+  eventPaths(events[0].id, events[0].slug)
+  return {
+    success: true,
+    eventId: events[0].id,
+    eventIds: events.map((event) => event.id),
+    createdCount: events.length,
+    seriesId: seriesId ?? undefined,
+  }
+}
+
+export async function createVenueUnavailableDates(input: {
+  venueId: string
+  startDate: string
+  reason: string
+  recurrence?: RecurrenceInput | null
+}): Promise<ActionResult<{ createdCount?: number; unavailableDateIds?: string[]; seriesId?: string }>> {
+  const { supabase, userId } = await getUserId()
+  if (!userId) return { error: 'You must be signed in to update the calendar.' }
+
+  const venue = await ensureVenueOwner(supabase, input.venueId, userId)
+  if (!venue) return { error: 'You can only mark dates unavailable for venues you manage.' }
+
+  if (!input.startDate) return { error: 'Choose a date first.' }
+
+  const recurrenceResult = buildOccurrenceDates(input.startDate, input.recurrence)
+  if (recurrenceResult.error) return { error: recurrenceResult.error }
+
+  const unavailableDates = recurrenceResult.dates ?? [input.startDate]
+  const isRecurring = !!input.recurrence
+  const { data: existingEvents } = await supabase
+    .from('events')
+    .select('event_date, title')
+    .eq('venue_id', input.venueId)
+    .in('event_date', unavailableDates)
+
+  if ((existingEvents ?? []).length > 0) {
+    const event = existingEvents?.[0]
+    return {
+      error: event
+        ? `${event.event_date} already has "${event.title}". Move or cancel that Event before marking the date unavailable.`
+        : 'One or more selected dates already have Events.',
+    }
+  }
+
+  let seriesId: string | null = null
+  if (isRecurring) {
+    const { data: series, error: seriesError } = await supabase
+      .from('venue_unavailable_series')
+      .insert({
+        venue_id: input.venueId,
+        created_by_user_id: userId,
+        recurrence_weekdays: recurrenceResult.weekdays ?? normalizeWeekdays(input.recurrence?.weekdays ?? []),
+        start_date: input.startDate,
+        limit_type: input.recurrence?.limitType ?? 'count',
+        occurrence_count: input.recurrence?.limitType === 'count'
+          ? input.recurrence.occurrenceCount ?? DEFAULT_RECURRENCE_COUNT
+          : null,
+        recurrence_end_date: input.recurrence?.limitType === 'end_date'
+          ? input.recurrence.endDate
+          : null,
+      })
+      .select('id')
+      .single()
+
+    if (seriesError || !series) return { error: seriesError?.message ?? 'Unable to create unavailable date series.' }
+    seriesId = series.id
+  }
+
+  const reason = normalizeText(input.reason) || null
+  const { data: rows, error } = await supabase
+    .from('venue_unavailable_dates')
+    .upsert(
+      unavailableDates.map((unavailableDate) => ({
+        venue_id: input.venueId,
+        unavailable_series_id: seriesId,
+        unavailable_date: unavailableDate,
+        reason,
+        created_by_user_id: userId,
+      })),
+      { onConflict: 'venue_id,unavailable_date' }
+    )
+    .select('id')
+
+  if (error || !rows) {
+    if (seriesId) await supabase.from('venue_unavailable_series').delete().eq('id', seriesId)
+    return { error: error?.message ?? 'Unable to mark dates unavailable.' }
+  }
+
+  eventPaths()
+  return {
+    success: true,
+    createdCount: rows.length,
+    unavailableDateIds: rows.map((row) => row.id),
+    seriesId: seriesId ?? undefined,
+  }
+}
+
+export async function deleteVenueUnavailableDate(input: {
+  unavailableDateId: string
+}): Promise<ActionResult> {
+  const { supabase, userId } = await getUserId()
+  if (!userId) return { error: 'You must be signed in to update the calendar.' }
+
+  const { data: row } = await supabase
+    .from('venue_unavailable_dates')
+    .select('id, venue_id, venues(claimed_by_user_id)')
+    .eq('id', input.unavailableDateId)
+    .single()
+
+  const rawVenue = Array.isArray(row?.venues) ? row?.venues[0] : row?.venues
+  if (!row || rawVenue?.claimed_by_user_id !== userId) {
+    return { error: 'You can only update unavailable dates for venues you manage.' }
+  }
+
+  const { error } = await supabase
+    .from('venue_unavailable_dates')
+    .delete()
+    .eq('id', input.unavailableDateId)
+
+  if (error) return { error: error.message }
+
+  eventPaths()
+  return { success: true }
 }
 
 export async function updateEventSettings(input: {
@@ -309,7 +630,7 @@ export async function applyToEvent(input: {
 
   const { data: event } = await supabase
     .from('events')
-    .select('id, slug, is_public, is_accepting_artists, status')
+    .select('id, venue_id, slug, title, is_public, is_accepting_artists, status')
     .eq('id', input.eventId)
     .single()
 
@@ -330,12 +651,20 @@ export async function applyToEvent(input: {
   }
   if (existing?.status === 'applied') return { error: 'This artist has already applied.' }
 
+  const privateChatResult = await sendEventPrivateChat(supabase, {
+    senderKind: 'band',
+    senderId: input.bandId,
+    recipientKind: 'venue',
+    recipientId: event.venue_id,
+    body: `Application for ${event.title}\n\n${normalizeText(input.note)}`,
+  })
+  if (privateChatResult.error) return privateChatResult
+
   const payload = {
     event_id: input.eventId,
     band_id: input.bandId,
     status: 'applied' as const,
     source: 'application' as const,
-    application_note: normalizeText(input.note),
     applied_at: now,
   }
 
@@ -346,6 +675,7 @@ export async function applyToEvent(input: {
   if (error) return { error: error.message }
 
   eventPaths(input.eventId, event.slug)
+  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 
@@ -360,8 +690,22 @@ export async function inviteArtistToEvent(input: {
   const event = await ensureEventOwner(supabase, input.eventId, userId)
   if (!event) return { error: 'Only the venue leader can invite artists.' }
 
+  const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+  if (activeIdentity.kind !== 'venue' || activeIdentity.id !== event.venue_id) {
+    return { error: 'Switch to the venue profile that owns this Backstage before inviting an artist.' }
+  }
+
   const { data: band } = await supabase.from('bands').select('id, name').eq('id', input.bandId).single()
   if (!band) return { error: 'Artist not found.' }
+
+  const privateChatResult = await sendEventPrivateChat(supabase, {
+    senderKind: 'venue',
+    senderId: event.venue_id,
+    recipientKind: 'band',
+    recipientId: input.bandId,
+    body: `Invitation to perform at ${event.title}${normalizeText(input.note) ? `\n\n${normalizeText(input.note)}` : ''}`,
+  })
+  if (privateChatResult.error) return privateChatResult
 
   const now = new Date().toISOString()
   const payload = {
@@ -369,7 +713,6 @@ export async function inviteArtistToEvent(input: {
     band_id: input.bandId,
     status: 'invited' as const,
     source: 'invitation' as const,
-    invite_note: normalizeText(input.note),
     invited_at: now,
   }
 
@@ -379,14 +722,8 @@ export async function inviteArtistToEvent(input: {
 
   if (error) return { error: error.message }
 
-  await supabase.from('backstage_messages').insert({
-    event_id: input.eventId,
-    sender_user_id: userId,
-    sender_kind: 'system',
-    body: `Venue invited ${band.name} to this event.`,
-  })
-
   eventPaths(input.eventId, event.slug)
+  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 

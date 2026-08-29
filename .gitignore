@@ -46,3 +46,4 @@ next-env.d.ts
 # supabase CLI ephemeral state — keep only project-ref tracked
 supabase/.temp/*
 !supabase/.temp/project-ref
+supabase/.branches/

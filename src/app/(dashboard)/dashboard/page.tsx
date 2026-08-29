@@ -24,18 +24,29 @@ type ActionItem = {
   href: string
   title: string
   detail: string
+  profileLabel?: string
   tone: 'brand' | 'warning' | 'success' | 'info'
   icon: React.ComponentType<{ className?: string }>
+}
+
+function ProfileTag({ label }: { label: string }) {
+  return (
+    <span className="inline-flex max-w-full items-center rounded-full border border-[#E4E4E4] bg-[#F8F8F8] px-2.5 py-1 text-xs font-semibold text-[#5F5F5F]">
+      <span className="truncate">{label}</span>
+    </span>
+  )
 }
 
 function DashboardEventCard({
   event,
   label,
   href,
+  profileLabel,
 }: {
   event: DashboardEvent
   label: string
   href: string
+  profileLabel?: string
 }) {
   const memberships = event.event_artist_memberships ?? []
   const acceptedCount = getAcceptedMemberships(memberships).length
@@ -69,6 +80,11 @@ function DashboardEventCard({
           </p>
         </div>
       </div>
+      {profileLabel && (
+        <div className="mt-4 flex justify-end">
+          <ProfileTag label={profileLabel} />
+        </div>
+      )}
     </Link>
   )
 }
@@ -133,6 +149,11 @@ function ActionQueue({ items }: { items: ActionItem[] }) {
                 <Badge tone={item.tone}>{item.tone === 'warning' ? 'Needs review' : 'Open'}</Badge>
               </span>
               <span className="mt-1 block text-sm leading-6 text-[#777777]">{item.detail}</span>
+              {item.profileLabel && (
+                <span className="mt-2 block">
+                  <ProfileTag label={item.profileLabel} />
+                </span>
+              )}
             </span>
           </Link>
         )
@@ -180,6 +201,9 @@ export default async function DashboardPage() {
   const allVenueIds = (venues ?? []).map((venue) => venue.id)
   const totalProfileCount = allBandIds.length + allVenueIds.length
   const hasMultipleProfiles = totalProfileCount > 1
+  const showProfileTags = hasMultipleProfiles && activeIdentity.kind === 'all'
+  const bandNameById = new Map((bands ?? []).map((band) => [band.id, band.name]))
+  const venueNameById = new Map((venues ?? []).map((venue) => [venue.id, venue.name]))
   const bandIds = activeIdentity.kind === 'all'
     ? allBandIds
     : activeIdentity.kind === 'band'
@@ -204,7 +228,7 @@ export default async function DashboardPage() {
     bandIds.length
       ? supabase
           .from('event_artist_memberships')
-          .select('id, status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
+          .select('id, band_id, status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
           .in('band_id', bandIds)
           .in('status', ['applied', 'invited', 'accepted', 'removal_requested'])
           .limit(8)
@@ -213,15 +237,17 @@ export default async function DashboardPage() {
 
   const artistEvents = ((artistMemberships ?? []) as unknown as Array<{
     id: string
+    band_id: string
     status: EventArtistMembership['status']
     events: DashboardEvent | DashboardEvent[] | null
   }>)
     .map((row) => ({
       membershipId: row.id,
+      bandId: row.band_id,
       status: row.status,
       event: Array.isArray(row.events) ? row.events[0] : row.events,
     }))
-    .filter((row): row is { membershipId: string; status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
+    .filter((row): row is { membershipId: string; bandId: string; status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
 
   const venueEventRows = (venueEvents ?? []) as unknown as DashboardEvent[]
   const name = profile?.full_name?.split(' ')[0] ?? 'there'
@@ -239,15 +265,17 @@ export default async function DashboardPage() {
       href: '/dashboard/venues?tab=mine',
       title: `${claim.venues?.name ?? 'Venue'} claim is pending`,
       detail: claim.venues ? [claim.venues.location_city, claim.venues.location_state].filter(Boolean).join(', ') : 'We will show approval here when it changes.',
+      profileLabel: showProfileTags ? claim.venues?.name ?? 'Venue claim' : undefined,
       tone: 'warning' as const,
       icon: Clock3,
     })),
     ...artistEvents
       .filter(({ status }) => status === 'invited' || status === 'removal_requested')
-      .map(({ event, status }) => ({
+      .map(({ bandId, event, status }) => ({
         href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
         title: status === 'invited' ? `Invite from ${event.venues?.name ?? 'a venue'}` : `Removal request: ${event.title}`,
         detail: `${event.title} / ${formatEventDate(event)}`,
+        profileLabel: showProfileTags ? bandNameById.get(bandId) : undefined,
         tone: status === 'invited' ? 'brand' as const : 'warning' as const,
         icon: AlertCircle,
       })),
@@ -258,17 +286,24 @@ export default async function DashboardPage() {
         href: `/dashboard/backstage/${event.id}`,
         title: event.status === 'draft' ? `Draft event: ${event.title}` : `${event.title} still needs artists`,
         detail: `${formatEventDate(event)} / ${getAcceptedMemberships(event.event_artist_memberships ?? []).length}/${event.needed_artist_count} accepted`,
+        profileLabel: showProfileTags ? venueNameById.get(event.venue_id) ?? event.venues?.name ?? 'Venue profile' : undefined,
         tone: event.status === 'draft' ? 'info' as const : 'brand' as const,
         icon: Users,
       })),
   ].slice(0, 6)
 
   const upcoming = [
-    ...venueEventRows.map((event) => ({ event, label: 'Venue leader', href: `/dashboard/backstage/${event.id}` })),
-    ...artistEvents.map(({ event, status }) => ({
+    ...venueEventRows.map((event) => ({
+      event,
+      label: 'Venue leader',
+      href: `/dashboard/backstage/${event.id}`,
+      profileLabel: showProfileTags ? venueNameById.get(event.venue_id) ?? event.venues?.name : undefined,
+    })),
+    ...artistEvents.map(({ bandId, event, status }) => ({
       event,
       label: MEMBERSHIP_STATUS_LABELS[status],
       href: status === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
+      profileLabel: showProfileTags ? bandNameById.get(bandId) : undefined,
     })),
   ]
     .sort((a, b) => a.event.event_date.localeCompare(b.event.event_date))
@@ -330,8 +365,8 @@ export default async function DashboardPage() {
             />
           ) : (
             <div className="space-y-4">
-              {upcoming.map(({ event, label, href }) => (
-                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} href={href} />
+              {upcoming.map(({ event, label, href, profileLabel }) => (
+                <DashboardEventCard key={`${event.id}-${label}`} event={event} label={label} href={href} profileLabel={profileLabel} />
               ))}
             </div>
           )}

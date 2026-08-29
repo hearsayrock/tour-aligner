@@ -151,7 +151,6 @@ export function DashboardVenueFilters({
         if (value) params.set(key, value)
         else params.delete(key)
       }
-      params.set('tab', 'directory')
       params.delete('recommendBand')
       params.delete('page')
       params.delete('view')

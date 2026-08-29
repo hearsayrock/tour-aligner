@@ -1,0 +1,10 @@
+interface:
+  display_name: "Log Changes to Linear"
+  short_description: "Reconcile committed work with Linear records"
+  default_prompt: "Use $log-changes-to-linear to document recent commits in Linear."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Read and update TourAligner issues and the Engineering Log"

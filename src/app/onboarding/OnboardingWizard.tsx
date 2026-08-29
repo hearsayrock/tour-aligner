@@ -246,8 +246,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
 
   async function handleVenueFinish() {
     setSubmitting(true)
-    await supabase.from('profiles').update({ primary_role: 'venue' }).eq('id', userId)
-    router.push('/venues')
+    router.push('/dashboard/profiles')
   }
 
   async function handleArtistFinish() {
@@ -392,9 +391,9 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </div>
-              <h2 className="text-lg font-bold text-[#252525] mb-2">Let&apos;s find your venue</h2>
+              <h2 className="text-lg font-bold text-[#252525] mb-2">Venue tools are coming soon</h2>
               <p className="text-sm text-[#888888] mb-6 max-w-sm mx-auto">
-                Browse the venue directory and claim your venue. Once claimed, you&apos;ll be able to receive and manage inbox contact requests.
+                Tour Aligner is currently focused on artist profiles. You can create and share yours today.
               </p>
               <button
                 type="button"
@@ -402,7 +401,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                 disabled={submitting}
                 className="bg-[#FD6A2F] text-white font-semibold rounded-xl px-6 py-3 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 w-full"
               >
-                {submitting ? 'One moment…' : 'Browse the venue directory →'}
+                {submitting ? 'One moment…' : 'Build my artist profile →'}
               </button>
             </div>
           )}

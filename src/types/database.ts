@@ -73,6 +73,24 @@ export interface Database {
           updated_at?: string
         }
       }
+      artist_waitlist_entries: {
+        Row: {
+          id: string
+          email: string
+          booking_process_gripe: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          booking_process_gripe?: string | null
+          created_at?: string
+        }
+        Update: {
+          email?: string
+          booking_process_gripe?: string | null
+        }
+      }
       genres: {
         Row: {
           id: string
@@ -223,6 +241,32 @@ export interface Database {
           ticket_url?: string | null
         }
       }
+      band_lyrics: {
+        Row: {
+          id: string
+          band_id: string
+          title: string
+          body: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          band_id: string
+          title: string
+          body: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          body?: string
+          sort_order?: number
+          updated_at?: string
+        }
+      }
       venues: {
         Row: {
           id: string
@@ -333,6 +377,8 @@ export interface Database {
           id: string
           venue_id: string
           created_by_user_id: string | null
+          event_series_id: string | null
+          series_occurrence_index: number | null
           title: string
           slug: string
           event_date: string
@@ -346,6 +392,7 @@ export interface Database {
           status: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published: boolean
           migrated_booking_group_key: string | null
+          venue_booking_date_id: string | null
           logistics_load_in: string | null
           logistics_soundcheck: string | null
           logistics_set_times: string | null
@@ -360,6 +407,8 @@ export interface Database {
           id?: string
           venue_id: string
           created_by_user_id?: string | null
+          event_series_id?: string | null
+          series_occurrence_index?: number | null
           title: string
           slug: string
           event_date: string
@@ -373,6 +422,7 @@ export interface Database {
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
+          venue_booking_date_id?: string | null
           logistics_load_in?: string | null
           logistics_soundcheck?: string | null
           logistics_set_times?: string | null
@@ -386,6 +436,8 @@ export interface Database {
         Update: {
           venue_id?: string
           created_by_user_id?: string | null
+          event_series_id?: string | null
+          series_occurrence_index?: number | null
           title?: string
           slug?: string
           event_date?: string
@@ -399,6 +451,7 @@ export interface Database {
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
+          venue_booking_date_id?: string | null
           logistics_load_in?: string | null
           logistics_soundcheck?: string | null
           logistics_set_times?: string | null
@@ -406,6 +459,111 @@ export interface Database {
           logistics_artist_should_bring?: string | null
           logistics_parking_access?: string | null
           logistics_notes?: string | null
+          updated_at?: string
+        }
+      }
+      event_series: {
+        Row: {
+          id: string
+          venue_id: string
+          created_by_user_id: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          start_time: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count: number | null
+          recurrence_end_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          created_by_user_id?: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          start_time: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          created_by_user_id?: string | null
+          recurrence_weekdays?: number[]
+          start_date?: string
+          start_time?: string
+          limit_type?: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          updated_at?: string
+        }
+      }
+      venue_unavailable_series: {
+        Row: {
+          id: string
+          venue_id: string
+          created_by_user_id: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count: number | null
+          recurrence_end_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          created_by_user_id?: string | null
+          recurrence_weekdays: number[]
+          start_date: string
+          limit_type: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          created_by_user_id?: string | null
+          recurrence_weekdays?: number[]
+          start_date?: string
+          limit_type?: 'count' | 'end_date'
+          occurrence_count?: number | null
+          recurrence_end_date?: string | null
+          updated_at?: string
+        }
+      }
+      venue_unavailable_dates: {
+        Row: {
+          id: string
+          venue_id: string
+          unavailable_series_id: string | null
+          unavailable_date: string
+          reason: string | null
+          created_by_user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          unavailable_series_id?: string | null
+          unavailable_date: string
+          reason?: string | null
+          created_by_user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          venue_id?: string
+          unavailable_series_id?: string | null
+          unavailable_date?: string
+          reason?: string | null
+          created_by_user_id?: string | null
           updated_at?: string
         }
       }
@@ -517,6 +675,66 @@ export interface Database {
         }
         Update: {
           last_read_at?: string
+        }
+      }
+      private_chat_threads: {
+        Row: {
+          id: string
+          participant_one_kind: 'band' | 'venue'
+          participant_one_id: string
+          participant_two_kind: 'band' | 'venue'
+          participant_two_id: string
+          status: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind: 'band' | 'venue' | null
+          requested_by_id: string | null
+          blocked_by_kind: 'band' | 'venue' | null
+          blocked_by_id: string | null
+          accepted_at: string | null
+          last_message_at: string | null
+          participant_one_last_read_at: string | null
+          participant_two_last_read_at: string | null
+          participant_one_archived_at: string | null
+          participant_two_archived_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          participant_one_kind: 'band' | 'venue'
+          participant_one_id: string
+          participant_two_kind: 'band' | 'venue'
+          participant_two_id: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind?: 'band' | 'venue' | null
+          requested_by_id?: string | null
+          blocked_by_kind?: 'band' | 'venue' | null
+          blocked_by_id?: string | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          participant_one_last_read_at?: string | null
+          participant_two_last_read_at?: string | null
+          participant_one_archived_at?: string | null
+          participant_two_archived_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          participant_one_kind?: 'band' | 'venue'
+          participant_one_id?: string
+          participant_two_kind?: 'band' | 'venue'
+          participant_two_id?: string
+          status?: 'pending' | 'accepted' | 'declined' | 'blocked'
+          requested_by_kind?: 'band' | 'venue' | null
+          requested_by_id?: string | null
+          blocked_by_kind?: 'band' | 'venue' | null
+          blocked_by_id?: string | null
+          accepted_at?: string | null
+          last_message_at?: string | null
+          participant_one_last_read_at?: string | null
+          participant_two_last_read_at?: string | null
+          participant_one_archived_at?: string | null
+          participant_two_archived_at?: string | null
+          updated_at?: string
         }
       }
       booking_inquiries: {
@@ -651,6 +869,7 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
+          event_id: string | null
           status: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side: 'band' | 'venue' | null
           cancellation_requested_at: string | null
@@ -666,6 +885,7 @@ export interface Database {
           venue_id: string
           show_date: string
           venue_booking_date_id: string
+          event_id?: string | null
           status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side?: 'band' | 'venue' | null
           cancellation_requested_at?: string | null
@@ -680,6 +900,7 @@ export interface Database {
           venue_id?: string
           show_date?: string
           venue_booking_date_id?: string
+          event_id?: string | null
           status?: 'confirmed' | 'cancellation_requested' | 'cancelled'
           cancellation_requested_by_side?: 'band' | 'venue' | null
           cancellation_requested_at?: string | null
@@ -716,9 +937,110 @@ export interface Database {
           created_at?: string
         }
       }
+      private_chat_messages: {
+        Row: {
+          id: string
+          thread_id: string
+          sender_profile_kind: 'band' | 'venue' | null
+          sender_profile_id: string | null
+          sender_user_id: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          thread_id: string
+          sender_profile_kind?: 'band' | 'venue' | null
+          sender_profile_id?: string | null
+          sender_user_id?: string | null
+          kind: 'request' | 'message' | 'system'
+          body: string
+          created_at?: string
+        }
+        Update: {
+          thread_id?: string
+          sender_profile_kind?: 'band' | 'venue' | null
+          sender_profile_id?: string | null
+          sender_user_id?: string | null
+          kind?: 'request' | 'message' | 'system'
+          body?: string
+          created_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: {
+      request_private_chat: {
+        Args: {
+          p_sender_kind: 'band' | 'venue'
+          p_sender_id: string
+          p_recipient_kind: 'band' | 'venue'
+          p_recipient_id: string
+          p_body: string
+        }
+        Returns: Json
+      }
+      respond_to_private_chat_request: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+          p_action: 'accept' | 'deny' | 'deny_and_block'
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      send_private_chat_message: {
+        Args: {
+          p_thread_id: string
+          p_sender_kind: 'band' | 'venue'
+          p_sender_id: string
+          p_body: string
+        }
+        Returns: Json
+      }
+      mark_private_chat_read: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: undefined
+      }
+      archive_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
+      unarchive_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
+      block_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+          p_note?: string | null
+        }
+        Returns: Json
+      }
+      unblock_private_chat_thread: {
+        Args: {
+          p_thread_id: string
+          p_actor_kind: 'band' | 'venue'
+          p_actor_id: string
+        }
+        Returns: Json
+      }
       request_contact: {
         Args: {
           p_band_id: string
@@ -853,23 +1175,30 @@ export interface Database {
 // Convenience row types
 // ─────────────────────────────────────────────────────────────
 export type Profile        = Database['public']['Tables']['profiles']['Row']
+export type ArtistWaitlistEntry = Database['public']['Tables']['artist_waitlist_entries']['Row']
 export type Genre          = Database['public']['Tables']['genres']['Row']
 export type Band           = Database['public']['Tables']['bands']['Row']
 export type BandGenre      = Database['public']['Tables']['band_genres']['Row']
 export type BandShowDate   = Database['public']['Tables']['band_show_dates']['Row']
+export type BandLyric      = Database['public']['Tables']['band_lyrics']['Row']
 export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']
 export type Event          = Database['public']['Tables']['events']['Row']
+export type EventSeries    = Database['public']['Tables']['event_series']['Row']
+export type VenueUnavailableSeries = Database['public']['Tables']['venue_unavailable_series']['Row']
+export type VenueUnavailableDate = Database['public']['Tables']['venue_unavailable_dates']['Row']
 export type EventGenre     = Database['public']['Tables']['event_genres']['Row']
 export type EventArtistMembership = Database['public']['Tables']['event_artist_memberships']['Row']
 export type BackstageMessage = Database['public']['Tables']['backstage_messages']['Row']
 export type BackstageReadState = Database['public']['Tables']['backstage_read_states']['Row']
+export type PrivateChatThread = Database['public']['Tables']['private_chat_threads']['Row']
 export type BookingInquiry = Database['public']['Tables']['booking_inquiries']['Row']
 export type ContactThread  = Database['public']['Tables']['contact_threads']['Row']
 export type VenueBookingDate = Database['public']['Tables']['venue_booking_dates']['Row']
 export type Booking = Database['public']['Tables']['bookings']['Row']
 export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
+export type PrivateChatMessage = Database['public']['Tables']['private_chat_messages']['Row']
 
 export type InquiryStatus = BookingInquiry['status']
 export type ClaimStatus   = VenueClaim['status']
@@ -880,3 +1209,5 @@ export type ContactThreadStatus = ContactThread['status']
 export type ConversationSide = NonNullable<ContactThread['requested_by_side']>
 export type ContactMessageKind = ContactMessage['kind']
 export type BookingStatus = Booking['status']
+export type PrivateChatStatus = PrivateChatThread['status']
+export type PrivateChatMessageKind = PrivateChatMessage['kind']

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { EnvironmentBadge } from '@/components/layout/EnvironmentBadge'
 import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 import { SignedOutMobileMenu } from '@/components/marketing/SignedOutMobileMenu'
+import { WaitlistButton } from '@/components/marketing/WaitlistButton'
 import { isStagingEnvironment } from '@/lib/deployment-environment'
 
 export async function Navbar() {
@@ -38,18 +39,6 @@ export async function Navbar() {
           >
             Who it&apos;s for
           </Link>
-          <Link
-            href="/events"
-            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
-          >
-            Events
-          </Link>
-          <Link
-            href="/venues"
-            className="px-3 py-2 text-sm text-[#252525]/70 transition-colors hover:text-[#252525]"
-          >
-            Venues
-          </Link>
 
           {user ? (
             <NavAccountMenu />
@@ -61,12 +50,7 @@ export async function Navbar() {
               >
                 Sign in
               </Link>
-              <Link
-                href="/signup"
-                className="rounded-xl bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]"
-              >
-                Start free
-              </Link>
+              <WaitlistButton label="Join Wait List" />
             </>
           )}
         </nav>

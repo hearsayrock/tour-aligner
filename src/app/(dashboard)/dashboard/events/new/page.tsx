@@ -54,6 +54,18 @@ export default async function NewEventPage() {
     : venues.length === 1 && !requiredIdentity.hasMultipleIdentities
       ? venues
       : []
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const twoYearsFromNow = new Date()
+  twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
+  const existingEvents = selectedVenues.length > 0
+    ? (await supabase
+      .from('events')
+      .select('event_date, title')
+      .eq('venue_id', selectedVenues[0].id)
+      .gte('event_date', todayIso)
+      .lte('event_date', twoYearsFromNow.toISOString().slice(0, 10))
+      .order('event_date')).data ?? []
+    : []
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -72,7 +84,13 @@ export default async function NewEventPage() {
           identities={venueIdentities}
         />
       ) : selectedVenues.length > 0 ? (
-        <EventCreateForm venues={selectedVenues} genres={genres ?? []} />
+        <EventCreateForm
+          venues={selectedVenues}
+          genres={genres ?? []}
+          initialVenueId={selectedVenues[0].id}
+          lockVenue
+          existingEvents={existingEvents}
+        />
       ) : (
         <EmptyState
           title="Claim a venue first"

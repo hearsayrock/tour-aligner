@@ -1,0 +1,21 @@
+
+> tour-aligner@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.10.1.214:3000
+- Environments: .env.development.local, .env.local
+
+✓ Starting...
+✓ Ready in 6.9s
+ GET / 200 in 3.4s (compile: 3.1s, proxy.ts: 58ms, render: 276ms)
+ GET / 200 in 717ms (compile: 14ms, proxy.ts: 588ms, render: 114ms)
+ GET / 200 in 141ms (compile: 62ms, proxy.ts: 4ms, render: 76ms)
+✓ Compiled in 70ms
+ GET / 200 in 224ms (compile: 60ms, proxy.ts: 5ms, render: 159ms)
+ GET / 200 in 101ms (compile: 9ms, proxy.ts: 5ms, render: 88ms)
+ POST / 200 in 323ms (compile: 7ms, proxy.ts: 6ms, render: 310ms)
+ GET / 200 in 105ms (compile: 7ms, proxy.ts: 3ms, render: 95ms)
+ POST / 200 in 235ms (compile: 7ms, proxy.ts: 5ms, render: 223ms)
+ GET /signup 200 in 514ms (compile: 485ms, proxy.ts: 4ms, render: 26ms)
