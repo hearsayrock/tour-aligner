@@ -23,11 +23,13 @@ export function NavAccountMenu({
   notifications,
   placement = 'bottom',
   align = 'right',
+  showManageProfiles = true,
 }: {
   isAdmin?: boolean
   notifications?: Notifications
   placement?: 'bottom' | 'top' | 'right'
   align?: 'left' | 'right'
+  showManageProfiles?: boolean
 }) {
   const pathname = usePathname()
   const [openPath, setOpenPath] = useState<string | null>(null)
@@ -67,7 +69,7 @@ export function NavAccountMenu({
         }`}
       >
         <div className="py-1">
-          {ACCOUNT_LINKS.map((link) => (
+          {ACCOUNT_LINKS.filter((link) => showManageProfiles || link.href !== '/dashboard/profiles').map((link) => (
             <Link key={link.href} href={link.href} className={itemClass}>
               <span className="flex items-center gap-2">
                 {link.href === '/dashboard/profiles' ? (

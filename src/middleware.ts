@@ -49,17 +49,51 @@ export async function middleware(request: NextRequest) {
       : redirectWithSession(request, response, '/')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single()
+  const [profileResult, bandsResult, venuesResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('bands')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1),
+    supabase
+      .from('venues')
+      .select('id')
+      .eq('claimed_by_user_id', user.id)
+      .limit(1),
+  ])
+
+  const profile = profileResult.data
+  const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
 
   if (pathname === '/') {
-    return redirectWithSession(request, response, profile?.is_admin ? '/dashboard' : '/dashboard/profiles')
+    return redirectWithSession(
+      request,
+      response,
+      profile?.is_admin ? '/dashboard' : hasManagedProfile ? '/dashboard/profiles' : '/onboarding'
+    )
   }
 
-  if (profile?.is_admin || pathname === '/onboarding') return response
+  // Administrators retain access to the admin workspace without a managed artist or venue.
+  if (profile?.is_admin) return response
+
+  // A role selection alone is not onboarding completion. The account must own an artist
+  // profile or manage a claimed venue before it can access the product workspace.
+  if (!hasManagedProfile) {
+    // Account information remains available during setup so users can update their details
+    // or sign out, but profile-management screens stay behind onboarding.
+    return pathname === '/onboarding' || pathname === '/dashboard/account'
+      ? response
+      : redirectWithSession(request, response, '/onboarding')
+  }
+
+  if (pathname === '/onboarding') {
+    return redirectWithSession(request, response, '/dashboard/profiles')
+  }
 
   if (isArtistProfilePath(pathname)) {
     return pathname === '/dashboard'

@@ -133,6 +133,7 @@ export function DashboardNav({
                 isAdmin={isAdmin}
                 notifications={{ adminClaims: notifications?.adminClaims ?? false }}
                 placement="right"
+                showManageProfiles={identities.length > 0}
               />
             ) : (
               <>
@@ -181,6 +182,7 @@ export function DashboardNav({
               <NavAccountMenu
                 isAdmin={isAdmin}
                 notifications={{ adminClaims: notifications?.adminClaims ?? false }}
+                showManageProfiles={identities.length > 0}
               />
             ) : (
               <div className="lg:hidden">

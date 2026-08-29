@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { updatePassword } from '@/app/actions/profile'
@@ -13,6 +14,8 @@ interface AccountPageProps {
   profile: Profile
   email: string
   userId: string
+  hasManagedProfile: boolean
+  isAdmin: boolean
 }
 
 type Tab = 'personal' | 'settings'
@@ -94,15 +97,46 @@ const ROLE_OPTIONS: { value: Profile['primary_role']; label: string; desc: strin
 
 // ── Main component ───────────────────────────────────────────
 
-export function AccountPage({ profile, email, userId }: AccountPageProps) {
+export function AccountPage({ profile, email, userId, hasManagedProfile, isAdmin }: AccountPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>('personal')
+  const personalSaveFlash = useSavedFlash()
+  const [personalSaving, setPersonalSaving] = useState(false)
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-6">Account</h1>
+    <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+      <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D95B2B]">Your TourAligner account</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#252525] sm:text-4xl">Keep your details tour-ready.</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[#817671] sm:text-base">Set up the personal details that travel with you through every artist profile.</p>
+        </div>
+        <div className="flex w-fit flex-wrap items-center justify-end gap-3">
+          {activeTab === 'personal' && (
+            <>
+              {personalSaveFlash.saved && (
+                <span className="text-sm font-medium text-[#00A891]">Changes saved</span>
+              )}
+              <button
+                type="submit"
+                form="personal-info-form"
+                disabled={personalSaving}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {personalSaving ? 'Saving…' : 'Save changes'}
+              </button>
+            </>
+          )}
+          <Link
+            href={hasManagedProfile ? '/dashboard/profiles' : '/onboarding'}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#DCD7D3] bg-white px-4 py-2.5 text-sm font-semibold text-[#252525] shadow-sm transition-colors hover:border-[#AAA19B] hover:bg-[#FFFCFA]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
+            {hasManagedProfile ? 'Back to dashboard' : 'Continue artist setup'}
+          </Link>
+        </div>
+      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-[#E8E8E8]">
+      <div className="mb-8 flex gap-1 border-b border-[#E8E8E8]">
         {([
           { id: 'personal', label: 'Personal Info' },
           { id: 'settings', label: 'Account Settings' },
@@ -123,7 +157,14 @@ export function AccountPage({ profile, email, userId }: AccountPageProps) {
       </div>
 
       {activeTab === 'personal' && (
-        <PersonalInfoTab profile={profile} email={email} userId={userId} />
+        <PersonalInfoTab
+          profile={profile}
+          email={email}
+          userId={userId}
+          isAdmin={isAdmin}
+          onSaved={personalSaveFlash.flash}
+          onSavingChange={setPersonalSaving}
+        />
       )}
       {activeTab === 'settings' && (
         <AccountSettingsTab profile={profile} userId={userId} />
@@ -134,11 +175,19 @@ export function AccountPage({ profile, email, userId }: AccountPageProps) {
 
 // ── Personal Info Tab ────────────────────────────────────────
 
-function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
+function PersonalInfoTab({
+  profile,
+  email,
+  userId,
+  isAdmin,
+  onSaved,
+  onSavingChange,
+}: Pick<AccountPageProps, 'profile' | 'email' | 'userId' | 'isAdmin'> & {
+  onSaved: () => void
+  onSavingChange: (saving: boolean) => void
+}) {
   const supabase = createClient()
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const saveFlash = useSavedFlash()
 
   const [fullName, setFullName] = useState(profile.full_name ?? '')
   const [phone, setPhone] = useState(profile.phone ?? '')
@@ -170,7 +219,7 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
+    onSavingChange(true)
     setError(null)
 
     let avatarUrl = profile.avatar_url
@@ -183,7 +232,7 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
         .upload(path, avatarFile, { upsert: true })
       if (uploadError) {
         setError('Photo upload failed. Your other changes were not saved.')
-        setLoading(false)
+        onSavingChange(false)
         return
       }
       avatarUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
@@ -203,7 +252,7 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
       })
       .eq('id', userId)
 
-    setLoading(false)
+    onSavingChange(false)
 
     if (updateError) {
       setError(updateError.message)
@@ -211,7 +260,7 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
     }
 
     setAvatarFile(null)
-    saveFlash.flash()
+    onSaved()
   }
 
   return (
@@ -224,21 +273,25 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
           onCancel={() => setCropSrc(null)}
         />
       )}
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form id="personal-info-form" onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[minmax(280px,0.75fr)_minmax(0,1.25fr)]">
         {error && (
-          <p className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">{error}</p>
+          <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 lg:col-span-2">{error}</p>
         )}
 
-        {/* Photo */}
-        <Section title="Profile Photo">
-          <div className="px-6 py-5 flex items-center gap-5">
+        <aside className="relative min-h-[360px] overflow-hidden rounded-3xl bg-[#252525] p-7 text-white shadow-[0_20px_50px_rgba(37,37,37,0.16)] sm:p-8">
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[26px] border-[#FD6A2F]/50" />
+          <div className="absolute bottom-12 right-14 h-3 w-3 rounded-full bg-[#FD6A2F]" />
+          <div className="absolute bottom-20 right-24 h-2 w-2 rounded-full bg-[#F5B092]" />
+          <div className="relative flex h-full flex-col">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#FDB091]">Account identity</p>
+            <div className="mt-7 flex items-center gap-5">
             <div
-              className="relative w-20 h-20 rounded-full overflow-hidden bg-[#F0F0F0] border-2 border-[#E8E8E8] cursor-pointer group shrink-0"
+              className="group relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-full border-4 border-white/20 bg-white/10"
               onClick={() => fileInputRef.current?.click()}
             >
               {displayAvatar ? (
                 <>
-                  <Image src={displayAvatar} alt="Profile photo" fill className="object-cover" sizes="80px" unoptimized={!!avatarPreview} />
+                  <Image src={displayAvatar} alt="Profile photo" fill className="object-cover" sizes="96px" unoptimized={!!avatarPreview} />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
@@ -246,7 +299,7 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
                   </div>
                 </>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-[#CCCCCC] group-hover:text-[#FD6A2F] transition-colors">
+                <div className="absolute inset-0 flex items-center justify-center text-white/55 group-hover:text-[#FDB091] transition-colors">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                   </svg>
@@ -255,25 +308,36 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
             <div>
+              <h2 className="text-xl font-bold tracking-tight">{fullName || 'Your account'}</h2>
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="text-sm font-medium text-[#FD6A2F] hover:text-[#E55A22] transition-colors">
+                className="mt-1 text-sm font-semibold text-[#FDB091] transition-colors hover:text-white">
                 {displayAvatar ? 'Change photo' : 'Upload photo'}
               </button>
               {displayAvatar && (
                 <button type="button"
                   onClick={() => { setAvatarFile(null); setAvatarPreview(null); setRemoveAvatar(true) }}
-                  className="block text-xs text-[#AAAAAA] hover:text-red-400 transition-colors mt-1">
+                  className="mt-1 block text-xs text-white/50 transition-colors hover:text-red-300">
                   Remove
                 </button>
               )}
-              <p className="text-xs text-[#AAAAAA] mt-1">JPG, PNG or WebP</p>
             </div>
           </div>
-        </Section>
+            <p className="mt-7 max-w-sm text-sm leading-relaxed text-white/65">A recognizable photo and clear details help collaborators know who&apos;s behind the artist profile.</p>
+            <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#FDB091]">Artist presence</p>
+              <p className="mt-1 text-sm font-medium text-white">Keep every profile feeling ready.</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/60">Your account details support every artist profile you build and share.</p>
+            </div>
+          </div>
+        </aside>
 
-        {/* Basic info */}
-        <Section title="Basic Info">
-          <div className="px-6 py-5 space-y-4">
+        <section className="overflow-hidden rounded-3xl border border-[#E8E3E0] bg-white shadow-[0_16px_40px_rgba(76,61,53,0.06)]">
+          <div className="border-b border-[#F0E9E5] px-6 py-5 sm:px-8">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#D95B2B]">The essentials</p>
+            <h2 className="mt-1 text-xl font-bold text-[#252525]">Personal information</h2>
+            <p className="mt-1 text-sm text-[#817671]">Keep your contact details current for the people you work with.</p>
+          </div>
+          <div className="grid gap-5 p-6 sm:grid-cols-2 sm:p-8">
             <div>
               <label className="block text-sm text-[#777777] mb-1.5">Full name</label>
               <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
@@ -283,14 +347,13 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
               <label className="block text-sm text-[#777777] mb-1.5">Email</label>
               <input type="email" value={email} readOnly
                 className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm text-[#AAAAAA] cursor-not-allowed" />
-              <p className="text-xs text-[#AAAAAA] mt-1">To change your email, contact support.</p>
             </div>
             <div>
               <label className="block text-sm text-[#777777] mb-1.5">Phone <span className="text-[#AAAAAA]">(optional)</span></label>
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
                 className={inputClass} placeholder="+1 (555) 000-0000" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-[#777777] mb-1.5">City</label>
                 <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
@@ -302,41 +365,43 @@ function PersonalInfoTab({ profile, email, userId }: AccountPageProps) {
                   className={inputClass} placeholder="UT" maxLength={2} />
               </div>
             </div>
+            <div className="sm:col-span-2">
+              <div className="mb-2 flex items-baseline justify-between gap-4">
+                <label className="block text-sm text-[#777777]">How do you use TourAligner?</label>
+                <span className="text-xs text-[#AAAAAA]">{isAdmin ? 'You can update this anytime' : 'Venue access is coming soon'}</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+            {ROLE_OPTIONS.map((opt) => {
+                const isComingSoon = !isAdmin && opt.value !== 'artist'
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setRole(opt.value)}
+                    disabled={isComingSoon}
+                    className={`relative w-full text-left rounded-xl border px-4 py-3 transition-all ${
+                      isComingSoon
+                        ? 'cursor-not-allowed border-[#EAE7E5] bg-[#F8F7F6] text-[#A59E99]'
+                        : role === opt.value
+                          ? 'border-[#FD6A2F] bg-[#FD6A2F]/5'
+                          : 'border-[#E8E8E8] hover:border-[#CCCCCC]'
+                    }`}
+                  >
+                    {isComingSoon && (
+                      <span className="absolute right-3 top-3 rounded-full bg-[#EAE7E5] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#98908B]">Coming soon</span>
+                    )}
+                    <span className={`block text-sm font-medium ${isComingSoon ? 'text-[#A59E99]' : role === opt.value ? 'text-[#FD6A2F]' : 'text-[#252525]'}`}>
+                      {opt.label}
+                    </span>
+                    <span className={isComingSoon ? 'text-xs text-[#B5AFAA]' : 'text-xs text-[#888888]'}>{opt.desc}</span>
+                  </button>
+                )
+            })}
+              </div>
+            </div>
           </div>
-        </Section>
-
-        {/* Primary role */}
-        <Section title="Primary Role">
-          <div className="px-6 py-5 space-y-2">
-            {ROLE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setRole(opt.value)}
-                className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
-                  role === opt.value
-                    ? 'border-[#FD6A2F] bg-[#FD6A2F]/5'
-                    : 'border-[#E8E8E8] hover:border-[#CCCCCC]'
-                }`}
-              >
-                <span className={`text-sm font-medium block ${role === opt.value ? 'text-[#FD6A2F]' : 'text-[#252525]'}`}>
-                  {opt.label}
-                </span>
-                <span className="text-xs text-[#888888]">{opt.desc}</span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <div className="flex items-center justify-end gap-3 pb-6">
-          {saveFlash.saved && (
-            <span className="text-sm text-[#00bba5]">Changes saved</span>
-          )}
-          <button type="submit" disabled={loading}
-            className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-6 py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50">
-            {loading ? 'Saving…' : 'Save changes'}
-          </button>
-        </div>
+          <p className="border-t border-[#F0E9E5] bg-[#FFFCFA] px-6 py-4 text-xs text-[#A0958F] sm:px-8">To change your email, contact support.</p>
+        </section>
       </form>
     </>
   )
@@ -393,8 +458,9 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
   }
 
   return (
-    <div className="space-y-6">
-      {/* Notifications */}
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="space-y-6">
+        {/* Notifications */}
       <Section title="Notifications">
         <SettingRow
           label="New contact request"
@@ -459,7 +525,9 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
           </div>
         )}
       </Section>
+      </div>
 
+      <div className="space-y-6">
       {/* Billing */}
       <Section title="Billing & Subscription">
         <div className="px-6 py-5 flex items-center justify-between gap-4">
@@ -511,6 +579,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
           </div>
         </form>
       </Section>
+      </div>
     </div>
   )
 }

@@ -8,14 +8,29 @@ export default async function OnboardingPage() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('primary_role, full_name')
-    .eq('id', user.id)
-    .single()
+  const [profileResult, bandsResult, venuesResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('bands')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1),
+    supabase
+      .from('venues')
+      .select('id')
+      .eq('claimed_by_user_id', user.id)
+      .limit(1),
+  ])
+
+  const profile = profileResult.data
+  const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
 
   // Already onboarded — skip ahead
-  if (profile?.primary_role) redirect('/dashboard')
+  if (hasManagedProfile) redirect('/dashboard')
 
   const { data: genres } = await supabase
     .from('genres')

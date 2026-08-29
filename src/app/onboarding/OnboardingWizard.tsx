@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
+import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 import type { Genre } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
@@ -77,7 +78,6 @@ async function uploadPhoto(
 // Types
 // ─────────────────────────────────────────────────────────────
 
-type Intent = 'artist' | 'venue'
 type Step = 1 | 2 | 3 | 4
 
 type Links = {
@@ -190,7 +190,6 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [intent, setIntent] = useState<Intent>('artist')
   const [step, setStep] = useState<Step>(1)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -242,11 +241,6 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
   function handleBack() {
     setError('')
     setStep(s => (s > 1 ? (s - 1) as Step : s))
-  }
-
-  async function handleVenueFinish() {
-    setSubmitting(true)
-    router.push('/dashboard/profiles')
   }
 
   async function handleArtistFinish() {
@@ -330,84 +324,77 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
   // ─── Render ───────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
-      {/* Top bar */}
-      <header className="px-6 py-5 flex items-center justify-between border-b border-[#F0F0F0] bg-white">
-        <span className="text-base font-bold text-[#252525] tracking-tight">TourAligner</span>
-        {intent === 'artist' && (
-          <span className="text-xs text-[#AAAAAA]">Step {step} of {TOTAL_STEPS}</span>
-        )}
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 flex flex-col items-center px-4 py-10">
-        <div className="w-full max-w-xl">
-
-          {/* Greeting */}
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-[#252525] mb-1">
-              Welcome{firstName !== 'there' ? `, ${firstName}` : ''}!
-            </h1>
-            <p className="text-sm text-[#888888]">Let&apos;s get your profile set up.</p>
+    <div className="relative min-h-screen bg-[#FFFDFC] lg:grid lg:grid-cols-[minmax(330px,0.85fr)_minmax(0,1.65fr)]">
+      {/* Desktop welcome panel */}
+      <aside className="relative hidden overflow-hidden bg-[#FFF1EA] p-8 lg:flex lg:flex-col xl:p-12">
+        <Image src="/logo.png" alt="TourAligner" width={201} height={56} priority className="h-auto w-[201px]" />
+        <div className="relative z-10 my-auto max-w-md">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#D94F1A] shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FD6A2F]" /> Artist setup
+          </p>
+          <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-[#252525] xl:text-5xl">
+            Your next great show starts here.
+          </h1>
+          <p className="mt-5 max-w-sm text-base leading-relaxed text-[#6D625E] xl:text-lg">
+            Build a venue-ready artist profile that puts your sound, story, and reach in the spotlight.
+          </p>
+          <div className="mt-10 flex items-center gap-3 text-sm font-medium text-[#504640]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FD6A2F] font-bold text-white">1</span>
+            A polished profile in just a few minutes
           </div>
+        </div>
+        <div className="relative z-10 flex items-center gap-2 text-xs font-medium text-[#8A7B73]">
+          <span className="h-2 w-2 rounded-full bg-[#FD6A2F]" /> Built for artists ready to get booked
+        </div>
+        <div className="absolute -bottom-24 -right-20 h-72 w-72 rounded-full border-[32px] border-[#FFD6C4]" />
+        <div className="absolute right-16 top-32 h-4 w-4 rounded-full bg-[#FD6A2F]" />
+        <div className="absolute right-28 top-44 h-2.5 w-2.5 rounded-full bg-[#F5B092]" />
+      </aside>
 
-          {/* Intent toggle — always at the top */}
-          <div className="mb-8">
-            <p className="text-sm font-semibold text-[#252525] mb-3 text-center">
-              What are you here to do first?
-            </p>
-            <div className="flex rounded-xl overflow-hidden border border-[#E8E8E8] bg-white shadow-sm">
-              <button
-                type="button"
-                onClick={() => { setIntent('artist'); setStep(1); setError('') }}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  intent === 'artist'
-                    ? 'bg-[#FD6A2F] text-white'
-                    : 'text-[#777777] hover:text-[#252525] hover:bg-[#FAFAFA]'
-                }`}
-              >
-                Book shows as an artist
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIntent('venue'); setError('') }}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  intent === 'venue'
-                    ? 'bg-[#FD6A2F] text-white'
-                    : 'text-[#777777] hover:text-[#252525] hover:bg-[#FAFAFA]'
-                }`}
-              >
-                Manage a venue
-              </button>
-            </div>
+      <section className="flex min-w-0 flex-col">
+        {/* Mobile header */}
+        <header className="flex items-center justify-between border-b border-[#F0E9E5] bg-white px-5 py-4 lg:hidden">
+          <Image src="/logo.png" alt="TourAligner" width={161} height={45} priority className="h-auto w-[161px]" />
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-[#9B918C]">{step} of {TOTAL_STEPS}</span>
+            <NavAccountMenu showManageProfiles={false} />
           </div>
+        </header>
 
-          {/* ── VENUE INTENT ── */}
-          {intent === 'venue' && (
-            <div className="bg-white rounded-2xl border border-[#E8E8E8] p-8 text-center shadow-sm">
-              <div className="w-14 h-14 bg-[#FFF4EF] rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FD6A2F" strokeWidth="1.5">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
+        <main className="flex flex-1 items-start justify-center px-4 py-7 sm:px-8 sm:py-10 lg:px-10 xl:px-16 xl:py-12">
+          <div className="w-full max-w-3xl">
+            <div className="mb-7 flex items-end justify-between gap-4 sm:mb-8">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#D95B2B]">Let&apos;s make some noise</p>
+                <h1 className="text-2xl font-extrabold tracking-tight text-[#252525] sm:text-3xl">
+                  Welcome{firstName !== 'there' ? `, ${firstName}` : ''}!
+                </h1>
+                <p className="mt-1 text-sm text-[#817671] sm:text-base">Create the artist profile venues will remember.</p>
               </div>
-              <h2 className="text-lg font-bold text-[#252525] mb-2">Venue tools are coming soon</h2>
-              <p className="text-sm text-[#888888] mb-6 max-w-sm mx-auto">
-                Tour Aligner is currently focused on artist profiles. You can create and share yours today.
-              </p>
-              <button
-                type="button"
-                onClick={handleVenueFinish}
-                disabled={submitting}
-                className="bg-[#FD6A2F] text-white font-semibold rounded-xl px-6 py-3 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 w-full"
-              >
-                {submitting ? 'One moment…' : 'Build my artist profile →'}
-              </button>
+              <div className="hidden shrink-0 rounded-full bg-[#FFF1EA] px-3 py-1.5 text-xs font-bold text-[#C94D1A] sm:block">
+                Step {step} of {TOTAL_STEPS}
+              </div>
             </div>
-          )}
 
-          {/* ── ARTIST INTENT — step content ── */}
-          {intent === 'artist' && (
+            {/* Role selection */}
+            <div className="mb-6 sm:mb-7">
+              <p className="mb-3 text-sm font-semibold text-[#403936]">What are you here to do first?</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-2xl border-2 border-[#FD6A2F] bg-[#FFF7F3] px-4 py-3.5 shadow-[0_8px_24px_rgba(253,106,47,0.08)]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FD6A2F] text-white">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                  </span>
+                  <span><span className="block text-sm font-bold text-[#252525]">Book shows as an artist</span><span className="block text-xs text-[#8B7D76]">Build your first profile</span></span>
+                </div>
+                <div aria-disabled="true" className="flex cursor-not-allowed items-center gap-3 rounded-2xl border border-[#E8E3E0] bg-[#F7F6F5] px-4 py-3.5 opacity-70">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E7E4E2] text-[#A8A19D]">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 9h.01M15 9h.01" /></svg>
+                  </span>
+                  <span><span className="block text-sm font-bold text-[#817A76]">Manage a venue</span><span className="block text-xs text-[#A49D99]">Coming soon</span></span>
+                </div>
+              </div>
+            </div>
+
             <>
               {/* Progress bar */}
               <div className="flex gap-1.5 mb-8">
@@ -429,57 +416,62 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                       <h2 className="text-lg font-bold text-[#252525] mb-0.5">Tell us about your act</h2>
                       <p className="text-sm text-[#888888]">The basics that venues need to know.</p>
                     </div>
-
-                    <div>
-                      <FieldLabel htmlFor="artistName">Artist name <span className="text-[#FD6A2F]">*</span></FieldLabel>
-                      <input
-                        id="artistName"
-                        type="text"
-                        value={artistName}
-                        onChange={e => setArtistName(e.target.value)}
-                        className={inputClass}
-                        placeholder="The Midnight"
-                        autoFocus
-                      />
-                    </div>
-
-                    <div>
-                      <FieldLabel htmlFor="bio">Bio</FieldLabel>
-                      <textarea
-                        id="bio"
-                        value={bio}
-                        onChange={e => setBio(e.target.value)}
-                        rows={4}
-                        className={inputClass + ' resize-y'}
-                        placeholder="Tell venues who you are, what you sound like, and the kind of shows you play."
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-5 md:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.75fr)]">
                       <div>
-                        <FieldLabel htmlFor="city">Home city</FieldLabel>
+                        <FieldLabel htmlFor="artistName">Artist name <span className="text-[#FD6A2F]">*</span></FieldLabel>
                         <input
-                          id="city"
+                          id="artistName"
                           type="text"
-                          value={city}
-                          onChange={e => setCity(e.target.value)}
+                          value={artistName}
+                          onChange={e => setArtistName(e.target.value)}
                           className={inputClass}
-                          placeholder="Los Angeles"
+                          placeholder="The Midnight"
+                          autoFocus
                         />
+                        <div className="mt-5">
+                          <FieldLabel htmlFor="bio">Bio</FieldLabel>
+                          <textarea
+                            id="bio"
+                            value={bio}
+                            onChange={e => setBio(e.target.value)}
+                            rows={3}
+                            className={inputClass + ' resize-y'}
+                            placeholder="Tell venues who you are, what you sound like, and the kind of shows you play."
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <FieldLabel htmlFor="usState">State</FieldLabel>
-                        <select
-                          id="usState"
-                          value={usState}
-                          onChange={e => setUsState(e.target.value)}
-                          className={inputClass}
-                        >
-                          <option value="">Select…</option>
-                          {US_STATES.map(([abbr, name]) => (
-                            <option key={abbr} value={abbr}>{abbr} — {name}</option>
-                          ))}
-                        </select>
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
+                          <div>
+                            <FieldLabel htmlFor="city">Home city</FieldLabel>
+                            <input
+                              id="city"
+                              type="text"
+                              value={city}
+                              onChange={e => setCity(e.target.value)}
+                              className={inputClass}
+                              placeholder="Los Angeles"
+                            />
+                          </div>
+                          <div>
+                            <FieldLabel htmlFor="usState">State</FieldLabel>
+                            <select
+                              id="usState"
+                              value={usState}
+                              onChange={e => setUsState(e.target.value)}
+                              className={inputClass}
+                            >
+                              <option value="">Select…</option>
+                              {US_STATES.map(([abbr, name]) => (
+                                <option key={abbr} value={abbr}>{abbr} — {name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-[#FFF4EF] p-4">
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#D95B2B]">First impression</p>
+                          <p className="mt-1 text-xs leading-relaxed text-[#796C66]">A clear name, a memorable one-line story, and your home base help venues find the right fit fast.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -593,7 +585,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                     {/* Travel radius */}
                     <div>
                       <FieldLabel>How far are you willing to travel?</FieldLabel>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
                         {TOURING_RADIUS_OPTIONS.map(opt => (
                           <button
                             key={opt.value}
@@ -637,6 +629,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                       />
                     </div>
 
+                    <div className="grid gap-7 md:grid-cols-2">
                     {/* Streaming */}
                     <div>
                       <p className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">Streaming</p>
@@ -675,6 +668,7 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                           </div>
                         ))}
                       </div>
+                    </div>
                     </div>
                   </div>
                 )}
@@ -760,9 +754,12 @@ export default function OnboardingWizard({ userId, userName, genres }: Props) {
                 </button>
               </p>
             </>
-          )}
-        </div>
-      </main>
+          </div>
+        </main>
+      </section>
+      <div className="absolute right-5 top-5 z-20 hidden lg:block xl:right-8 xl:top-8">
+        <NavAccountMenu showManageProfiles={false} />
+      </div>
     </div>
   )
 }
