@@ -5,6 +5,7 @@ This file contains repo-specific instructions for automated coding agents workin
 ## Production branch safety
 
 - If the current branch is `main`, stop before making code, configuration, schema, or database changes. Warn the developer that they are on the production branch and continue only after explicit confirmation.
+- An explicit request to push or deploy the main environment is confirmation for the changes and remote operations required by that promotion only; it does not authorize unrelated work on `main`.
 
 ## Verification
 
@@ -41,8 +42,10 @@ This file contains repo-specific instructions for automated coding agents workin
   ```powershell
   Get-Content supabase\.temp\project-ref
   ```
-- The linked project ref must be the staging project, `zdfmylywoewtncrnqvod`.
-- If `supabase/.temp/project-ref` is missing or is not `zdfmylywoewtncrnqvod`, stop and tell the developer before creating migrations, editing schema SQL, or running Supabase database commands.
+- Unless the developer explicitly requests a main/production deployment, target staging: `zdfmylywoewtncrnqvod`.
+- For an explicit request to push or deploy the main environment, temporarily switch the checkout to `main` and link Supabase to the confirmed production project before running the requested deployment commands. Do not infer the production project ref; obtain it from the developer or the approved deployment configuration.
+- After a successful main/production deployment, restore the checkout and `supabase/.temp/project-ref` to staging. If the deployment fails, restore staging before reporting the failure unless the developer asks to keep the production context for diagnosis.
+- If `supabase/.temp/project-ref` is missing, or it does not match the requested target environment, stop and tell the developer before creating migrations, editing schema SQL, or running Supabase database commands.
 - Always create new Supabase migrations with the CLI:
   ```powershell
   npx supabase migration new <descriptive_name>
