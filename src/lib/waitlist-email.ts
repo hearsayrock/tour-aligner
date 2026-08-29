@@ -43,6 +43,14 @@ const confirmationHtml = `<!doctype html>
               <td style="padding:0 40px 40px;">
                 <div style="height:1px;background-color:#555555;font-size:1px;line-height:1px;">&nbsp;</div>
                 <p style="margin:20px 0 0;color:#c0c0c0;font-size:12px;line-height:18px;">Built for artists who would rather play the show than chase the logistics.</p>
+                <p style="margin:22px 0 10px;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:1.4px;line-height:18px;text-transform:uppercase;">Follow TourAligner</p>
+                <p style="margin:0;color:#fd6a2f;font-size:14px;font-weight:700;line-height:22px;">
+                  <a href="https://www.instagram.com/touraligner/" style="color:#fd6a2f;text-decoration:none;">Instagram</a>
+                  <span style="color:#777777;padding:0 8px;">•</span>
+                  <a href="https://www.tiktok.com/@touraligner?lang=en" style="color:#fd6a2f;text-decoration:none;">TikTok</a>
+                  <span style="color:#777777;padding:0 8px;">•</span>
+                  <a href="https://www.facebook.com/profile.php?id=61590592556263" style="color:#fd6a2f;text-decoration:none;">Facebook</a>
+                </p>
               </td>
             </tr>
           </table>

@@ -9,6 +9,16 @@ The current product has four main surfaces:
 - An authenticated dashboard for artists, venues, and inbox activity
 - An admin backoffice for venue claims and moderation
 
+## Social Media Accounts
+
+| Platform | Username | Email |
+| --- | --- | --- |
+| Instagram | `touraligner` | ben@touraligner.com |
+| TikTok | `touraligner` | ben@touraligner.com |
+| Facebook | `tour aligner` | ben@touraligner.com |
+| Threads | `touraligner` | ben@touraligner.com |
+| LinkedIn | `tour aligner` | ben@touraligner.com |
+
 ## Stack
 
 - Next.js 16 App Router
