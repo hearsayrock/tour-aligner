@@ -156,6 +156,7 @@ export async function AppNav() {
       <DashboardNav
         showStagingBadge={showStagingBadge}
         isAdmin={profile?.is_admin ?? false}
+        phaseOne
         notifications={notifications}
         hasVenues={venueIds.length > 0}
         activeIdentity={activeIdentity}

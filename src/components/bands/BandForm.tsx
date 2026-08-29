@@ -20,6 +20,11 @@ interface ShowDateInput {
   ticket_url: string
 }
 
+interface LyricInput {
+  title: string
+  body: string
+}
+
 interface BandFormInitial {
   id: string
   name: string
@@ -41,6 +46,7 @@ interface BandFormInitial {
   members: string[]
   selectedGenreIds: string[]
   showDates: ShowDateInput[]
+  lyrics: LyricInput[]
   profile_photo_url: string
   cover_photo_url: string
   featured_track_url: string
@@ -109,6 +115,8 @@ const emptyShowDate = (): ShowDateInput => ({
   state: '',
   ticket_url: '',
 })
+
+const emptyLyric = (): LyricInput => ({ title: '', body: '' })
 
 async function uploadPhoto(
   supabase: ReturnType<typeof createClient>,
@@ -322,6 +330,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
   const [showDates, setShowDates] = useState<ShowDateInput[]>(
     initial.showDates?.length ? initial.showDates : []
   )
+  const [lyrics, setLyrics] = useState<LyricInput[]>(initial.lyrics ?? [])
 
   function toggleGenre(id: string) {
     setSelectedGenres((prev) => {
@@ -351,6 +360,14 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
 
   function removeShowDate(index: number) {
     setShowDates((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function updateLyric(index: number, field: keyof LyricInput, value: string) {
+    setLyrics((prev) => prev.map((lyric, i) => (i === index ? { ...lyric, [field]: value } : lyric)))
+  }
+
+  function removeLyric(index: number) {
+    setLyrics((prev) => prev.filter((_, i) => i !== index))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -390,6 +407,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
     const validDates = showDates.filter(
       (d) => d.show_date && d.venue_name.trim() && d.city.trim() && d.state.trim()
     )
+    const validLyrics = lyrics.filter((lyric) => lyric.title.trim() && lyric.body.trim())
 
     let bandId: string
 
@@ -474,12 +492,24 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
       )
     }
 
+    await supabase.from('band_lyrics').delete().eq('band_id', bandId)
+    if (validLyrics.length > 0) {
+      await supabase.from('band_lyrics').insert(
+        validLyrics.map((lyric, sort_order) => ({
+          band_id: bandId,
+          title: lyric.title.trim(),
+          body: lyric.body.trim(),
+          sort_order,
+        }))
+      )
+    }
+
     router.push('/dashboard/bands')
     router.refresh()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10 space-y-6">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {/* Header */}
       <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -518,7 +548,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
           <PhotoUpload
             label="Cover photo"
             existingUrl={removeCover ? '' : (initial.cover_photo_url ?? '')}
-            aspectClass="aspect-[3/1]"
+            aspectClass="aspect-[4/1]"
             radiusClass="rounded-xl"
             aspect={3}
             onFileSelect={handleCoverSelect}
@@ -704,6 +734,43 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
           <p className="text-xs text-[#AAAAAA] mt-1.5">
             This will be embedded as a playable player on your public profile.
           </p>
+        </div>
+      </section>
+
+      {/* Lyrics */}
+      <section>
+        <SectionHeader>Lyrics</SectionHeader>
+        <p className="mb-4 text-sm text-[#777777]">Publish song lyrics for visitors to read on your public artist profile.</p>
+        <div className="space-y-4">
+          {lyrics.map((lyric, i) => (
+            <div key={i} className="rounded-xl border border-[#E8E8E8] bg-white p-4">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor={`lyric-title-${i}`}>Song title</Label>
+                <button type="button" onClick={() => removeLyric(i)} className="text-sm text-[#AAAAAA] hover:text-red-400">
+                  Remove
+                </button>
+              </div>
+              <input
+                id={`lyric-title-${i}`}
+                value={lyric.title}
+                onChange={(e) => updateLyric(i, 'title', e.target.value)}
+                className={inputClass}
+                placeholder="Song title"
+              />
+              <Label htmlFor={`lyric-body-${i}`}><span className="mt-4 block">Lyrics</span></Label>
+              <textarea
+                id={`lyric-body-${i}`}
+                value={lyric.body}
+                onChange={(e) => updateLyric(i, 'body', e.target.value)}
+                rows={8}
+                className={`${inputClass} resize-y font-mono leading-6`}
+                placeholder="Paste your lyrics here…"
+              />
+            </div>
+          ))}
+          <button type="button" onClick={() => setLyrics((prev) => [...prev, emptyLyric()])} className="text-sm text-[#888888] hover:text-[#FD6A2F]">
+            + Add lyrics
+          </button>
         </div>
       </section>
 

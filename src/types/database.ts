@@ -241,6 +241,32 @@ export interface Database {
           ticket_url?: string | null
         }
       }
+      band_lyrics: {
+        Row: {
+          id: string
+          band_id: string
+          title: string
+          body: string
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          band_id: string
+          title: string
+          body: string
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          body?: string
+          sort_order?: number
+          updated_at?: string
+        }
+      }
       venues: {
         Row: {
           id: string
@@ -1154,6 +1180,7 @@ export type Genre          = Database['public']['Tables']['genres']['Row']
 export type Band           = Database['public']['Tables']['bands']['Row']
 export type BandGenre      = Database['public']['Tables']['band_genres']['Row']
 export type BandShowDate   = Database['public']['Tables']['band_show_dates']['Row']
+export type BandLyric      = Database['public']['Tables']['band_lyrics']['Row']
 export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']

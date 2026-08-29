@@ -1,13 +1,11 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import type { ComponentType, ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import {
   ArrowLeft,
-  ArrowRight,
   CalendarDays,
   CheckCircle2,
   ExternalLink,
@@ -21,15 +19,7 @@ import {
   Users,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { RequestContactForm } from '@/components/contact/RequestContactForm'
-import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { Badge, ButtonLink } from '@/components/ui/primitives'
-import {
-  ACTIVE_IDENTITY_COOKIE,
-  activeIdentityLabel,
-  resolveActiveIdentity,
-  type ManagedIdentity,
-} from '@/lib/managed-identity'
 import type { Band } from '@/types/database'
 
 export const revalidate = 60
@@ -167,7 +157,7 @@ export default async function BandProfilePage({
   const band = rawBand as Band | null
   if (!band) return notFound()
 
-  const [{ data: bandGenres }, { data: rawShows }] = await Promise.all([
+  const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }] = await Promise.all([
     supabase
       .from('band_genres')
       .select('genre_id, genres(name)')
@@ -180,6 +170,12 @@ export default async function BandProfilePage({
       .gte('show_date', today)
       .order('show_date')
       .limit(8),
+    supabase
+      .from('band_lyrics')
+      .select('id, title, body, sort_order')
+      .eq('band_id', band.id)
+      .order('sort_order')
+      .order('created_at'),
   ])
 
   type ShowRow = {
@@ -188,6 +184,7 @@ export default async function BandProfilePage({
     venues: { name: string; location_city: string; location_state: string } | null
   }
   const shows = (rawShows ?? []) as unknown as ShowRow[]
+  const lyrics = (rawLyrics ?? []) as { id: string; title: string; body: string; sort_order: number }[]
 
   const genreNames = (
     (bandGenres ?? []) as unknown as { genres: { name: string } | null }[]
@@ -198,65 +195,7 @@ export default async function BandProfilePage({
   const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
   const streamingLinks = STREAMING.filter(({ key }) => !!band[key])
   const socialLinks = SOCIALS.filter(({ key }) => !!band[key])
-  let userVenues: { id: string; name: string }[] = []
-  let userBands: { id: string; name: string }[] = []
-
-  if (user) {
-    const [{ data: venues }, { data: bands }] = await Promise.all([
-      supabase
-        .from('venues')
-        .select('id, name')
-        .eq('claimed_by_user_id', user.id)
-        .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('bands')
-        .select('id, name')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('name'),
-    ])
-
-    userVenues = venues ?? []
-    userBands = bands ?? []
-  }
-
-  const identities: ManagedIdentity[] = [
-    ...userBands.map((userBand) => ({
-      kind: 'band' as const,
-      id: userBand.id,
-      name: userBand.name,
-      href: `/dashboard/bands/${userBand.id}/edit`,
-    })),
-    ...userVenues.map((venue) => ({
-      kind: 'venue' as const,
-      id: venue.id,
-      name: venue.name,
-      href: `/dashboard/venues/${venue.id}/edit`,
-    })),
-  ]
-  const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
-  const isSelectedOwner = activeIdentity.kind === 'band' && activeIdentity.id === band.id
-  const contactVenues = activeIdentity.kind === 'venue'
-    ? userVenues.filter((venue) => venue.id === activeIdentity.id)
-    : []
-  const contactIdentityNotice = user && userVenues.length > 0 && activeIdentity.kind !== 'venue'
-    ? {
-        title: activeIdentity.kind === 'all'
-          ? 'Select a venue before requesting contact'
-          : 'Switch to a venue before requesting contact',
-        body: activeIdentity.kind === 'all'
-          ? 'This contact request needs one venue identity. Choose a venue in the Acting as menu, then request contact.'
-          : `You are acting as ${activeIdentityLabel(activeIdentity)}. Switch the Acting as menu to a venue before contacting this artist.`,
-      }
-    : null
-  const privateChatIdentityNotice = user && identities.length > 0 && activeIdentity.kind === 'all'
-    ? {
-        title: 'Select a profile before starting a private chat',
-        body: 'Choose the artist or venue profile you want to use in the Acting as menu, then start the private chat.',
-      }
-    : null
+  const isOwner = user?.id === band.user_id
 
   const location = formatLocation(band)
   const heroImage = band.cover_photo_url ?? '/concert-hero.jpg'
@@ -280,11 +219,11 @@ export default async function BandProfilePage({
 
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
           <Link
-            href="/dashboard/bands"
+            href="/"
             className="inline-flex min-h-9 items-center gap-2 text-sm font-semibold text-white/72 transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Artist directory
+            Tour Aligner
           </Link>
 
           <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
@@ -295,7 +234,7 @@ export default async function BandProfilePage({
                   {primaryGenre}
                 </Badge>
                 {artistType && <Badge tone="muted">{artistType}</Badge>}
-                {isSelectedOwner && (
+                {isOwner && (
                   <Badge tone="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Managed by this profile
@@ -381,16 +320,7 @@ export default async function BandProfilePage({
 
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-12">
         <div className="min-w-0 space-y-8">
-          <SectionCard
-            eyebrow="Overview"
-            title="Artist profile"
-            action={
-              <ButtonLink href="/events" tone="secondary">
-                <CalendarDays className="h-4 w-4" />
-                Browse Events
-              </ButtonLink>
-            }
-          >
+          <SectionCard eyebrow="Overview" title="Artist profile">
             <div className="grid gap-5 sm:grid-cols-2">
               {location && <DetailRow icon={MapPin} label="Home base" value={location} />}
               {touringRadius && <DetailRow icon={Route} label="Touring radius" value={touringRadius} />}
@@ -409,6 +339,19 @@ export default async function BandProfilePage({
                 loading="lazy"
                 className="rounded-2xl border-0"
               />
+            </SectionCard>
+          )}
+
+          {lyrics.length > 0 && (
+            <SectionCard eyebrow="Words" title="Lyrics">
+              <div className="space-y-6">
+                {lyrics.map((lyric) => (
+                  <article key={lyric.id}>
+                    <h3 className="text-lg font-semibold text-[#252525]">{lyric.title}</h3>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#555555]">{lyric.body}</p>
+                  </article>
+                ))}
+              </div>
             </SectionCard>
           )}
 
@@ -448,10 +391,6 @@ export default async function BandProfilePage({
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#777777]">
                   Confirmed future dates will appear here once this artist starts locking in shows.
                 </p>
-                <Link href="/venues" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#FD6A2F] hover:underline">
-                  Find venues
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
               </div>
             )}
           </SectionCard>
@@ -527,7 +466,7 @@ export default async function BandProfilePage({
           <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Connect</p>
             <div className="mt-4">
-              {isSelectedOwner ? (
+              {isOwner ? (
                 <div>
                   <Badge tone="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -541,67 +480,12 @@ export default async function BandProfilePage({
                     Edit artist profile
                   </ButtonLink>
                 </div>
-              ) : user && contactIdentityNotice ? (
-                <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
-                  <p className="font-semibold text-[#8A5A12]">{contactIdentityNotice.title}</p>
-                  <p className="mt-1 text-[#8A5A12]/85">{contactIdentityNotice.body}</p>
-                </div>
-              ) : user && contactVenues.length > 0 ? (
-                <RequestContactForm
-                  initiatorSide="venue"
-                  targetBandId={band.id}
-                  options={contactVenues}
-                />
-              ) : user ? (
-                <p className="text-sm leading-6 text-[#777777]">
-                  Claim a venue to start contacting artists from inside the app.{' '}
-                  <Link href="/dashboard/venues" className="font-semibold text-[#FD6A2F] hover:underline">
-                    Manage venues
-                  </Link>
-                  .
-                </p>
               ) : (
                 <p className="text-sm leading-6 text-[#777777]">
-                  <Link href={`/login?redirectTo=/bands/${band.slug}`} className="font-semibold text-[#FD6A2F] hover:underline">
-                    Sign in
-                  </Link>{' '}
-                  and claim a venue to request contact.
+                  This is a public, read-only artist profile. Follow the artist&apos;s links to listen, connect, and stay up to date.
                 </p>
               )}
             </div>
-            {!isSelectedOwner && (
-              <div className="mt-5 border-t border-[#EEE7DB] pt-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Private chat</p>
-                <div className="mt-3">
-                  {user && privateChatIdentityNotice ? (
-                    <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
-                      <p className="font-semibold text-[#8A5A12]">{privateChatIdentityNotice.title}</p>
-                      <p className="mt-1 text-[#8A5A12]/85">{privateChatIdentityNotice.body}</p>
-                    </div>
-                  ) : user && activeIdentity.kind !== 'all' ? (
-                    <PrivateChatRequestButton
-                      senderIdentity={activeIdentity}
-                      targetKind="band"
-                      targetId={band.id}
-                      targetName={band.name}
-                      buttonLabel="Start private chat"
-                      className="w-full"
-                    />
-                  ) : user ? (
-                    <p className="text-sm leading-6 text-[#777777]">
-                      Create or claim an artist or venue profile to start a private chat.
-                    </p>
-                  ) : (
-                    <p className="text-sm leading-6 text-[#777777]">
-                      <Link href={`/login?redirectTo=/bands/${band.slug}`} className="font-semibold text-[#FD6A2F] hover:underline">
-                        Sign in
-                      </Link>{' '}
-                      and choose a profile to start a private chat.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
           </section>
         </aside>
       </div>

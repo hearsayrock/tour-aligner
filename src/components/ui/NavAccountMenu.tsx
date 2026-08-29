@@ -22,15 +22,20 @@ export function NavAccountMenu({
   isAdmin = false,
   notifications,
   placement = 'bottom',
+  align = 'right',
 }: {
   isAdmin?: boolean
   notifications?: Notifications
-  placement?: 'bottom' | 'top'
+  placement?: 'bottom' | 'top' | 'right'
+  align?: 'left' | 'right'
 }) {
   const pathname = usePathname()
   const [openPath, setOpenPath] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const open = openPath === pathname
+  const menuPosition = placement === 'right'
+    ? 'left-[calc(100%+12px)] top-0 origin-top-left'
+    : `${align === 'left' ? 'left-0' : 'right-0'} ${placement === 'top' ? 'bottom-[calc(100%+8px)] origin-bottom-right' : 'top-[calc(100%+8px)] origin-top-right'}`
 
   useEffect(() => {
     if (!open) return
@@ -55,9 +60,7 @@ export function NavAccountMenu({
       </button>
 
       <div
-        className={`absolute right-0 z-50 w-52 bg-white border border-[#E8E8E8] rounded-xl shadow-lg overflow-hidden transition-all duration-200 ease-out ${
-          placement === 'top' ? 'bottom-[calc(100%+8px)] origin-bottom-right' : 'top-[calc(100%+8px)] origin-top-right'
-        } ${
+        className={`absolute ${menuPosition} z-50 w-52 bg-white border border-[#E8E8E8] rounded-xl shadow-lg overflow-hidden transition-all duration-200 ease-out ${
           open
             ? 'opacity-100 scale-100 translate-y-0'
             : `opacity-0 scale-95 pointer-events-none ${placement === 'top' ? 'translate-y-1' : '-translate-y-1'}`
