@@ -9,8 +9,7 @@ function usesAuthenticatedAppShell(pathname: string) {
     pathname.startsWith('/events/') ||
     pathname === '/venues' ||
     pathname.startsWith('/venues/') ||
-    pathname === '/bands' ||
-    pathname.startsWith('/bands/')
+    pathname === '/bands'
   )
 }
 
@@ -31,13 +30,13 @@ export function MarketingRouteShell({
   const useAppShell = isSignedIn && usesAuthenticatedAppShell(pathname)
 
   return (
-    <>
+    <div className={cx(useAppShell && 'app-shell-layout')}>
       <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
       <div className={useAppShell ? undefined : 'hidden'}>{appNav}</div>
-      <main className={cx(useAppShell && 'min-h-screen pb-24 lg:pb-0')}>
+      <main className={cx(useAppShell && 'app-shell-main min-h-screen pb-24 lg:pb-0')}>
         {children}
       </main>
       <div className={useAppShell ? 'hidden' : undefined}>{footer}</div>
-    </>
+    </div>
   )
 }

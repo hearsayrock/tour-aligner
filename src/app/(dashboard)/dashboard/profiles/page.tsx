@@ -36,7 +36,7 @@ function ProfileRow({
 }) {
   return (
     <div className="flex flex-col gap-4 border-t border-[#EEEEEE] py-4 first:border-t-0 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <Link href={viewHref} target="_blank" className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 transition-all hover:bg-[#FFF5F0] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]">
+      <Link href={viewHref} target="_blank" rel="noopener noreferrer" className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 transition-all hover:bg-[#FFF5F0] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#F1E7E1] bg-[#FFF3EE] text-[#FD6A2F]">
           {profilePhotoUrl ? (
             <Image src={profilePhotoUrl} alt={`${title} profile photo`} width={48} height={48} className="h-full w-full object-cover" unoptimized />

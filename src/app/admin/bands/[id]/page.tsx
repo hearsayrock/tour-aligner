@@ -107,6 +107,7 @@ export default async function AdminBandDetailPage({
           <Link
             href={`/bands/${b.slug}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-[#888888] hover:text-[#252525] transition-colors"
           >
             View public profile ↗

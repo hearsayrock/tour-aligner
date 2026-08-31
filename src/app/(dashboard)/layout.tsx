@@ -11,16 +11,10 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
     return (
-      <div className="min-h-screen bg-[#F7F7F5]">
+      <div className="app-shell-layout min-h-screen bg-[#F7F7F5]">
         <AppNav />
-        <main className={`min-h-screen ${profile?.is_admin ? 'lg:pl-60' : ''}`}>
+        <main className="app-shell-main min-h-screen">
           {children}
         </main>
       </div>

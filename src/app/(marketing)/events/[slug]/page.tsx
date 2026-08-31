@@ -193,7 +193,7 @@ export default async function EventDetailPage({
               {publicLineup.length > 0 ? (
                 <div className="mt-4 space-y-3">
                   {publicLineup.map((membership) => (
-                    <Link key={membership.id} href={`/bands/${membership.bands!.slug}`} className="block rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3 text-sm font-semibold text-[#252525] hover:border-[#CCCCCC]">
+                    <Link key={membership.id} href={`/bands/${membership.bands!.slug}`} target="_blank" rel="noopener noreferrer" className="block rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3 text-sm font-semibold text-[#252525] hover:border-[#CCCCCC]">
                       {membership.bands!.name}
                     </Link>
                   ))}

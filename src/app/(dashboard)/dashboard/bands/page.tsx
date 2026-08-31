@@ -39,6 +39,8 @@ function BandCard({ band }: { band: Band }) {
   return (
     <Link
       href={`/bands/${band.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
       className="flex items-center gap-4 bg-white border border-[#E8E8E8] rounded-xl p-4 hover:border-[#CCCCCC] hover:shadow-sm transition-all"
     >
       {/* Profile photo or initials */}
@@ -264,6 +266,7 @@ export default async function DashboardBandsPage({ searchParams }: PageProps) {
                   <Link
                     href={`/bands/${band.slug}`}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="text-sm text-[#888888] hover:text-[#252525] transition-colors"
                   >
                     View

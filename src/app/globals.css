@@ -73,6 +73,17 @@ textarea {
   will-change: transform;
 }
 
+@media (min-width: 1024px) {
+  .app-shell-layout:has(.desktop-app-sidebar) .app-shell-main {
+    padding-left: 15rem;
+    transition: padding-left 200ms ease;
+  }
+
+  .app-shell-layout:has(.desktop-app-sidebar[data-collapsed='true']) .app-shell-main {
+    padding-left: 5rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-processing-spin {
     animation: none;
