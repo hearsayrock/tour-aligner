@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { Eye, Palette, Plus, Search, Sparkles, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
-import { ButtonLink } from '@/components/ui/primitives'
-import type { Genre, Band } from '@/types/database'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
+import type { Genre, Band, Json } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -27,6 +28,7 @@ interface LyricInput {
 
 interface BandFormInitial {
   id: string
+  slug: string
   name: string
   tagline: string
   location_city: string
@@ -49,6 +51,8 @@ interface BandFormInitial {
   lyrics: LyricInput[]
   profile_photo_url: string
   cover_photo_url: string
+  profile_background_url: string
+  profile_theme: Json
   featured_track_url: string
   artist_type: 'solo' | 'band' | ''
   set_length_min: string
@@ -59,7 +63,6 @@ interface BandFormProps {
   userId: string
   genres: Genre[]
   initial?: Partial<BandFormInitial>
-  calendarHref?: string
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -94,6 +97,45 @@ const SOCIAL_FIELDS: { key: keyof SocialFields; label: string; placeholder: stri
   { key: 'twitter_url', label: 'Twitter / X', placeholder: 'https://x.com/...' },
 ]
 
+const APPEARANCE_PRESETS = [
+  { name: 'Sunset', accent: '#FD6A2F', background: 'paper' as const },
+  { name: 'Electric', accent: '#6D5EF9', background: 'night' as const },
+  { name: 'Ocean', accent: '#00A6A6', background: 'mist' as const },
+  { name: 'Lime light', accent: '#7AAE23', background: 'paper' as const },
+]
+
+type ProfileTheme = {
+  accent: string
+  background: 'paper' | 'night' | 'mist'
+  buttonStyle: 'rounded' | 'square' | 'pill'
+  wallpaperOpacity: number
+}
+
+const DEFAULT_THEME: ProfileTheme = {
+  accent: '#FD6A2F',
+  background: 'paper',
+  buttonStyle: 'rounded',
+  wallpaperOpacity: 12,
+}
+
+function parseProfileTheme(value: Json | undefined): ProfileTheme {
+  if (!value || Array.isArray(value) || typeof value !== 'object') return DEFAULT_THEME
+  const candidate = value as Record<string, Json | undefined>
+  const accent = typeof candidate.accent === 'string' && /^#[0-9A-Fa-f]{6}$/.test(candidate.accent)
+    ? candidate.accent.toUpperCase()
+    : DEFAULT_THEME.accent
+  const background = candidate.background === 'night' || candidate.background === 'mist' || candidate.background === 'paper'
+    ? candidate.background
+    : DEFAULT_THEME.background
+  const buttonStyle = candidate.buttonStyle === 'square' || candidate.buttonStyle === 'pill' || candidate.buttonStyle === 'rounded'
+    ? candidate.buttonStyle
+    : DEFAULT_THEME.buttonStyle
+  const wallpaperOpacity = typeof candidate.wallpaperOpacity === 'number'
+    ? Math.round(Math.min(100, Math.max(0, candidate.wallpaperOpacity)))
+    : DEFAULT_THEME.wallpaperOpacity
+  return { accent, background, buttonStyle, wallpaperOpacity }
+}
+
 type SocialFields = Pick<
   BandFormInitial,
   | 'website_url'
@@ -122,7 +164,7 @@ async function uploadPhoto(
   supabase: ReturnType<typeof createClient>,
   file: File,
   bandId: string,
-  type: 'profile' | 'cover'
+  type: 'profile' | 'cover' | 'background'
 ): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `bands/${bandId}/${type}.${ext}`
@@ -143,7 +185,7 @@ const inputClass =
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-5 text-sm font-semibold text-[#252525]">
+    <h2 className="text-lg font-semibold tracking-tight text-[#171717]">
       {children}
     </h2>
   )
@@ -259,13 +301,116 @@ function PhotoUpload({
   )
 }
 
+function GenrePicker({
+  genres,
+  selectedGenres,
+  onAdd,
+  onRemove,
+}: {
+  genres: Genre[]
+  selectedGenres: Set<string>
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const selected = genres.filter((genre) => selectedGenres.has(genre.id))
+  const matches = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    return genres
+      .filter((genre) => !selectedGenres.has(genre.id))
+      .filter((genre) => !normalized || genre.name.toLowerCase().includes(normalized))
+      .slice(0, 6)
+  }, [genres, query, selectedGenres])
+  const isAtLimit = selectedGenres.size >= 3
+
+  function choose(id: string) {
+    onAdd(id)
+    setQuery('')
+    setOpen(false)
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <Label htmlFor="genre-search">Your sound</Label>
+        <span className={`text-xs font-semibold ${isAtLimit ? 'text-[#B24B26]' : 'text-[#8A8A8A]'}`}>
+          {selectedGenres.size}/3 selected
+        </span>
+      </div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A8A8A]" />
+        <input
+          id="genre-search"
+          type="text"
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={(event) => { setQuery(event.target.value); setOpen(true) }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && matches[0] && !isAtLimit) {
+              event.preventDefault()
+              choose(matches[0].id)
+            }
+            if (event.key === 'Escape') setOpen(false)
+          }}
+          disabled={isAtLimit}
+          className={`${inputClass} pl-11 disabled:cursor-not-allowed disabled:opacity-60`}
+          placeholder={isAtLimit ? 'Remove a genre to make a change' : 'Start typing a genre…'}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open && !isAtLimit}
+          aria-controls="genre-options"
+        />
+        {open && !isAtLimit && matches.length > 0 && (
+          <div id="genre-options" role="listbox" className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#E7DED7] bg-white p-1.5 shadow-[0_18px_38px_rgba(33,24,18,0.14)]">
+            {matches.map((genre) => (
+              <button
+                key={genre.id}
+                type="button"
+                role="option"
+                aria-selected="false"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => choose(genre.id)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#303030] transition-colors hover:bg-[#FFF2EB] hover:text-[#A84216]"
+              >
+                {genre.name}
+                <Plus className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {selected.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {selected.map((genre) => (
+            <button
+              key={genre.id}
+              type="button"
+              onClick={() => onRemove(genre.id)}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[#252525] px-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+            >
+              {genre.name}
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="sr-only">Remove {genre.name}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-xs leading-5 text-[#888888]">Choose up to three genres so venues can understand where you fit.</p>
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────
 // Form
 // ─────────────────────────────────────────────────────────────
 
-export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: BandFormProps) {
+export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [nameChangeDialogOpen, setNameChangeDialogOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Basic fields
@@ -281,11 +426,15 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
   // Photos
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [backgroundFile, setBackgroundFile] = useState<File | null>(null)
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null)
   // Track if user explicitly removed an existing photo
   const [removeProfile, setRemoveProfile] = useState(false)
   const [removeCover, setRemoveCover] = useState(false)
+  const [removeBackground, setRemoveBackground] = useState(false)
+  const [profileTheme, setProfileTheme] = useState<ProfileTheme>(() => parseProfileTheme(initial.profile_theme))
 
   function handleProfileSelect(file: File, previewUrl: string) {
     setProfileFile(file)
@@ -297,6 +446,12 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
     setCoverFile(file)
     setCoverPreview(previewUrl)
     setRemoveCover(false)
+  }
+
+  function handleBackgroundSelect(file: File, previewUrl: string) {
+    setBackgroundFile(file)
+    setBackgroundPreview(previewUrl)
+    setRemoveBackground(false)
   }
 
   // Featured track
@@ -332,14 +487,19 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
   )
   const [lyrics, setLyrics] = useState<LyricInput[]>(initial.lyrics ?? [])
 
-  function toggleGenre(id: string) {
+  function addGenre(id: string) {
+    setSelectedGenres((prev) => {
+      if (prev.has(id) || prev.size >= 3) return prev
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }
+
+  function removeGenre(id: string) {
     setSelectedGenres((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      next.delete(id)
       return next
     })
   }
@@ -369,6 +529,23 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
   function removeLyric(index: number) {
     setLyrics((prev) => prev.filter((_, i) => i !== index))
   }
+
+  const publicPreviewHref = initial.slug
+    ? `/bands/${initial.slug}?draft=${encodeURIComponent(JSON.stringify({
+        name,
+        tagline,
+        description,
+        location_city: city,
+        location_state: state,
+        touring_radius: touringRadius || null,
+        artist_type: artistType || null,
+        set_length_min: setLengthMin ? parseInt(setLengthMin, 10) : null,
+        featured_track_url: featuredTrackUrl,
+        profile_theme: profileTheme,
+        genre_names: genres.filter((genre) => selectedGenres.has(genre.id)).map((genre) => genre.name),
+        ...socials,
+      }))}`
+    : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -402,6 +579,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
       twitter_url: socials.twitter_url.trim() || null,
       featured_track_url: featuredTrackUrl.trim() || null,
       members: members.map((m) => m.trim()).filter(Boolean),
+      profile_theme: profileTheme,
     }
 
     const validDates = showDates.filter(
@@ -412,10 +590,9 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
     let bandId: string
 
     if (mode === 'create') {
-      const slug = slugify(name.trim())
       const { data: band, error: insertError } = await supabase
         .from('bands')
-        .insert({ ...bandPayload, user_id: userId, slug })
+        .insert({ ...bandPayload, user_id: userId, slug: slugify(name.trim()) })
         .select('id')
         .single()
 
@@ -444,7 +621,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
     }
 
     // Upload photos and collect URL updates
-    const photoUpdates: { profile_photo_url?: string | null; cover_photo_url?: string | null } = {}
+    const photoUpdates: { profile_photo_url?: string | null; cover_photo_url?: string | null; profile_background_url?: string | null } = {}
 
     try {
       if (profileFile) {
@@ -457,6 +634,12 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
         photoUpdates.cover_photo_url = await uploadPhoto(supabase, coverFile, bandId, 'cover')
       } else if (removeCover) {
         photoUpdates.cover_photo_url = null
+      }
+
+      if (backgroundFile) {
+        photoUpdates.profile_background_url = await uploadPhoto(supabase, backgroundFile, bandId, 'background')
+      } else if (removeBackground) {
+        photoUpdates.profile_background_url = null
       }
     } catch {
       setError('Photo upload failed. Your other changes were saved.')
@@ -509,31 +692,26 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      {/* Header */}
-      <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Artist profile</p>
-          <h1 className="text-3xl font-bold tracking-tight text-[#181818]">
-            {mode === 'create' ? 'Add an artist' : 'Edit artist'}
-          </h1>
-          <p className="mt-2 text-sm text-[#777777]">Keep the profile complete so venues can evaluate fit quickly. Shows and Backstages now roll up into Calendar Workspace.</p>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-7xl space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+      {(loading || cancelling) && <ProcessingOverlay />}
+      <header className="relative overflow-hidden rounded-[28px] bg-[#1C1816] px-6 py-7 text-white shadow-[0_20px_60px_rgba(35,20,12,0.18)] sm:px-8 sm:py-9">
+        <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#FD6A2F]/35 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-[#FAE4D7]/10 blur-3xl" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#FFB99A]"><Sparkles className="h-3.5 w-3.5" /> Artist studio</p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{mode === 'create' ? 'Build your artist page' : 'Make your artist page unforgettable'}</h1>
+            <p className="mt-3 text-sm leading-6 text-white/70">This is the page venues see first. Shape the story, sound, and visual world that make you a fit.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => { setCancelling(true); router.push('/dashboard/bands') }} disabled={loading || cancelling} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/25 bg-transparent px-4 py-2.5 text-sm font-bold text-white/82 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
+            {mode === 'edit' && publicPreviewHref && <a href={publicPreviewHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/20"><Eye className="h-4 w-4" /> View public page</a>}
+            <button type="submit" disabled={loading} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-[#221814] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+              {loading ? 'Saving…' : mode === 'create' ? 'Create artist page' : 'Save changes'}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {calendarHref && (
-            <ButtonLink href={calendarHref} tone="secondary">
-              Calendar Workspace
-            </ButtonLink>
-          )}
-          <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Saving…' : mode === 'create' ? 'Create band' : 'Save changes'}
-          </button>
-        </div>
-      </div>
+      </header>
 
       {error && (
         <p className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">
@@ -541,48 +719,32 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
         </p>
       )}
 
-      {/* Photos */}
-      <section>
-        <SectionHeader>Photos</SectionHeader>
-        <div className="space-y-5">
-          <PhotoUpload
-            label="Cover photo"
-            existingUrl={removeCover ? '' : (initial.cover_photo_url ?? '')}
-            aspectClass="aspect-[4/1]"
-            radiusClass="rounded-xl"
-            aspect={3}
-            onFileSelect={handleCoverSelect}
-            onRemove={() => { setCoverFile(null); setCoverPreview(null); setRemoveCover(true) }}
-            previewUrl={coverPreview}
-          />
-          <div className="max-w-[160px]">
-            <PhotoUpload
-              label="Profile photo"
-              existingUrl={removeProfile ? '' : (initial.profile_photo_url ?? '')}
-              aspectClass="aspect-square"
-              radiusClass="rounded-full"
-              aspect={1}
-              onFileSelect={handleProfileSelect}
-              onRemove={() => { setProfileFile(null); setProfilePreview(null); setRemoveProfile(true) }}
-              previewUrl={profilePreview}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Basic Info */}
-      <section>
-        <SectionHeader>Basic Info</SectionHeader>
-        <div className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <div className="space-y-6">
+          <section className="rounded-[28px] border border-[#EAE3DD] bg-white p-5 shadow-[0_12px_32px_rgba(32,22,16,0.04)] sm:p-7">
+            <div className="mb-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">The essentials</p><SectionHeader>Tell venues who they&apos;re booking</SectionHeader></div>
+            <div className="space-y-4">
           <div>
-            <Label htmlFor="name">Artist name *</Label>
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <Label htmlFor="name">Artist name *</Label>
+              {mode === 'edit' && (
+                <button
+                  type="button"
+                  onClick={() => setNameChangeDialogOpen(true)}
+                  className="text-xs font-medium text-[#888888] underline-offset-2 transition-colors hover:text-[#A24A22] hover:underline"
+                >
+                  Request name change
+                </button>
+              )}
+            </div>
             <input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className={inputClass}
+              disabled={mode === 'edit'}
+              className={`${inputClass} disabled:cursor-not-allowed disabled:border-[#E6E1DD] disabled:bg-[#F3F1EF] disabled:text-[#69635F]`}
               placeholder="The Midnight"
             />
           </div>
@@ -623,11 +785,10 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             </div>
           </div>
 
-          {/* Artist type + set length */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-[#777777] mb-2">Artist type</p>
-              <div className="flex rounded-lg overflow-hidden border border-[#E8E8E8] w-fit">
+              <p className="mb-1.5 text-sm font-medium text-[#626262]">Artist type</p>
+              <div className="flex overflow-hidden rounded-xl border border-[#E8E8E8]">
                 {(['', 'solo', 'band'] as const).map((type) => (
                   <button
                     key={type}
@@ -635,7 +796,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
                     onClick={() => setArtistType(type)}
                     className={`text-sm px-4 py-2 transition-colors ${
                       artistType === type
-                        ? 'bg-[#FD6A2F] text-white font-medium'
+                        ? 'bg-[#252525] text-white font-medium'
                         : 'bg-[#F5F5F5] text-[#777777] hover:text-[#252525]'
                     }`}
                   >
@@ -659,7 +820,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             </div>
           </div>
 
-          <div>
+          <div className="pt-1">
             <Label htmlFor="bio">Bio</Label>
             <textarea
               id="bio"
@@ -670,13 +831,12 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
               placeholder="Tell venues who you are, what you sound like, and what kind of shows you play."
             />
           </div>
-        </div>
-      </section>
+            </div>
+          </section>
 
-      {/* Touring */}
-      <section>
-        <SectionHeader>Touring</SectionHeader>
-        <div className="space-y-6">
+          <section className="rounded-[28px] border border-[#EAE3DD] bg-white p-5 shadow-[0_12px_32px_rgba(32,22,16,0.04)] sm:p-7">
+            <div className="mb-6"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Booking signal</p><SectionHeader>Make your fit instantly clear</SectionHeader></div>
+            <div className="space-y-6">
           <div>
             <Label htmlFor="radius">Touring radius</Label>
             <select
@@ -693,34 +853,45 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
               ))}
             </select>
           </div>
-          <div>
-            <p className="text-sm text-[#777777] mb-3">Genres</p>
-            <div className="flex flex-wrap gap-2">
-              {genres.map((genre) => {
-                const selected = selectedGenres.has(genre.id)
-                return (
-                  <button
-                    key={genre.id}
-                    type="button"
-                    onClick={() => toggleGenre(genre.id)}
-                    className={`text-sm px-3 py-1 rounded-full border transition-colors ${
-                      selected
-                        ? 'bg-[#FD6A2F] border-[#FD6A2F] text-white font-medium'
-                        : 'border-[#E8E8E8] text-[#777777] hover:border-[#CCCCCC] hover:text-[#252525]'
-                    }`}
-                  >
-                    {genre.name}
-                  </button>
-                )
-              })}
+              <GenrePicker genres={genres} selectedGenres={selectedGenres} onAdd={addGenre} onRemove={removeGenre} />
             </div>
-          </div>
+          </section>
+        </div>
+
+        <aside className="space-y-6 lg:sticky lg:top-6">
+          <section className="overflow-hidden rounded-[28px] border border-[#EAE3DD] bg-white shadow-[0_12px_32px_rgba(32,22,16,0.04)]">
+            <div className="border-b border-[#F0EAE5] px-5 py-5"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]"><Palette className="h-3.5 w-3.5" /> Visual identity</p><h2 className="mt-2 text-lg font-semibold tracking-tight text-[#171717]">Set the mood</h2><p className="mt-1 text-sm leading-5 text-[#777777]">A consistent look makes your page feel intentional.</p></div>
+            <div className="space-y-5 p-5">
+              <div className="overflow-hidden rounded-2xl bg-[#1D1A18] p-4 text-white" style={{ backgroundColor: profileTheme.background === 'night' ? '#15131B' : profileTheme.background === 'mist' ? '#183E49' : '#2D2420' }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Live direction</p>
+                <div className="mt-7 flex items-end gap-3"><div className="h-12 w-12 rounded-xl border border-white/20 bg-white/15" /><div><p className="text-lg font-bold">{name || 'Your artist name'}</p><p className="text-xs text-white/65">{tagline || 'Your unmistakable vibe'}</p></div></div>
+                <button type="button" className={`mt-5 px-3 py-2 text-xs font-bold text-white ${profileTheme.buttonStyle === 'pill' ? 'rounded-full' : profileTheme.buttonStyle === 'square' ? 'rounded-md' : 'rounded-xl'}`} style={{ backgroundColor: profileTheme.accent }}>Listen now</button>
+              </div>
+              <div><Label htmlFor="accent-color">Signature color</Label><div className="flex gap-2"><input id="accent-color" type="color" value={profileTheme.accent} onChange={(event) => setProfileTheme((theme) => ({ ...theme, accent: event.target.value.toUpperCase() }))} className="h-11 w-12 cursor-pointer rounded-xl border border-[#E2E2E2] bg-[#F7F7F7] p-1" /><input value={profileTheme.accent} onChange={(event) => { const value = event.target.value.toUpperCase(); if (/^#[0-9A-F]{0,6}$/.test(value)) setProfileTheme((theme) => ({ ...theme, accent: value })) }} className={inputClass} maxLength={7} aria-label="Signature color hex value" /></div></div>
+              <div><p className="mb-2 text-sm font-medium text-[#626262]">Page atmosphere</p><div className="grid grid-cols-2 gap-2">{APPEARANCE_PRESETS.map((preset) => <button key={preset.name} type="button" onClick={() => setProfileTheme((theme) => ({ ...theme, accent: preset.accent, background: preset.background }))} className={`flex items-center gap-2 rounded-xl border p-2 text-left text-xs font-semibold ${profileTheme.accent === preset.accent && profileTheme.background === preset.background ? 'border-[#252525] bg-[#FAF8F6]' : 'border-[#E8E8E8] hover:border-[#C8C0BA]'}`}><span className="h-5 w-5 rounded-full" style={{ backgroundColor: preset.accent }} />{preset.name}</button>)}</div></div>
+              <div><p className="mb-2 text-sm font-medium text-[#626262]">Link style</p><div className="grid grid-cols-3 gap-2">{(['rounded', 'square', 'pill'] as const).map((style) => <button key={style} type="button" onClick={() => setProfileTheme((theme) => ({ ...theme, buttonStyle: style }))} className={`min-h-10 border text-xs font-semibold capitalize ${style === 'pill' ? 'rounded-full' : style === 'square' ? 'rounded-md' : 'rounded-xl'} ${profileTheme.buttonStyle === style ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E8E8E8] text-[#777777]'}`}>{style}</button>)}</div></div>
+              <PhotoUpload label="Backdrop / wallpaper" existingUrl={removeBackground ? '' : (initial.profile_background_url ?? '')} aspectClass="aspect-[16/8]" aspect={2} onFileSelect={handleBackgroundSelect} onRemove={() => { setBackgroundFile(null); setBackgroundPreview(null); setRemoveBackground(true) }} previewUrl={backgroundPreview} />
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3"><Label htmlFor="wallpaper-opacity">Wallpaper opacity</Label><output htmlFor="wallpaper-opacity" className="text-xs font-semibold text-[#A24A22]">{profileTheme.wallpaperOpacity}%</output></div>
+                <input id="wallpaper-opacity" type="range" min="0" max="100" step="1" value={profileTheme.wallpaperOpacity} onChange={(event) => setProfileTheme((theme) => ({ ...theme, wallpaperOpacity: Number(event.target.value) }))} className="w-full cursor-pointer" style={{ accentColor: profileTheme.accent }} />
+                <p className="mt-1.5 text-xs leading-5 text-[#777777]">Lower keeps the wallpaper subtle; higher lets the image take over.</p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <section className="rounded-[28px] border border-[#EAE3DD] bg-white p-5 shadow-[0_12px_32px_rgba(32,22,16,0.04)] sm:p-7">
+        <div className="mb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Profile imagery</p><SectionHeader>Give your page a face and a stage</SectionHeader></div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_180px]">
+          <PhotoUpload label="Cover photo" existingUrl={removeCover ? '' : (initial.cover_photo_url ?? '')} aspectClass="aspect-[4/1]" aspect={3} onFileSelect={handleCoverSelect} onRemove={() => { setCoverFile(null); setCoverPreview(null); setRemoveCover(true) }} previewUrl={coverPreview} />
+          <PhotoUpload label="Profile photo" existingUrl={removeProfile ? '' : (initial.profile_photo_url ?? '')} aspectClass="aspect-square" radiusClass="rounded-3xl" aspect={1} onFileSelect={handleProfileSelect} onRemove={() => { setProfileFile(null); setProfilePreview(null); setRemoveProfile(true) }} previewUrl={profilePreview} />
         </div>
       </section>
 
       {/* Featured Track */}
-      <section>
-        <SectionHeader>Featured Track</SectionHeader>
+      <section className="rounded-[28px] border border-[#EAE3DD] bg-white p-5 shadow-[0_12px_32px_rgba(32,22,16,0.04)] sm:p-7">
+        <div className="mb-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">First listen</p><SectionHeader>Feature the track that sells the room</SectionHeader></div>
         <div>
           <Label htmlFor="featuredTrack">Spotify track, album, or playlist URL</Label>
           <input
@@ -738,8 +909,9 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
       </section>
 
       {/* Lyrics */}
-      <section>
-        <SectionHeader>Lyrics</SectionHeader>
+      <details className="group rounded-2xl border border-[#EAE3DD] bg-white px-5 py-1 shadow-[0_10px_24px_rgba(32,22,16,0.03)] sm:px-7">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4"><div><SectionHeader>Lyrics</SectionHeader><p className="mt-1 text-sm text-[#777777]">Optional — share the words behind your music.</p></div><span className="text-xl text-[#888888] transition-transform group-open:rotate-45">+</span></summary>
+        <div className="border-t border-[#F0EAE5] py-5">
         <p className="mb-4 text-sm text-[#777777]">Publish song lyrics for visitors to read on your public artist profile.</p>
         <div className="space-y-4">
           {lyrics.map((lyric, i) => (
@@ -772,12 +944,13 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             + Add lyrics
           </button>
         </div>
-      </section>
+        </div>
+      </details>
 
       {/* Social Links */}
-      <section>
-        <SectionHeader>Social Links</SectionHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <details className="group rounded-2xl border border-[#EAE3DD] bg-white px-5 py-1 shadow-[0_10px_24px_rgba(32,22,16,0.03)] sm:px-7">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4"><div><SectionHeader>Links & listening</SectionHeader><p className="mt-1 text-sm text-[#777777]">Optional — give venues and fans the right next click.</p></div><span className="text-xl text-[#888888] transition-transform group-open:rotate-45">+</span></summary>
+        <div className="grid grid-cols-1 gap-4 border-t border-[#F0EAE5] py-5 sm:grid-cols-2">
           {SOCIAL_FIELDS.map(({ key, label, placeholder }) => (
             <div key={key}>
               <Label htmlFor={key}>{label}</Label>
@@ -792,12 +965,12 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             </div>
           ))}
         </div>
-      </section>
+      </details>
 
       {/* Band Members */}
-      <section>
-        <SectionHeader>Band Members</SectionHeader>
-        <div className="space-y-2">
+      <details className="group rounded-2xl border border-[#EAE3DD] bg-white px-5 py-1 shadow-[0_10px_24px_rgba(32,22,16,0.03)] sm:px-7">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4"><div><SectionHeader>Members</SectionHeader><p className="mt-1 text-sm text-[#777777]">Optional — introduce the people on stage.</p></div><span className="text-xl text-[#888888] transition-transform group-open:rotate-45">+</span></summary>
+        <div className="space-y-2 border-t border-[#F0EAE5] py-5">
           {members.map((member, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
@@ -825,12 +998,12 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             + Add member
           </button>
         </div>
-      </section>
+      </details>
 
       {/* Show Dates */}
-      <section>
-        <SectionHeader>Upcoming Shows</SectionHeader>
-        <div className="space-y-3">
+      <details className="group rounded-2xl border border-[#EAE3DD] bg-white px-5 py-1 shadow-[0_10px_24px_rgba(32,22,16,0.03)] sm:px-7">
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4"><div><SectionHeader>Upcoming shows</SectionHeader><p className="mt-1 text-sm text-[#777777]">Optional — share dates you want fans to find.</p></div><span className="text-xl text-[#888888] transition-transform group-open:rotate-45">+</span></summary>
+        <div className="space-y-3 border-t border-[#F0EAE5] py-5">
           {showDates.map((date, i) => (
             <div
               key={i}
@@ -913,7 +1086,30 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
             + Add show
           </button>
         </div>
-      </section>
+      </details>
+
+      {mode === 'edit' && nameChangeDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#17120F]/35 p-4 backdrop-blur-sm"
+          onMouseDown={() => setNameChangeDialogOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="name-change-dialog-title"
+            className="w-full max-w-md rounded-3xl border border-[#EAE3DD] bg-white p-6 shadow-[0_24px_70px_rgba(28,19,14,0.28)]"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="name-change-dialog-title" className="text-xl font-bold tracking-tight text-[#171717]">Request name change</h2>
+            <p className="mt-3 text-sm leading-6 text-[#626262]">
+              Please email <a href="mailto:support@touraligner.com" className="font-semibold text-[#A24A22] underline underline-offset-2">support@touraligner.com</a> to request a name change.
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button type="button" onClick={() => setNameChangeDialogOpen(false)} className="rounded-xl bg-[#252525] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-black">Close</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Bottom save */}
       {error && (
@@ -925,7 +1121,7 @@ export function BandForm({ mode, userId, genres, initial = {}, calendarHref }: B
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-6 py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-xl bg-[#252525] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? 'Saving…' : mode === 'create' ? 'Create band' : 'Save changes'}
         </button>

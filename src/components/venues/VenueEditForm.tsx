@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ButtonLink } from '@/components/ui/primitives'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 import type { Genre, Venue } from '@/types/database'
 
 interface VenueEditFormProps {
@@ -122,6 +123,7 @@ export function VenueEditForm({
 
   return (
     <form onSubmit={handleSubmit} className={className}>
+      {loading && <ProcessingOverlay />}
       {showHeader && (
         <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

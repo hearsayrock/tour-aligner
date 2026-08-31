@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Inter, Barlow_Condensed } from 'next/font/google'
 import './globals.css'
+import { NavigationProcessingOverlay } from '@/components/ui/NavigationProcessingOverlay'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,6 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${barlowCondensed.variable} font-sans antialiased bg-[#FAFAFA] text-[#252525]`}>
+        <Suspense fallback={null}>
+          <NavigationProcessingOverlay />
+        </Suspense>
         {children}
       </body>
     </html>

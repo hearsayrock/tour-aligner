@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 import type { Genre } from '@/types/database'
 
 interface VenueCreateFormProps {
@@ -152,6 +153,7 @@ export function VenueCreateForm({ userId, genres }: VenueCreateFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10 space-y-6">
+      {loading && <ProcessingOverlay />}
       <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Venue profile</p>

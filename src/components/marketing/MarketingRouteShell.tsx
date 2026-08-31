@@ -34,7 +34,7 @@ export function MarketingRouteShell({
     <>
       <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
       <div className={useAppShell ? undefined : 'hidden'}>{appNav}</div>
-      <main className={cx(useAppShell && 'min-h-screen pb-24 lg:pl-72 lg:pb-0')}>
+      <main className={cx(useAppShell && 'min-h-screen pb-24 lg:pb-0')}>
         {children}
       </main>
       <div className={useAppShell ? 'hidden' : undefined}>{footer}</div>

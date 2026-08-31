@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -72,6 +73,7 @@ export default function SignupPage() {
 
   return (
     <div className="w-full max-w-sm">
+      {loading && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
           <Image src="/logo.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />

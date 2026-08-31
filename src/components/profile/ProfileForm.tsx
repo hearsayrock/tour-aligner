@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 import type { Profile } from '@/types/database'
 
 interface ProfileFormProps {
@@ -103,6 +104,7 @@ export function ProfileForm({ profile, email, userId }: ProfileFormProps) {
 
   return (
     <>
+    {loading && <ProcessingOverlay />}
     {cropSrc && (
       <ImageCropModal
         src={cropSrc}

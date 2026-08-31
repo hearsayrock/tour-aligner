@@ -12,7 +12,6 @@ import {
   Globe,
   Instagram,
   MapPin,
-  Mic2,
   PencilLine,
   Radio,
   Route,
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Badge, ButtonLink } from '@/components/ui/primitives'
-import type { Band } from '@/types/database'
+import type { Band, Json } from '@/types/database'
 
 export const revalidate = 60
 
@@ -43,6 +42,72 @@ const TOURING_RADIUS_LABELS: Record<string, string> = {
 const ARTIST_TYPE_LABELS: Record<string, string> = {
   solo: 'Solo artist',
   band: 'Band',
+}
+
+type ProfileTheme = {
+  accent: string
+  background: 'paper' | 'night' | 'mist'
+  buttonStyle: 'rounded' | 'square' | 'pill'
+  wallpaperOpacity: number
+}
+
+type ArtistPreviewDraft = Partial<Pick<Band,
+  | 'name'
+  | 'tagline'
+  | 'description'
+  | 'location_city'
+  | 'location_state'
+  | 'touring_radius'
+  | 'artist_type'
+  | 'set_length_min'
+  | 'featured_track_url'
+  | 'profile_theme'
+  | 'website_url'
+  | 'instagram_url'
+  | 'spotify_url'
+  | 'youtube_url'
+  | 'bandcamp_url'
+  | 'apple_music_url'
+  | 'tiktok_url'
+  | 'soundcloud_url'
+  | 'facebook_url'
+  | 'twitter_url'
+>> & { genre_names?: string[] }
+
+function parsePreviewDraft(value: string | undefined): ArtistPreviewDraft {
+  if (!value) return {}
+  try {
+    const draft = JSON.parse(value) as unknown
+    if (!draft || Array.isArray(draft) || typeof draft !== 'object') return {}
+    return draft as ArtistPreviewDraft
+  } catch {
+    return {}
+  }
+}
+
+const DEFAULT_PROFILE_THEME: ProfileTheme = {
+  accent: '#FD6A2F',
+  background: 'paper',
+  buttonStyle: 'rounded',
+  wallpaperOpacity: 12,
+}
+
+function getProfileTheme(value: Json): ProfileTheme {
+  if (Array.isArray(value) || typeof value !== 'object' || value === null) return DEFAULT_PROFILE_THEME
+  const candidate = value as Record<string, Json | undefined>
+  const accent = typeof candidate.accent === 'string' && /^#[0-9A-Fa-f]{6}$/.test(candidate.accent)
+    ? candidate.accent.toUpperCase()
+    : DEFAULT_PROFILE_THEME.accent
+  const background = candidate.background === 'night' || candidate.background === 'mist' || candidate.background === 'paper'
+    ? candidate.background
+    : DEFAULT_PROFILE_THEME.background
+  const buttonStyle = candidate.buttonStyle === 'square' || candidate.buttonStyle === 'pill' || candidate.buttonStyle === 'rounded'
+    ? candidate.buttonStyle
+    : DEFAULT_PROFILE_THEME.buttonStyle
+  const wallpaperOpacity = typeof candidate.wallpaperOpacity === 'number'
+    ? Math.round(Math.min(100, Math.max(0, candidate.wallpaperOpacity)))
+    : DEFAULT_PROFILE_THEME.wallpaperOpacity
+  return { accent, background, buttonStyle, wallpaperOpacity }
 }
 
 const STREAMING = [
@@ -69,6 +134,12 @@ function toSpotifyEmbed(url: string): string | null {
 
 function formatLocation(band: Pick<Band, 'location_city' | 'location_state'>) {
   return [band.location_city, band.location_state].filter(Boolean).join(', ')
+}
+
+function versionedImageUrl(url: string | null, version: string): string | null {
+  if (!url) return null
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}v=${encodeURIComponent(version)}`
 }
 
 function DetailRow({
@@ -98,17 +169,19 @@ function SectionCard({
   title,
   children,
   action,
+  accent = '#A24A22',
 }: {
   eyebrow: string
   title: string
   children: ReactNode
   action?: ReactNode
+  accent?: string
 }) {
   return (
     <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">{eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: accent }}>{eyebrow}</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">{title}</h2>
         </div>
         {action}
@@ -137,10 +210,13 @@ export async function generateMetadata({
 
 export default async function BandProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ draft?: string }>
 }) {
   const { slug } = await params
+  const { draft } = await searchParams
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
@@ -156,6 +232,8 @@ export default async function BandProfilePage({
 
   const band = rawBand as Band | null
   if (!band) return notFound()
+  const previewDraft = parsePreviewDraft(draft)
+  const displayBand = { ...band, ...previewDraft } as Band
 
   const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }] = await Promise.all([
     supabase
@@ -186,25 +264,37 @@ export default async function BandProfilePage({
   const shows = (rawShows ?? []) as unknown as ShowRow[]
   const lyrics = (rawLyrics ?? []) as { id: string; title: string; body: string; sort_order: number }[]
 
-  const genreNames = (
+  let genreNames = (
     (bandGenres ?? []) as unknown as { genres: { name: string } | null }[]
   )
     .map((bg) => bg.genres?.name)
     .filter(Boolean) as string[]
+  if (Array.isArray(previewDraft.genre_names)) {
+    genreNames = previewDraft.genre_names.filter((genre): genre is string => typeof genre === 'string' && genre.trim().length > 0)
+  }
 
-  const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
-  const streamingLinks = STREAMING.filter(({ key }) => !!band[key])
-  const socialLinks = SOCIALS.filter(({ key }) => !!band[key])
+  const embedUrl = displayBand.featured_track_url ? toSpotifyEmbed(displayBand.featured_track_url) : null
+  const streamingLinks = STREAMING.filter(({ key }) => !!displayBand[key])
+  const socialLinks = SOCIALS.filter(({ key }) => !!displayBand[key])
   const isOwner = user?.id === band.user_id
 
-  const location = formatLocation(band)
-  const heroImage = band.cover_photo_url ?? '/concert-hero.jpg'
-  const primaryGenre = genreNames[0] ?? 'Artist'
-  const artistType = band.artist_type ? ARTIST_TYPE_LABELS[band.artist_type] : null
-  const touringRadius = band.touring_radius ? TOURING_RADIUS_LABELS[band.touring_radius] : null
+  const location = formatLocation(displayBand)
+  const heroImage = versionedImageUrl(displayBand.cover_photo_url, band.updated_at) ?? '/concert-hero.jpg'
+  const profileImage = versionedImageUrl(displayBand.profile_photo_url, band.updated_at)
+  const artistType = displayBand.artist_type ? ARTIST_TYPE_LABELS[displayBand.artist_type] : null
+  const touringRadius = displayBand.touring_radius ? TOURING_RADIUS_LABELS[displayBand.touring_radius] : null
+  const theme = getProfileTheme(displayBand.profile_theme)
+  const pageBackground = theme.background === 'night' ? '#17151B' : theme.background === 'mist' ? '#EDF7F6' : '#F7F4EE'
+  const buttonShape = theme.buttonStyle === 'pill' ? 'rounded-full' : theme.buttonStyle === 'square' ? 'rounded-md' : 'rounded-2xl'
+  const wallpaperImage = versionedImageUrl(displayBand.profile_background_url, band.updated_at)
+  const wallpaperBase = theme.background === 'night' ? '23,21,27' : theme.background === 'mist' ? '237,247,246' : '247,244,238'
+  const wallpaperOverlayOpacity = 1 - (theme.wallpaperOpacity / 100)
+  const wallpaperStyle = wallpaperImage
+    ? { backgroundImage: `linear-gradient(rgba(${wallpaperBase},${wallpaperOverlayOpacity}), rgba(${wallpaperBase},${wallpaperOverlayOpacity})), url("${wallpaperImage}")`, backgroundSize: 'cover', backgroundAttachment: 'fixed' as const }
+    : { backgroundColor: pageBackground }
 
   return (
-    <div className={`bg-[#F7F4EE] ${user ? '' : 'pt-16'}`}>
+    <div className={user ? '' : 'pt-16'} style={wallpaperStyle}>
       <section className="relative overflow-hidden border-b border-[#1F1F1F] bg-[#111111] text-white">
         <Image
           src={heroImage}
@@ -215,7 +305,7 @@ export default async function BandProfilePage({
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.42)_0%,rgba(8,8,8,0.82)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_14%,_rgba(253,106,47,0.24),_transparent_28%),radial-gradient(circle_at_82%_18%,_rgba(14,116,144,0.18),_transparent_24%)]" />
+        <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 16% 14%, ${theme.accent}66, transparent 28%), radial-gradient(circle at 82% 18%, rgba(14,116,144,0.18), transparent 24%)` }} />
 
         <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
           <Link
@@ -229,25 +319,21 @@ export default async function BandProfilePage({
           <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
             <div className="max-w-4xl">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="brand" className="border-white/15 bg-white/10 text-white">
-                  <Mic2 className="h-3.5 w-3.5 text-[#F6B293]" />
-                  {primaryGenre}
-                </Badge>
                 {artistType && <Badge tone="muted">{artistType}</Badge>}
                 {isOwner && (
                   <Badge tone="success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Managed by this profile
+                    Managed by this Account
                   </Badge>
                 )}
               </div>
 
               <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end">
-                {band.profile_photo_url && (
+                {profileImage && (
                   <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl border border-white/20 bg-white/10 shadow-[0_18px_40px_rgba(0,0,0,0.24)] sm:h-28 sm:w-28">
                     <Image
-                      src={band.profile_photo_url}
-                      alt={`${band.name} profile photo`}
+                      src={profileImage}
+                      alt={`${displayBand.name} profile photo`}
                       fill
                       className="object-cover"
                       sizes="112px"
@@ -256,11 +342,11 @@ export default async function BandProfilePage({
                 )}
                 <div className="min-w-0">
                   <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-normal text-white sm:text-6xl lg:text-7xl">
-                    {band.name}
+                    {displayBand.name}
                   </h1>
-                  {band.tagline && (
+                  {displayBand.tagline && (
                     <p className="mt-4 max-w-2xl text-base leading-7 text-white/78 sm:text-lg">
-                      {band.tagline}
+                      {displayBand.tagline}
                     </p>
                   )}
                 </div>
@@ -268,14 +354,14 @@ export default async function BandProfilePage({
 
               {location && (
                 <p className="mt-5 flex max-w-2xl items-start gap-2 text-base leading-7 text-white/78 sm:text-lg">
-                  <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#F6B293]" />
+                  <MapPin className="mt-1 h-5 w-5 shrink-0" style={{ color: theme.accent }} />
                   <span>{location}</span>
                 </p>
               )}
 
-              {band.description && (
+              {displayBand.description && (
                 <p className="mt-6 max-w-3xl text-base leading-8 text-white/82 sm:text-lg">
-                  {band.description}
+                  {displayBand.description}
                 </p>
               )}
 
@@ -308,7 +394,7 @@ export default async function BandProfilePage({
                   <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/54">Set length</p>
                     <p className="mt-1 text-sm font-semibold text-white">
-                      {band.set_length_min ? `${band.set_length_min} min` : 'Not listed'}
+                      {displayBand.set_length_min ? `${displayBand.set_length_min} min` : 'Not listed'}
                     </p>
                   </div>
                 </div>
@@ -320,17 +406,17 @@ export default async function BandProfilePage({
 
       <div className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-12">
         <div className="min-w-0 space-y-8">
-          <SectionCard eyebrow="Overview" title="Artist profile">
+          <SectionCard eyebrow="Overview" title="Artist profile" accent={theme.accent}>
             <div className="grid gap-5 sm:grid-cols-2">
               {location && <DetailRow icon={MapPin} label="Home base" value={location} />}
               {touringRadius && <DetailRow icon={Route} label="Touring radius" value={touringRadius} />}
               {artistType && <DetailRow icon={Users} label="Artist type" value={artistType} />}
-              {band.set_length_min && <DetailRow icon={Radio} label="Set length" value={`${band.set_length_min} minutes`} />}
+              {displayBand.set_length_min && <DetailRow icon={Radio} label="Set length" value={`${displayBand.set_length_min} minutes`} />}
             </div>
           </SectionCard>
 
           {embedUrl && (
-            <SectionCard eyebrow="Listen" title="Featured track">
+            <SectionCard eyebrow="Listen" title="Featured track" accent={theme.accent}>
               <iframe
                 src={embedUrl}
                 width="100%"
@@ -343,7 +429,7 @@ export default async function BandProfilePage({
           )}
 
           {lyrics.length > 0 && (
-            <SectionCard eyebrow="Words" title="Lyrics">
+            <SectionCard eyebrow="Words" title="Lyrics" accent={theme.accent}>
               <div className="space-y-6">
                 {lyrics.map((lyric) => (
                   <article key={lyric.id}>
@@ -355,7 +441,7 @@ export default async function BandProfilePage({
             </SectionCard>
           )}
 
-          <SectionCard eyebrow="Shows" title="Upcoming shows">
+          <SectionCard eyebrow="Shows" title="Upcoming shows" accent={theme.accent}>
             {shows.length > 0 ? (
               <div className="divide-y divide-[#EEEEEE]">
                 {shows.map((show) => {
@@ -404,10 +490,10 @@ export default async function BandProfilePage({
                 {streamingLinks.map(({ key, label, slug }) => (
                   <a
                     key={key}
-                    href={band[key] as string}
+                    href={displayBand[key] as string}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white"
+                    className={`flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white ${buttonShape}`}
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -435,14 +521,14 @@ export default async function BandProfilePage({
                   return (
                     <a
                       key={link.key}
-                      href={band[link.key] as string}
+                      href={displayBand[link.key] as string}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white"
+                      className={`flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white ${buttonShape}`}
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         {'icon' in link ? (
-                          <link.icon className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+                          <link.icon className="h-4 w-4 shrink-0" style={{ color: theme.accent }} />
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img

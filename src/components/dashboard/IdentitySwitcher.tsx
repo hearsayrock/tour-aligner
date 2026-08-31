@@ -5,6 +5,7 @@ import { ChevronDown, Mic2, MapPin, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { setActiveIdentity } from '@/app/actions/profile'
 import { identityValue, type ActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 
 function activeLabel(activeIdentity: ActiveIdentity, allowAll: boolean) {
   if (activeIdentity.kind === 'all') return allowAll ? 'All profiles' : 'Select profile'
@@ -47,6 +48,7 @@ export function IdentitySwitcher({
 
   return (
     <div ref={ref} className={`relative ${className}`}>
+      {isPending && <ProcessingOverlay />}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

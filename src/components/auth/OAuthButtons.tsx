@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 
 const LAST_PROVIDER_KEY = 'ta_last_auth_provider'
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
@@ -62,6 +63,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
   const nonceRef = useRef<string | null>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -86,6 +88,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
         client_id: googleClientId,
         nonce: hashedNonce,
         callback: async (response) => {
+          setLoading(true)
           setError(null)
           const supabase = createClient()
           const { error: signInError } = await supabase.auth.signInWithIdToken({
@@ -96,6 +99,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
 
           if (signInError) {
             setError('Google sign-in could not be completed. Please try again.')
+            setLoading(false)
             return
           }
 
@@ -139,6 +143,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
 
   return (
     <div>
+      {loading && <ProcessingOverlay />}
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
@@ -163,11 +168,13 @@ function LegacyGoogleButton({ next }: OAuthButtonsProps) {
   }
 
   return (
-    <button
-      onClick={handleGoogleOAuth}
-      disabled={loading}
-      className="relative flex w-full items-center justify-center gap-2.5 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:cursor-not-allowed disabled:opacity-50"
-    >
+    <>
+      {loading && <ProcessingOverlay />}
+      <button
+        onClick={handleGoogleOAuth}
+        disabled={loading}
+        className="relative flex w-full items-center justify-center gap-2.5 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:cursor-not-allowed disabled:opacity-50"
+      >
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
         <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
         <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#34A853"/>
@@ -175,7 +182,8 @@ function LegacyGoogleButton({ next }: OAuthButtonsProps) {
         <path d="M9 3.58c1.321 0 2.508.454 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.996 8.996 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
       </svg>
       <span>{loading ? 'Redirecting…' : 'Continue with Google'}</span>
-    </button>
+      </button>
+    </>
   )
 }
 
@@ -196,6 +204,7 @@ export function OAuthButtons({ next }: OAuthButtonsProps) {
 
   return (
     <div className="space-y-2.5">
+      {loading && <ProcessingOverlay />}
       <GoogleSignInButton next={next} />
       {PROVIDERS.map(({ id, label, icon }) => (
         <button

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Mic2, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -12,6 +13,8 @@ type ManagedArtist = {
   slug: string
   location_city: string | null
   location_state: string | null
+  profile_photo_url: string | null
+  updated_at: string
 }
 
 function locationLabel(city?: string | null, state?: string | null) {
@@ -19,13 +22,13 @@ function locationLabel(city?: string | null, state?: string | null) {
 }
 
 function ProfileRow({
-  icon,
+  profilePhotoUrl,
   title,
   detail,
   viewHref,
   editHref,
 }: {
-  icon: React.ReactNode
+  profilePhotoUrl: string | null
   title: string
   detail: string
   viewHref: string
@@ -33,19 +36,20 @@ function ProfileRow({
 }) {
   return (
     <div className="flex flex-col gap-4 border-t border-[#EEEEEE] py-4 first:border-t-0 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EE] text-[#FD6A2F]">
-          {icon}
+      <Link href={viewHref} target="_blank" className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 transition-all hover:bg-[#FFF5F0] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#F1E7E1] bg-[#FFF3EE] text-[#FD6A2F]">
+          {profilePhotoUrl ? (
+            <Image src={profilePhotoUrl} alt={`${title} profile photo`} width={48} height={48} className="h-full w-full object-cover" unoptimized />
+          ) : (
+            <Mic2 className="h-5 w-5" />
+          )}
         </span>
         <div className="min-w-0">
           <p className="truncate font-semibold text-[#252525]">{title}</p>
           <p className="mt-0.5 text-sm text-[#777777]">{detail}</p>
         </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Link href={viewHref} target="_blank" className="text-sm font-medium text-[#777777] transition-colors hover:text-[#252525]">
-          View
-        </Link>
+      </Link>
+      <div className="flex shrink-0 items-center gap-2 sm:pl-3">
         <Link href={editHref} className="rounded-lg border border-[#E2E2E2] bg-white px-3 py-1.5 text-sm font-semibold text-[#252525] transition-colors hover:border-[#CFCFCF] hover:bg-[#F6F6F6]">
           Edit
         </Link>
@@ -84,7 +88,7 @@ export default async function ManageProfilesPage() {
 
   const { data: rawBands } = await supabase
     .from('bands')
-    .select('id, name, slug, location_city, location_state')
+    .select('id, name, slug, location_city, location_state, profile_photo_url, updated_at')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .order('name')
@@ -121,7 +125,7 @@ export default async function ManageProfilesPage() {
               artists.map((artist) => (
                 <ProfileRow
                   key={artist.id}
-                  icon={<Mic2 className="h-5 w-5" />}
+                  profilePhotoUrl={artist.profile_photo_url ? `${artist.profile_photo_url}${artist.profile_photo_url.includes('?') ? '&' : '?'}v=${encodeURIComponent(artist.updated_at)}` : null}
                   title={artist.name}
                   detail={locationLabel(artist.location_city, artist.location_state)}
                   viewHref={`/bands/${artist.slug}`}

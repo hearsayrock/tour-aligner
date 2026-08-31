@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Building2, Music2, X } from 'lucide-react'
 import { setActiveIdentity } from '@/app/actions/profile'
 import { identityValue, type ManagedIdentity } from '@/lib/managed-identity'
+import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 
 export function ProfileSelectionModal({
   title,
@@ -37,6 +38,7 @@ export function ProfileSelectionModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 px-4 py-6">
+      {isPending && <ProcessingOverlay />}
       <button
         type="button"
         aria-label="Return to dashboard"

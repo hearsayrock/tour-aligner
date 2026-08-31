@@ -286,7 +286,7 @@ export default async function VenueDetailPage({
 
   const locationLine = formatVenueLocation(venue)
   const primaryGenre = genreNames[0] ?? 'Live music'
-  const claimStatusLabel = isSelectedOwner ? 'Managed by this profile' : isClaimed ? 'Claimed venue' : 'Unclaimed venue'
+  const claimStatusLabel = isSelectedOwner ? 'Managed by this Account' : isClaimed ? 'Claimed venue' : 'Unclaimed venue'
   const claimStatusTone = isSelectedOwner ? 'success' : isClaimed ? 'muted' : 'brand'
 
   return (

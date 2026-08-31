@@ -5,6 +5,11 @@ import type { Band, BandGenre, BandLyric, BandShowDate } from '@/types/database'
 
 export const metadata = { title: 'Edit Artist' }
 
+function versionedImageUrl(url: string | null, version: string) {
+  if (!url) return ''
+  return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(version)}`
+}
+
 export default async function EditBandPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -30,9 +35,9 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
       mode="edit"
       userId={user.id}
       genres={genres ?? []}
-      calendarHref={`/dashboard/calendar?profile=band:${band.id}`}
       initial={{
         id: band.id,
+        slug: band.slug,
         name: band.name,
         tagline: band.tagline ?? '',
         location_city: band.location_city ?? '',
@@ -50,8 +55,10 @@ export default async function EditBandPage({ params }: { params: Promise<{ id: s
         facebook_url: band.facebook_url ?? '',
         twitter_url: band.twitter_url ?? '',
         members: band.members ?? [],
-        profile_photo_url: band.profile_photo_url ?? '',
-        cover_photo_url: band.cover_photo_url ?? '',
+        profile_photo_url: versionedImageUrl(band.profile_photo_url, band.updated_at),
+        cover_photo_url: versionedImageUrl(band.cover_photo_url, band.updated_at),
+        profile_background_url: versionedImageUrl(band.profile_background_url, band.updated_at),
+        profile_theme: band.profile_theme,
         featured_track_url: band.featured_track_url ?? '',
         artist_type: band.artist_type ?? '',
         set_length_min: band.set_length_min ? String(band.set_length_min) : '',
