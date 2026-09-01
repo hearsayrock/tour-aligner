@@ -28,6 +28,8 @@ export function MarketingRouteShell({
 }) {
   const pathname = usePathname()
   const useAppShell = isSignedIn && usesAuthenticatedAppShell(pathname)
+  const isPublicArtistProfile = pathname.startsWith('/bands/')
+  const showFooter = !isSignedIn || !isPublicArtistProfile
 
   return (
     <div className={cx(useAppShell && 'app-shell-layout')}>
@@ -36,7 +38,7 @@ export function MarketingRouteShell({
       <main className={cx(useAppShell && 'app-shell-main min-h-screen pb-24 lg:pb-0')}>
         {children}
       </main>
-      <div className={useAppShell ? 'hidden' : undefined}>{footer}</div>
+      <div className={showFooter ? undefined : 'hidden'}>{footer}</div>
     </div>
   )
 }
