@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# A push to main is a production promotion checkpoint. This hook intentionally
+# warns without blocking the push so the release owner can make the call.
+should_remind=0
+
+while read local_ref local_sha remote_ref remote_sha
+do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    should_remind=1
+  fi
+done
+
+if [ "$should_remind" -eq 1 ]; then
+  echo >&2
+  echo "REMINDER: Before promoting TourAligner to production, finalize the Terms placeholders:" >&2
+  echo "  Effective Date, Last Updated date, governing law/state, jurisdiction, and contact email." >&2
+  echo "  Confirm legal review and approval before completing the production push." >&2
+  echo >&2
+fi
+
+exit 0

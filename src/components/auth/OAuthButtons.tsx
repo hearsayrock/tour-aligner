@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
+import { TERMS_DOCUMENT_KEY } from '@/lib/legal'
 
 const LAST_PROVIDER_KEY = 'ta_last_auth_provider'
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
@@ -56,9 +57,11 @@ const PROVIDERS: { id: Provider; label: string; icon: React.ReactNode }[] = [
 
 interface OAuthButtonsProps {
   next?: string
+  termsVersion?: string
+  disabled?: boolean
 }
 
-function GoogleSignInButton({ next }: OAuthButtonsProps) {
+function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
   const router = useRouter()
   const buttonRef = useRef<HTMLDivElement>(null)
   const nonceRef = useRef<string | null>(null)
@@ -105,6 +108,19 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
 
           localStorage.setItem(LAST_PROVIDER_KEY, 'google')
 
+          if (termsVersion) {
+            const { error: acceptanceError } = await supabase.rpc('record_legal_document_acceptance', {
+              p_document_key: TERMS_DOCUMENT_KEY,
+              p_document_version: termsVersion,
+            })
+            if (acceptanceError) {
+              await supabase.auth.signOut()
+              setError('We could not record your acceptance of the Terms. Please try again.')
+              setLoading(false)
+              return
+            }
+          }
+
           let destination = next ?? '/dashboard'
           if (!next) {
             const { data: { user } } = await supabase.auth.getUser()
@@ -137,9 +153,9 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
     return () => {
       cancelled = true
     }
-  }, [next, router, scriptLoaded])
+  }, [next, router, scriptLoaded, termsVersion])
 
-  if (!GOOGLE_CLIENT_ID) return <LegacyGoogleButton next={next} />
+  if (!GOOGLE_CLIENT_ID) return <LegacyGoogleButton next={next} termsVersion={termsVersion} />
 
   return (
     <div>
@@ -156,15 +172,17 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
   )
 }
 
-function LegacyGoogleButton({ next }: OAuthButtonsProps) {
+function LegacyGoogleButton({ next, termsVersion }: OAuthButtonsProps) {
   const [loading, setLoading] = useState(false)
 
   async function handleGoogleOAuth() {
     setLoading(true)
     localStorage.setItem(LAST_PROVIDER_KEY, 'google')
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    if (next) callbackUrl.searchParams.set('next', next)
+    if (termsVersion) callbackUrl.searchParams.set('terms_version', termsVersion)
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callbackUrl.toString() } })
   }
 
   return (
@@ -187,7 +205,7 @@ function LegacyGoogleButton({ next }: OAuthButtonsProps) {
   )
 }
 
-export function OAuthButtons({ next }: OAuthButtonsProps) {
+export function OAuthButtons({ next, termsVersion, disabled = false }: OAuthButtonsProps) {
   const [lastProvider] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
     return localStorage.getItem(LAST_PROVIDER_KEY)
@@ -198,14 +216,28 @@ export function OAuthButtons({ next }: OAuthButtonsProps) {
     setLoading(provider)
     localStorage.setItem(LAST_PROVIDER_KEY, provider)
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
-    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } })
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    if (next) callbackUrl.searchParams.set('next', next)
+    if (termsVersion) callbackUrl.searchParams.set('terms_version', termsVersion)
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl.toString() } })
+  }
+
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full cursor-not-allowed rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#888888]"
+      >
+        Agree to the Terms to continue
+      </button>
+    )
   }
 
   return (
     <div className="space-y-2.5">
       {loading && <ProcessingOverlay />}
-      <GoogleSignInButton next={next} />
+      <GoogleSignInButton next={next} termsVersion={termsVersion} />
       {PROVIDERS.map(({ id, label, icon }) => (
         <button
           key={id}

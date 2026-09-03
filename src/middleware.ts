@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -7,6 +8,7 @@ const PUBLIC_PATHS = new Set([
   '/signup',
   '/forgot-password',
   '/reset-password',
+  '/terms',
 ])
 
 function isPublicArtistProfile(pathname: string) {
@@ -35,21 +37,37 @@ function redirectWithSession(request: NextRequest, response: NextResponse, pathn
   return redirect
 }
 
+function redirectToTermsAcceptance(request: NextRequest, response: NextResponse) {
+  const url = request.nextUrl.clone()
+  const destination = `${request.nextUrl.pathname}${request.nextUrl.search}`
+  url.pathname = '/terms/accept'
+  url.search = ''
+  url.searchParams.set('redirectTo', destination)
+  const redirect = NextResponse.redirect(url)
+  response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+  return redirect
+}
+
 export async function middleware(request: NextRequest) {
   const { response, supabase, user } = await updateSession(request)
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith('/auth/') || isPublicArtistProfile(pathname)) {
+  if (pathname.startsWith('/auth/') || pathname === '/terms' || isPublicArtistProfile(pathname)) {
     return response
   }
 
   if (!user) {
+    if (pathname === '/terms/accept') {
+      return redirectWithSession(request, response, '/login')
+    }
     return PUBLIC_PATHS.has(pathname)
       ? response
       : redirectWithSession(request, response, '/')
   }
 
-  const [profileResult, bandsResult, venuesResult] = await Promise.all([
+  if (pathname === '/terms/accept') return response
+
+  const [profileResult, bandsResult, venuesResult, termsAcceptanceResult] = await Promise.all([
     supabase
       .from('profiles')
       .select('is_admin')
@@ -65,10 +83,22 @@ export async function middleware(request: NextRequest) {
       .select('id')
       .eq('claimed_by_user_id', user.id)
       .limit(1),
+    supabase
+      .from('legal_document_acceptances')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('document_key', TERMS_DOCUMENT_KEY)
+      .eq('document_version', TERMS_DOCUMENT_VERSION)
+      .maybeSingle(),
   ])
 
   const profile = profileResult.data
   const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
+  const hasAcceptedCurrentTerms = Boolean(termsAcceptanceResult.data)
+
+  if (!hasAcceptedCurrentTerms) {
+    return redirectToTermsAcceptance(request, response)
+  }
 
   if (pathname === '/') {
     return redirectWithSession(

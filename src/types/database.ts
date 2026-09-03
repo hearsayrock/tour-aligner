@@ -974,9 +974,74 @@ export interface Database {
           created_at?: string
         }
       }
+      legal_document_acceptances: {
+        Row: {
+          id: string
+          user_id: string
+          document_key: string
+          document_version: string
+          document_content_hash: string
+          accepted_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          document_key: string
+          document_version: string
+          document_content_hash: string
+          accepted_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          document_key?: string
+          document_version?: string
+          document_content_hash?: string
+          accepted_at?: string
+          created_at?: string
+        }
+      }
+      legal_documents: {
+        Row: {
+          document_key: string
+          document_version: string
+          title: string
+          content_hash: string
+          is_current: boolean
+          published_at: string
+          created_at: string
+        }
+        Insert: {
+          document_key: string
+          document_version: string
+          title: string
+          content_hash: string
+          is_current?: boolean
+          published_at?: string
+          created_at?: string
+        }
+        Update: {
+          document_key?: string
+          document_version?: string
+          title?: string
+          content_hash?: string
+          is_current?: boolean
+          published_at?: string
+          created_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: {
+      record_legal_document_acceptance: {
+        Args: {
+          p_document_key: string
+          p_document_version: string
+        }
+        Returns: undefined
+      }
       request_private_chat: {
         Args: {
           p_sender_kind: 'band' | 'venue'
@@ -1205,6 +1270,8 @@ export type VenueBookingDate = Database['public']['Tables']['venue_booking_dates
 export type Booking = Database['public']['Tables']['bookings']['Row']
 export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
 export type PrivateChatMessage = Database['public']['Tables']['private_chat_messages']['Row']
+export type LegalDocumentAcceptance = Database['public']['Tables']['legal_document_acceptances']['Row']
+export type LegalDocument = Database['public']['Tables']['legal_documents']['Row']
 
 export type InquiryStatus = BookingInquiry['status']
 export type ClaimStatus   = VenueClaim['status']

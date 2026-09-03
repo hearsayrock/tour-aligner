@@ -58,7 +58,12 @@ export function Footer() {
       <div className="border-t border-[#EEEEEE]">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-5 text-sm text-[#888888] sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <span>&copy; {new Date().getFullYear()} TourAligner. All rights reserved.</span>
-          <span>Booking infrastructure for modern live music teams.</span>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="transition-colors hover:text-[#252525]">
+              Terms &amp; Conditions
+            </Link>
+            <span>Booking infrastructure for modern live music teams.</span>
+          </div>
         </div>
       </div>
     </footer>
