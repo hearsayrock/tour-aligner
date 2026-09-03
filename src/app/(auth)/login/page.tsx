@@ -16,7 +16,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+  const redirectTo = searchParams.get('redirectTo')
   const oauthError = searchParams.get('error') === 'oauth'
 
   async function handleSubmit(e: React.FormEvent) {
@@ -25,7 +25,7 @@ function LoginForm() {
     setError(null)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError(error.message)
@@ -35,22 +35,28 @@ function LoginForm() {
 
     localStorage.setItem('ta_last_auth_provider', 'email')
 
-    // Send new users (no primary_role set) to onboarding
-    if (redirectTo === '/dashboard') {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('primary_role')
-        .eq('id', (await supabase.auth.getUser()).data.user!.id)
-        .single()
-      if (!profile?.primary_role) {
-        router.push('/onboarding')
-        router.refresh()
+    let destination = redirectTo ?? '/dashboard/profiles'
+
+    // Send new users (no primary_role set) to onboarding, while skipping the
+    // dashboard redirect for returning artist and venue users.
+    if (!redirectTo) {
+      const user = signInData.user
+      if (!user) {
+        setError('We could not finish signing you in. Please try again.')
+        setLoading(false)
         return
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('primary_role, is_admin')
+        .eq('id', user.id)
+        .single()
+      if (profile?.is_admin) destination = '/dashboard'
+      else if (!profile?.primary_role) destination = '/onboarding'
     }
 
-    router.push(redirectTo)
-    router.refresh()
+    router.push(destination)
   }
 
   return (
@@ -69,7 +75,7 @@ function LoginForm() {
           <p className="text-sm text-red-400 mb-4">Something went wrong with social login. Please try again.</p>
         )}
 
-        <OAuthButtons next={redirectTo === '/dashboard' ? undefined : redirectTo} />
+        <OAuthButtons next={redirectTo ?? undefined} />
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">

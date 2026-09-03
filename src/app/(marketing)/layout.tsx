@@ -16,7 +16,7 @@ export default async function MarketingLayout({
     <MarketingRouteShell
       isSignedIn={!!user}
       marketingNav={<Navbar />}
-      appNav={user ? <AppNav /> : null}
+      appNav={user ? <AppNav user={user} /> : null}
       footer={<Footer />}
     >
       {children}

@@ -94,7 +94,7 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
           setLoading(true)
           setError(null)
           const supabase = createClient()
-          const { error: signInError } = await supabase.auth.signInWithIdToken({
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithIdToken({
             provider: 'google',
             token: response.credential,
             nonce: nonceRef.current ?? undefined,
@@ -121,21 +121,21 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
             }
           }
 
-          let destination = next ?? '/dashboard'
+          let destination = next ?? '/dashboard/profiles'
           if (!next) {
-            const { data: { user } } = await supabase.auth.getUser()
+            const user = signInData.user
             if (user) {
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('primary_role')
+                .select('primary_role, is_admin')
                 .eq('id', user.id)
                 .single()
-              if (!profile?.primary_role) destination = '/onboarding'
+              if (profile?.is_admin) destination = '/dashboard'
+              else if (!profile?.primary_role) destination = '/onboarding'
             }
           }
 
           router.push(destination)
-          router.refresh()
         },
       })
 

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { User } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { ActivityHeartbeat } from '@/components/auth/ActivityHeartbeat'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
@@ -11,10 +12,9 @@ import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } f
  * Renders DashboardNav for logged-in users and Navbar for logged-out users.
  * Use this in all layouts so the nav is always consistent.
  */
-export async function AppNav() {
+export async function AppNav({ user }: { user: User | null }) {
   const showStagingBadge = isStagingEnvironment()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return <Navbar />
 
@@ -55,7 +55,28 @@ export async function AppNav() {
   const adminClaimsResult = profile?.is_admin
     ? await supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending')
     : { count: 0 }
-  const [{ count: invitedMembershipCount }, { data: venueEventIds }, { data: bookingThreads }, { data: privateThreads }] = await Promise.all([
+  const privateThreadFilters = [
+    ...(bandIds.length
+      ? [
+          `and(participant_one_kind.eq.band,participant_one_id.in.(${bandIds.join(',')}))`,
+          `and(participant_two_kind.eq.band,participant_two_id.in.(${bandIds.join(',')}))`,
+        ]
+      : []),
+    ...(venueIds.length
+      ? [
+          `and(participant_one_kind.eq.venue,participant_one_id.in.(${venueIds.join(',')}))`,
+          `and(participant_two_kind.eq.venue,participant_two_id.in.(${venueIds.join(',')}))`,
+        ]
+      : []),
+  ]
+
+  const [
+    { count: invitedMembershipCount },
+    { data: venueEventIds },
+    { data: bandBookingThreads },
+    { data: venueBookingThreads },
+    { data: privateThreads },
+  ] = await Promise.all([
     bandIds.length
       ? supabase
           .from('event_artist_memberships')
@@ -70,23 +91,35 @@ export async function AppNav() {
           .in('venue_id', venueIds)
           .in('status', ['draft', 'active'])
       : Promise.resolve({ data: [] }),
-    supabase
-      .from('contact_threads')
-      .select('band_id, venue_id, status, requested_by_side, last_message_at, band_last_read_at, venue_last_read_at'),
-    supabase
-      .from('private_chat_threads')
-      .select(`
-        participant_one_kind,
-        participant_one_id,
-        participant_two_kind,
-        participant_two_id,
-        status,
-        requested_by_kind,
-        requested_by_id,
-        last_message_at,
-        participant_one_last_read_at,
-        participant_two_last_read_at
-      `),
+    bandIds.length
+      ? supabase
+          .from('contact_threads')
+          .select('status, requested_by_side, last_message_at, band_last_read_at')
+          .in('band_id', bandIds)
+      : Promise.resolve({ data: [] }),
+    venueIds.length
+      ? supabase
+          .from('contact_threads')
+          .select('status, requested_by_side, last_message_at, venue_last_read_at')
+          .in('venue_id', venueIds)
+      : Promise.resolve({ data: [] }),
+    privateThreadFilters.length
+      ? supabase
+          .from('private_chat_threads')
+          .select(`
+            participant_one_kind,
+            participant_one_id,
+            participant_two_kind,
+            participant_two_id,
+            status,
+            requested_by_kind,
+            requested_by_id,
+            last_message_at,
+            participant_one_last_read_at,
+            participant_two_last_read_at
+          `)
+          .or(privateThreadFilters.join(','))
+      : Promise.resolve({ data: [] }),
   ])
   const eventIds = (venueEventIds ?? []).map((event) => event.id)
   const { count: venueApplicationCount } = eventIds.length
@@ -97,24 +130,15 @@ export async function AppNav() {
         .eq('status', 'applied')
     : { count: 0 }
 
-  const hasBookingInboxAttention = (bookingThreads ?? []).some((thread) => {
-    const threadBandId = thread.band_id
-    const threadVenueId = thread.venue_id
-    const matchesBand = bandIds.includes(threadBandId)
-    const matchesVenue = venueIds.includes(threadVenueId)
+  const hasBandBookingAttention = (bandBookingThreads ?? []).some((thread) =>
+    (thread.status === 'pending' && thread.requested_by_side !== 'band') ||
+    (!!thread.last_message_at && (!thread.band_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.band_last_read_at).getTime()))
+  )
 
-    const bandNeedsAttention = matchesBand && (
-      (thread.status === 'pending' && thread.requested_by_side !== 'band') ||
-      (!!thread.last_message_at && (!thread.band_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.band_last_read_at).getTime()))
-    )
-
-    const venueNeedsAttention = matchesVenue && (
-      (thread.status === 'pending' && thread.requested_by_side !== 'venue') ||
-      (!!thread.last_message_at && (!thread.venue_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.venue_last_read_at).getTime()))
-    )
-
-    return bandNeedsAttention || venueNeedsAttention
-  })
+  const hasVenueBookingAttention = (venueBookingThreads ?? []).some((thread) =>
+    (thread.status === 'pending' && thread.requested_by_side !== 'venue') ||
+    (!!thread.last_message_at && (!thread.venue_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.venue_last_read_at).getTime()))
+  )
 
   const hasPrivateInboxAttention = (privateThreads ?? []).some((thread) => {
     const participantOneNeedsAttention =
@@ -143,7 +167,7 @@ export async function AppNav() {
   })
 
   const notifications = {
-    inbox:         hasBookingInboxAttention || hasPrivateInboxAttention,
+    inbox:         hasBandBookingAttention || hasVenueBookingAttention || hasPrivateInboxAttention,
     backstage:     (invitedMembershipCount ?? 0) > 0 || (venueApplicationCount ?? 0) > 0,
     pendingClaims: (userPendingClaimCount ?? 0) > 0,
     adminClaims:   (adminClaimsResult.count ?? 0) > 0,

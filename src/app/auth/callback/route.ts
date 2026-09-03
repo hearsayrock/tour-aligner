@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const explicitNext = searchParams.get('next')
   const termsVersion = searchParams.get('terms_version')
-  let next = explicitNext && explicitNext.startsWith('/') ? explicitNext : '/dashboard'
+  let next = explicitNext && explicitNext.startsWith('/') ? explicitNext : '/dashboard/profiles'
 
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isLocalEnv = process.env.NODE_ENV === 'development'
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
       if (termsVersion === TERMS_DOCUMENT_VERSION) {
@@ -58,16 +58,15 @@ export async function GET(request: NextRequest) {
 
       // If no explicit next param, check if this is a new user who needs onboarding
       if (!explicitNext) {
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = sessionData.user
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('primary_role')
+            .select('primary_role, is_admin')
             .eq('id', user.id)
             .single()
-          if (!profile?.primary_role) {
-            next = '/onboarding'
-          }
+          if (profile?.is_admin) next = '/dashboard'
+          else if (!profile?.primary_role) next = '/onboarding'
         }
       }
 

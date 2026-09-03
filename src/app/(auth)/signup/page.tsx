@@ -50,7 +50,6 @@ export default function SignupPage() {
     if (data.session) {
       localStorage.setItem('ta_last_auth_provider', 'email')
       router.push('/onboarding')
-      router.refresh()
       return
     }
 

@@ -41,7 +41,6 @@ export function TermsAcceptanceForm() {
     }
 
     router.replace(safeDestination(searchParams.get('redirectTo')))
-    router.refresh()
   }
 
   async function logout() {
@@ -50,7 +49,6 @@ export function TermsAcceptanceForm() {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.replace('/')
-    router.refresh()
   }
 
   return (

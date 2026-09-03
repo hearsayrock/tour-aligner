@@ -38,7 +38,6 @@ export default function ResetPasswordPage() {
     }
 
     router.push('/dashboard')
-    router.refresh()
   }
 
   return (

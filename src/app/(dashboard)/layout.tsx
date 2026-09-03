@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   if (user) {
     return (
       <div className="app-shell-layout min-h-screen bg-[#F7F7F5]">
-        <AppNav />
+        <AppNav user={user} />
         <main className="app-shell-main min-h-screen">
           {children}
         </main>
@@ -24,7 +24,7 @@ export default async function DashboardLayout({
   // Public pages inside this route group (e.g. /venues) get the marketing shell
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <AppNav />
+      <AppNav user={user} />
       <main className="pt-14">{children}</main>
       <Footer />
     </div>
