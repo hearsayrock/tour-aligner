@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 import { createClient } from '@/lib/supabase/client'
+import { signOut } from '@/app/actions/auth'
 
 function safeDestination(value: string | null) {
   if (value?.startsWith('/') && !value.startsWith('//')) return value
@@ -46,9 +47,7 @@ export function TermsAcceptanceForm() {
   async function logout() {
     setLoggingOut(true)
     setError(null)
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.replace('/')
+    await signOut()
   }
 
   return (
