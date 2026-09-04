@@ -17,8 +17,8 @@ export function TermsDocument() {
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#252525] sm:text-4xl">
           Terms and Conditions
         </h1>
-        <p className={paragraph}><strong>Effective Date:</strong> [Insert Date]</p>
-        <p className="mt-1 leading-7 text-[#555555]"><strong>Last Updated:</strong> [Insert Date]</p>
+        <p className={paragraph}><strong>Effective Date:</strong> September 4, 2026</p>
+        <p className="mt-1 leading-7 text-[#555555]"><strong>Last Updated:</strong> September 4, 2026</p>
 
         <h2 className={sectionHeading}>1. Introduction and Acceptance of Terms</h2>
         <p className={paragraph}>
@@ -103,13 +103,13 @@ export function TermsDocument() {
         <p className={paragraph}>You agree to indemnify and hold harmless TourAligner from any claims, damages, losses, or expenses (including reasonable attorneys&apos; fees) arising from your use of the Platform, your User Content, your violation of these Terms, or any dispute between you and another User.</p>
 
         <h2 className={sectionHeading}>6. Governing Law and Dispute Resolution</h2>
-        <p className={paragraph}>These Terms are governed by the laws of [Insert State/Country], without regard to conflict-of-law principles. Any disputes arising under these Terms shall be resolved in the courts located in [Insert Jurisdiction], and you consent to the personal jurisdiction of such courts.</p>
+        <p className={paragraph}>These Terms are governed by the laws of the State of Utah, without regard to conflict-of-law principles. Any disputes arising under these Terms shall be resolved exclusively in the state courts located in Salt Lake County, Utah, or the United States District Court for the District of Utah, and you consent to the personal jurisdiction and venue of those courts.</p>
 
         <h2 className={sectionHeading}>7. General Provisions</h2>
         <p className={paragraph}>If any provision of these Terms is found unenforceable, the remaining provisions will continue in full force. Our failure to enforce any provision does not waive our right to do so later. These Terms constitute the entire agreement between you and TourAligner regarding use of the Platform.</p>
 
         <h2 className={sectionHeading}>8. Contact</h2>
-        <p className={paragraph}>Questions about these Terms may be directed to [Insert Contact Email].</p>
+        <p className={paragraph}>Questions about these Terms may be directed to <a href="mailto:nate@touraligner.com" className="text-[#FD6A2F] hover:underline">nate@touraligner.com</a>.</p>
 
         <p className="mt-12 border-t border-[#E8E8E8] pt-6 text-sm italic leading-6 text-[#777777]">This document is a draft template and has not been reviewed by a licensed attorney. It should be reviewed by qualified legal counsel in your jurisdiction before publication, particularly regarding liability limitations, governing law, and compliance with applicable consumer protection or data privacy laws.</p>
     </article>
