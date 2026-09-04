@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,6 @@ function safeDestination(value: string | null) {
 }
 
 export function TermsAcceptanceForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [accepted, setAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -41,7 +40,10 @@ export function TermsAcceptanceForm() {
       return
     }
 
-    router.replace(safeDestination(searchParams.get('redirectTo')))
+    // A full navigation deliberately forces middleware to re-read the acceptance
+    // recorded above. Client-side navigation can retain the pre-acceptance route
+    // state and leave this gate visible even after the RPC succeeds.
+    window.location.assign(safeDestination(searchParams.get('redirectTo')))
   }
 
   async function logout() {
