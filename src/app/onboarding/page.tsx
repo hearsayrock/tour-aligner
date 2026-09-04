@@ -4,25 +4,26 @@ import OnboardingWizard from './OnboardingWizard'
 
 export default async function OnboardingPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const userId = session?.user.id
 
-  if (!user) redirect('/login')
+  if (!userId) redirect('/login')
 
   const [profileResult, bandsResult, venuesResult] = await Promise.all([
     supabase
       .from('profiles')
       .select('full_name')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single(),
     supabase
       .from('bands')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .limit(1),
     supabase
       .from('venues')
       .select('id')
-      .eq('claimed_by_user_id', user.id)
+      .eq('claimed_by_user_id', userId)
       .limit(1),
   ])
 
@@ -39,7 +40,7 @@ export default async function OnboardingPage() {
 
   return (
     <OnboardingWizard
-      userId={user.id}
+      userId={userId}
       userName={profile?.full_name ?? ''}
       genres={genres ?? []}
     />

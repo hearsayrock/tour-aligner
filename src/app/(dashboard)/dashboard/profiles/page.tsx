@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { Mic2, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTimingStart, logServerTiming } from '@/lib/performance'
 import { Badge, ButtonLink, Card, EmptyState, PageHeader } from '@/components/ui/primitives'
 
 export const metadata = { title: 'Manage Profiles' }
@@ -82,16 +83,19 @@ function EmptyProfileSection({
 }
 
 export default async function ManageProfilesPage() {
+  const startedAt = getServerTimingStart()
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  const userId = session?.user.id
+  if (!userId) return redirect('/login')
 
   const { data: rawBands } = await supabase
     .from('bands')
     .select('id, name, slug, location_city, location_state, profile_photo_url, updated_at')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .eq('is_active', true)
     .order('name')
+  logServerTiming('manage profiles page', { total: getServerTimingStart() - startedAt })
 
   const artists = (rawBands ?? []) as ManagedArtist[]
   const hasAnyProfiles = artists.length > 0

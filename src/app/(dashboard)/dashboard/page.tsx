@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { AlertCircle, CalendarRange, CheckCircle2, Clock3, MapPin, Mic2, Plus, Search, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getServerTimingStart, logServerTiming } from '@/lib/performance'
+import { getManagedUserData } from '@/lib/managed-user-data'
 import { MEMBERSHIP_STATUS_LABELS, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import { Badge, ButtonLink, Card, EmptyState, PageHeader, SectionHeading, cx } from '@/components/ui/primitives'
@@ -163,23 +165,26 @@ function ActionQueue({ items }: { items: ActionItem[] }) {
 }
 
 export default async function DashboardPage() {
+  const startedAt = getServerTimingStart()
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return redirect('/login')
+  const sessionStartedAt = getServerTimingStart()
+  const { data: { session } } = await supabase.auth.getSession()
+  const sessionMs = getServerTimingStart() - sessionStartedAt
+  const userId = session?.user.id
+  if (!userId) return redirect('/login')
 
-  const [{ data: profile }, { data: bands }, { data: venues }, { data: pendingClaims }] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-    supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true),
-    supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true),
+  const identityStartedAt = getServerTimingStart()
+  const [managedUserData, { data: pendingClaims }] = await Promise.all([
+    getManagedUserData(userId),
     supabase
       .from('venue_claims')
       .select('id, created_at, venues(id, name, slug, location_city, location_state)')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
   ])
+  const identityMs = getServerTimingStart() - identityStartedAt
+  const { profile, bands, venues } = managedUserData
 
   const identities: ManagedIdentity[] = [
     ...(bands ?? []).map((band) => ({
@@ -215,6 +220,7 @@ export default async function DashboardPage() {
       ? [activeIdentity.id]
       : []
 
+  const eventsStartedAt = getServerTimingStart()
   const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     venueIds.length
       ? supabase
@@ -234,6 +240,13 @@ export default async function DashboardPage() {
           .limit(8)
       : Promise.resolve({ data: [] }),
   ])
+  const eventsMs = getServerTimingStart() - eventsStartedAt
+  logServerTiming('dashboard page', {
+    session: sessionMs,
+    identities: identityMs,
+    events: eventsMs,
+    total: getServerTimingStart() - startedAt,
+  })
 
   const artistEvents = ((artistMemberships ?? []) as unknown as Array<{
     id: string

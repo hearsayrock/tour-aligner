@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
+import { logServerTiming } from '@/lib/performance'
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -49,24 +50,48 @@ function redirectToTermsAcceptance(request: NextRequest, response: NextResponse)
 }
 
 export async function middleware(request: NextRequest) {
+  const startedAt = performance.now()
+  const sessionStartedAt = performance.now()
   const { response, supabase, user } = await updateSession(request)
+  const sessionMs = performance.now() - sessionStartedAt
   const { pathname } = request.nextUrl
+  const log = (outcome: string, accessMs = 0) => {
+    const totalMs = performance.now() - startedAt
+    logServerTiming(`middleware ${pathname} (${outcome})`, {
+      session: sessionMs,
+      access: accessMs,
+      total: totalMs,
+    })
+    if (process.env.NODE_ENV === 'development') {
+      response.headers.set(
+        'Server-Timing',
+        `ta-auth;dur=${sessionMs.toFixed(0)}, ta-access;dur=${accessMs.toFixed(0)}, ta-middleware;dur=${totalMs.toFixed(0)}`
+      )
+    }
+  }
 
   if (pathname.startsWith('/auth/') || pathname === '/terms' || isPublicArtistProfile(pathname)) {
+    log('public')
     return response
   }
 
   if (!user) {
     if (pathname === '/terms/accept') {
+      log('terms-login-redirect')
       return redirectWithSession(request, response, '/login')
     }
+    log(PUBLIC_PATHS.has(pathname) ? 'public' : 'login-redirect')
     return PUBLIC_PATHS.has(pathname)
       ? response
       : redirectWithSession(request, response, '/')
   }
 
-  if (pathname === '/terms/accept') return response
+  if (pathname === '/terms/accept') {
+    log('terms-accept')
+    return response
+  }
 
+  const accessStartedAt = performance.now()
   const [profileResult, bandsResult, venuesResult, termsAcceptanceResult] = await Promise.all([
     supabase
       .from('profiles')
@@ -91,16 +116,19 @@ export async function middleware(request: NextRequest) {
       .eq('document_version', TERMS_DOCUMENT_VERSION)
       .maybeSingle(),
   ])
+  const accessMs = performance.now() - accessStartedAt
 
   const profile = profileResult.data
   const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
   const hasAcceptedCurrentTerms = Boolean(termsAcceptanceResult.data)
 
   if (!hasAcceptedCurrentTerms) {
+    log('terms-redirect', accessMs)
     return redirectToTermsAcceptance(request, response)
   }
 
   if (pathname === '/') {
+    log('root-redirect', accessMs)
     return redirectWithSession(
       request,
       response,
@@ -109,28 +137,35 @@ export async function middleware(request: NextRequest) {
   }
 
   // Administrators retain access to the admin workspace without a managed artist or venue.
-  if (profile?.is_admin) return response
+  if (profile?.is_admin) {
+    log('admin', accessMs)
+    return response
+  }
 
   // A role selection alone is not onboarding completion. The account must own an artist
   // profile or manage a claimed venue before it can access the product workspace.
   if (!hasManagedProfile) {
     // Account information remains available during setup so users can update their details
     // or sign out, but profile-management screens stay behind onboarding.
+    log('onboarding', accessMs)
     return pathname === '/onboarding' || pathname === '/dashboard/account'
       ? response
       : redirectWithSession(request, response, '/onboarding')
   }
 
   if (pathname === '/onboarding') {
+    log('profile-redirect', accessMs)
     return redirectWithSession(request, response, '/dashboard/profiles')
   }
 
   if (isArtistProfilePath(pathname)) {
+    log('artist-profile', accessMs)
     return pathname === '/dashboard'
       ? redirectWithSession(request, response, '/dashboard/profiles')
       : response
   }
 
+  log('profile-redirect', accessMs)
   return redirectWithSession(request, response, '/dashboard/profiles')
 }
 

@@ -21,11 +21,14 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const startedAt = performance.now()
     setLoading(true)
     setError(null)
 
     const supabase = createClient()
+    const authStartedAt = performance.now()
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password })
+    const authMs = performance.now() - authStartedAt
 
     if (error) {
       setError(error.message)
@@ -39,7 +42,9 @@ function LoginForm() {
 
     // Send new users (no primary_role set) to onboarding, while skipping the
     // dashboard redirect for returning artist and venue users.
+    let routingMs = 0
     if (!redirectTo) {
+      const routingStartedAt = performance.now()
       const user = signInData.user
       if (!user) {
         setError('We could not finish signing you in. Please try again.')
@@ -54,8 +59,15 @@ function LoginForm() {
         .single()
       if (profile?.is_admin) destination = '/dashboard'
       else if (!profile?.primary_role) destination = '/onboarding'
+      routingMs = performance.now() - routingStartedAt
     }
 
+    if (process.env.NODE_ENV === 'development') {
+      console.info(`[perf] login password auth=${authMs.toFixed(0)}ms routing=${routingMs.toFixed(0)}ms total=${(performance.now() - startedAt).toFixed(0)}ms`)
+      window.sessionStorage.setItem('ta_login_navigation_started_at', String(performance.now()))
+    }
+    // Keep the sign-in overlay visible until this page unmounts so the root
+    // route-loading boundary does not create a second, visibly separate spinner.
     router.push(destination)
   }
 

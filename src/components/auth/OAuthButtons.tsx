@@ -91,14 +91,17 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
         client_id: googleClientId,
         nonce: hashedNonce,
         callback: async (response) => {
+          const startedAt = performance.now()
           setLoading(true)
           setError(null)
           const supabase = createClient()
+          const authStartedAt = performance.now()
           const { data: signInData, error: signInError } = await supabase.auth.signInWithIdToken({
             provider: 'google',
             token: response.credential,
             nonce: nonceRef.current ?? undefined,
           })
+          const authMs = performance.now() - authStartedAt
 
           if (signInError) {
             setError('Google sign-in could not be completed. Please try again.')
@@ -108,7 +111,9 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
 
           localStorage.setItem(LAST_PROVIDER_KEY, 'google')
 
+          let termsMs = 0
           if (termsVersion) {
+            const termsStartedAt = performance.now()
             const { error: acceptanceError } = await supabase.rpc('record_legal_document_acceptance', {
               p_document_key: TERMS_DOCUMENT_KEY,
               p_document_version: termsVersion,
@@ -119,10 +124,13 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
               setLoading(false)
               return
             }
+            termsMs = performance.now() - termsStartedAt
           }
 
           let destination = next ?? '/dashboard/profiles'
+          let routingMs = 0
           if (!next) {
+            const routingStartedAt = performance.now()
             const user = signInData.user
             if (user) {
               const { data: profile } = await supabase
@@ -133,8 +141,15 @@ function GoogleSignInButton({ next, termsVersion }: OAuthButtonsProps) {
               if (profile?.is_admin) destination = '/dashboard'
               else if (!profile?.primary_role) destination = '/onboarding'
             }
+            routingMs = performance.now() - routingStartedAt
           }
 
+          if (process.env.NODE_ENV === 'development') {
+            console.info(`[perf] login google auth=${authMs.toFixed(0)}ms terms=${termsMs.toFixed(0)}ms routing=${routingMs.toFixed(0)}ms total=${(performance.now() - startedAt).toFixed(0)}ms`)
+            window.sessionStorage.setItem('ta_login_navigation_started_at', String(performance.now()))
+          }
+          // Keep the sign-in overlay visible until this page unmounts so the root
+          // route-loading boundary does not create a second, visibly separate spinner.
           router.push(destination)
         },
       })

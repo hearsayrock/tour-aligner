@@ -10,13 +10,14 @@ export default async function MarketingLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const userId = session?.user.id ?? null
 
   return (
     <MarketingRouteShell
-      isSignedIn={!!user}
-      marketingNav={<Navbar />}
-      appNav={user ? <AppNav user={user} /> : null}
+      isSignedIn={!!userId}
+      marketingNav={<Navbar userId={userId} />}
+      appNav={userId ? <AppNav userId={userId} /> : null}
       footer={<Footer />}
     >
       {children}
