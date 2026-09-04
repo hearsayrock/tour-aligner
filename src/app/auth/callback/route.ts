@@ -2,13 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
-import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const explicitNext = searchParams.get('next')
-  const termsVersion = searchParams.get('terms_version')
   let next = explicitNext && explicitNext.startsWith('/') ? explicitNext : '/dashboard/profiles'
 
   const forwardedHost = request.headers.get('x-forwarded-host')
@@ -43,19 +41,6 @@ export async function GET(request: NextRequest) {
     const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      if (termsVersion === TERMS_DOCUMENT_VERSION) {
-        const { error: acceptanceError } = await supabase.rpc('record_legal_document_acceptance', {
-          p_document_key: TERMS_DOCUMENT_KEY,
-          p_document_version: termsVersion,
-        })
-        if (acceptanceError) {
-          await supabase.auth.signOut()
-          const response = NextResponse.redirect(`${origin}/signup?error=terms`)
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-          return response
-        }
-      }
-
       // If no explicit next param, check if this is a new user who needs onboarding
       if (!explicitNext) {
         const user = sessionData.user

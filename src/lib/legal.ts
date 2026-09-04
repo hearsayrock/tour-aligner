@@ -1,7 +1,7 @@
 export const TERMS_DOCUMENT_KEY = 'terms-and-conditions'
 
 // Increment this only when the published Terms text changes. Existing
-// acceptance rows remain intact and the new version can be collected at sign-up.
+// acceptance rows remain intact and the new version is collected by the Terms gate.
 export const TERMS_DOCUMENT_VERSION = '2026-09-03-draft'
 
 // SHA-256 of the published Terms source for this version. Do not modify an

@@ -7,26 +7,27 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
 import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
-import { TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 
 export default function SignupPage() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [checkEmail, setCheckEmail] = useState(false)
-  const [termsAccepted, setTermsAccepted] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!termsAccepted) {
-      setError('You must agree to the Terms and Conditions to create an account.')
+    setError(null)
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
       return
     }
+
     setLoading(true)
-    setError(null)
 
     const supabase = createClient()
     const { data, error } = await supabase.auth.signUp({
@@ -35,7 +36,6 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: name,
-          terms_document_version: TERMS_DOCUMENT_VERSION,
         },
       },
     })
@@ -91,10 +91,7 @@ export default function SignupPage() {
       <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-8">
         <h1 className="text-xl font-semibold mb-6">Create account</h1>
 
-        <OAuthButtons
-          termsVersion={TERMS_DOCUMENT_VERSION}
-          disabled={!termsAccepted}
-        />
+        <OAuthButtons />
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
@@ -121,21 +118,6 @@ export default function SignupPage() {
               placeholder="Enter your name"
             />
           </div>
-
-          <label className="flex cursor-pointer items-start gap-3 pt-1 text-sm leading-5 text-[#666666]">
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(event) => setTermsAccepted(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#CCCCCC] text-[#FD6A2F] focus:ring-[#FD6A2F]"
-            />
-            <span>
-              I agree to the{' '}
-              <Link href="/terms" className="text-[#FD6A2F] hover:underline">
-                Terms and Conditions
-              </Link>.
-            </span>
-          </label>
 
           <div>
             <label htmlFor="email" className="block text-sm text-[#888888] mb-1.5">
@@ -167,6 +149,23 @@ export default function SignupPage() {
               autoComplete="new-password"
               className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
               placeholder="Min. 8 characters"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirm-password" className="block text-sm text-[#888888] mb-1.5">
+              Confirm password
+            </label>
+            <input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              placeholder="Repeat password"
             />
           </div>
 
