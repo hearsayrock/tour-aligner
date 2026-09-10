@@ -86,8 +86,8 @@ function Hero() {
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.34)_0%,rgba(8,8,8,0.56)_42%,rgba(8,8,8,0.84)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(253,106,47,0.18),_transparent_28%),radial-gradient(circle_at_82%_22%,_rgba(14,116,144,0.16),_transparent_24%)]" />
 
-      <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-6 pb-10 sm:pb-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-end lg:px-8 lg:pb-14">
-        <div className="max-w-3xl rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:p-9">
+      <div className="relative mx-auto w-full max-w-7xl px-6 pb-10 sm:pb-12 lg:px-8 lg:pb-14">
+        <div className="rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:p-9">
           <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[5.1rem]">
             Get your artist profile ready before the tour starts.
           </h1>
@@ -121,117 +121,6 @@ function Hero() {
                 {item}
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className="relative lg:pl-12">
-          <div className="mx-auto w-full max-w-[460px]">
-            <div className="rounded-[22px] border border-white/12 bg-black/38 p-3 text-white shadow-[0_18px_42px_rgba(0,0,0,0.2)] backdrop-blur-md lg:-translate-x-[50px]">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#F6B293]">
-                  Inbox
-                </p>
-                <span className="rounded-full bg-[#0E7490]/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8DDAEF]">
-                  In discussion
-                </span>
-              </div>
-
-              <div className="mt-3 rounded-[18px] border border-white/10 bg-[#101010]/88 p-3 shadow-[0_10px_22px_rgba(0,0,0,0.16)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">Higher Law artist profile</p>
-                    <p className="mt-1 text-xs text-white/65">Salt Lake City, UT</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                      Tour ready
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-white">Spring 2027</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.04] p-2.5">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                        Profile
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-white">82% complete</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
-                        Draw
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-white">150-250</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  <div className="mr-8 rounded-[15px] border border-white/8 bg-white/[0.04] px-3 py-2.5">
-                    <p className="mb-1 text-[11px] font-medium text-[#8E8E93]">Booking gripe</p>
-                    <p className="text-sm leading-relaxed text-white/88">
-                      We lose too much time hunting for the right contact and resending the same links.
-                    </p>
-                  </div>
-
-                  <div className="ml-8 rounded-[15px] bg-[#FD6A2F] px-3 py-2.5 text-white">
-                    <p className="mb-1 text-[11px] font-medium text-white/75">TourAligner</p>
-                    <p className="text-sm leading-relaxed">
-                      Got it. Build the profile now, and we will line up the workflow around artists first.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="-mt-12 ml-auto w-full max-w-[272px] rounded-[20px] border border-[#17343A] bg-[#091315]/94 p-3 text-white shadow-[0_16px_32px_rgba(0,0,0,0.22)] backdrop-blur-md">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#79D7CC]">
-                    Artist kit
-                  </p>
-                  <h3 className="mt-1 text-[15px] font-semibold">Higher Law</h3>
-                </div>
-                <button
-                  type="button"
-                  className="rounded-md border border-white/14 px-2.5 py-1.5 text-[11px] font-medium text-white/85"
-                >
-                  Ready
-                </button>
-              </div>
-
-              <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-2.5">
-                <div className="mb-2.5 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">Launch prep</span>
-                  <div className="flex items-center gap-2 text-lg text-white/70">
-                    <span>‹</span>
-                    <span>›</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  {[
-                    ['Music', 'Links added', 'spotify / bandcamp', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
-                    ['Socials', 'Profile connected', '', 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'],
-                    ['Routing', 'Coming soon', '', 'border-[#F1CABD] bg-[#FFF5F1] text-[#9A4A2C]'],
-                  ].map(([date, status, note, styles]) => (
-                    <div
-                      key={date}
-                      className={`rounded-[16px] border px-2.5 py-2 ${styles}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold">{date}</p>
-                          <p className="mt-1 text-xs opacity-80">{status}</p>
-                        </div>
-                        {note ? <span className="text-[11px] opacity-80">{note}</span> : null}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
