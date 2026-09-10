@@ -34,6 +34,7 @@ export function TermsAcceptanceForm() {
     })
 
     if (acceptanceError) {
+      console.error('Unable to record legal-document acceptance.', acceptanceError)
       setError('We could not record your acceptance. Please try again.')
       setLoading(false)
       return

@@ -1,0 +1,3 @@
+-- Roll back 20260910221825_enforce_legal_acceptance_rpc_security.
+-- The previous migration already established the same secure function body and
+-- permissions. No database change is needed to reverse this corrective replay.
