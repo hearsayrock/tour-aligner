@@ -15,15 +15,46 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  // Set when sign-in is rejected because the account's email hasn't been confirmed yet.
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [resendError, setResendError] = useState<string | null>(null)
 
   const redirectTo = searchParams.get('redirectTo')
   const oauthError = searchParams.get('error') === 'oauth'
+  // Signup confirmation links land here: Supabase appends `code` when the email was
+  // confirmed, or `error_description` when the link was invalid or expired.
+  const confirmationError = searchParams.get('error_description')
+  const emailConfirmed = searchParams.has('code') && !confirmationError
+
+  async function handleResend() {
+    if (!unconfirmedEmail) return
+    setResendStatus('sending')
+    setResendError(null)
+
+    const { error } = await createClient().auth.resend({
+      type: 'signup',
+      email: unconfirmedEmail,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    })
+
+    if (error) {
+      setResendError(error.message)
+      setResendStatus('idle')
+      return
+    }
+
+    setResendStatus('sent')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const startedAt = performance.now()
     setLoading(true)
     setError(null)
+    setUnconfirmedEmail(null)
+    setResendStatus('idle')
+    setResendError(null)
 
     const supabase = createClient()
     const authStartedAt = performance.now()
@@ -31,7 +62,12 @@ function LoginForm() {
     const authMs = performance.now() - authStartedAt
 
     if (error) {
-      setError(error.message)
+      if (error.code === 'email_not_confirmed') {
+        setUnconfirmedEmail(email)
+        setError('Confirm your email before signing in. Check your inbox for the confirmation link.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
       return
     }
@@ -87,6 +123,14 @@ function LoginForm() {
           <p className="text-sm text-red-400 mb-4">Something went wrong with social login. Please try again.</p>
         )}
 
+        {emailConfirmed && (
+          <p className="text-sm text-[#14584E] mb-4">Email confirmed. Sign in to continue.</p>
+        )}
+
+        {confirmationError && (
+          <p className="text-sm text-red-400 mb-4">{confirmationError}</p>
+        )}
+
         <OAuthButtons next={redirectTo ?? undefined} />
 
         <div className="relative my-6">
@@ -137,6 +181,25 @@ function LoginForm() {
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
+
+          {unconfirmedEmail && (
+            resendStatus === 'sent' ? (
+              <p className="text-sm text-[#14584E]">
+                Confirmation email sent to {unconfirmedEmail}. Use the link in the newest email.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendStatus === 'sending'}
+                className="text-sm text-[#FD6A2F] hover:underline disabled:opacity-50"
+              >
+                {resendStatus === 'sending' ? 'Sending…' : 'Resend confirmation email'}
+              </button>
+            )
+          )}
+
+          {resendError && <p className="text-sm text-red-400">{resendError}</p>}
 
           <button
             type="submit"

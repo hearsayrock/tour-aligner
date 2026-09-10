@@ -34,6 +34,9 @@ export default function SignupPage() {
       email,
       password,
       options: {
+        // Where the confirmation email's {{ .ConfirmationURL }} lands after Supabase verifies it.
+        // Must be listed under Auth > URL Configuration > Redirect URLs, or Supabase falls back to the Site URL.
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           full_name: name,
         },
