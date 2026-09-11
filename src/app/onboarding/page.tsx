@@ -33,16 +33,10 @@ export default async function OnboardingPage() {
   // Already onboarded — skip ahead
   if (hasManagedProfile) redirect('/dashboard')
 
-  const { data: genres } = await supabase
-    .from('genres')
-    .select('*')
-    .order('name')
-
   return (
     <OnboardingWizard
       userId={userId}
       userName={profile?.full_name ?? ''}
-      genres={genres ?? []}
     />
   )
 }
