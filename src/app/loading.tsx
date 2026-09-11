@@ -1,5 +1,5 @@
-import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
+import { RouteLoadingIndicator } from '@/components/ui/RouteLoadingIndicator'
 
 export default function Loading() {
-  return <ProcessingOverlay />
+  return <RouteLoadingIndicator />
 }

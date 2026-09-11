@@ -14,7 +14,7 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [signInPhase, setSignInPhase] = useState<'idle' | 'authenticating' | 'routing'>('idle')
   // Set when sign-in is rejected because the account's email hasn't been confirmed yet.
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
@@ -26,6 +26,7 @@ function LoginForm() {
   // confirmed, or `error_description` when the link was invalid or expired.
   const confirmationError = searchParams.get('error_description')
   const emailConfirmed = searchParams.has('code') && !confirmationError
+  const loading = signInPhase !== 'idle'
 
   async function handleResend() {
     if (!unconfirmedEmail) return
@@ -50,7 +51,7 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const startedAt = performance.now()
-    setLoading(true)
+    setSignInPhase('authenticating')
     setError(null)
     setUnconfirmedEmail(null)
     setResendStatus('idle')
@@ -68,11 +69,14 @@ function LoginForm() {
       } else {
         setError(error.message)
       }
-      setLoading(false)
+      setSignInPhase('idle')
       return
     }
 
     localStorage.setItem('ta_last_auth_provider', 'email')
+    // Authentication is complete. Keep the form disabled while routing, but
+    // stop obscuring the page with the mutation overlay during page loading.
+    setSignInPhase('routing')
 
     let destination = redirectTo ?? '/dashboard/profiles'
 
@@ -84,7 +88,7 @@ function LoginForm() {
       const user = signInData.user
       if (!user) {
         setError('We could not finish signing you in. Please try again.')
-        setLoading(false)
+        setSignInPhase('idle')
         return
       }
 
@@ -109,7 +113,7 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
-      {loading && <ProcessingOverlay />}
+      {signInPhase === 'authenticating' && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
           <Image src="/logo.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
@@ -206,7 +210,11 @@ function LoginForm() {
             disabled={loading}
             className="w-full bg-[#FD6A2F] text-white font-semibold rounded-lg py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {signInPhase === 'authenticating'
+              ? 'Signing in…'
+              : signInPhase === 'routing'
+                ? 'Loading workspace…'
+                : 'Sign in'}
           </button>
         </form>
       </div>

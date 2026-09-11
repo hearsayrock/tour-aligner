@@ -63,7 +63,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
   const nonceRef = useRef<string | null>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [signInPhase, setSignInPhase] = useState<'idle' | 'authenticating' | 'routing'>('idle')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -89,7 +89,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
         nonce: hashedNonce,
         callback: async (response) => {
           const startedAt = performance.now()
-          setLoading(true)
+          setSignInPhase('authenticating')
           setError(null)
           const supabase = createClient()
           const authStartedAt = performance.now()
@@ -102,11 +102,12 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
 
           if (signInError) {
             setError('Google sign-in could not be completed. Please try again.')
-            setLoading(false)
+            setSignInPhase('idle')
             return
           }
 
           localStorage.setItem(LAST_PROVIDER_KEY, 'google')
+          setSignInPhase('routing')
 
           let destination = next ?? '/dashboard/profiles'
           let routingMs = 0
@@ -155,7 +156,7 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
 
   return (
     <div>
-      {loading && <ProcessingOverlay />}
+      {signInPhase === 'authenticating' && <ProcessingOverlay />}
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"

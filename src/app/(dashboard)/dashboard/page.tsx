@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { Suspense } from 'react'
 import { AlertCircle, CalendarRange, CheckCircle2, Clock3, MapPin, Mic2, Plus, Search, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTimingStart, logServerTiming } from '@/lib/performance'
@@ -12,7 +13,10 @@ import type { Event, EventArtistMembership, VenueClaim } from '@/types/database'
 
 export const metadata = { title: 'Dashboard' }
 
-type DashboardEvent = Event & {
+type DashboardEvent = Pick<
+  Event,
+  'id' | 'venue_id' | 'title' | 'slug' | 'event_date' | 'start_time' | 'needed_artist_count' | 'status'
+> & {
   venues: {
     name: string
     location_city: string
@@ -164,68 +168,68 @@ function ActionQueue({ items }: { items: ActionItem[] }) {
   )
 }
 
-export default async function DashboardPage() {
+function DashboardActivitySkeleton({ profileCount, statCount }: { profileCount: number; statCount: number }) {
+  return (
+    <div aria-label="Loading dashboard activity" role="status">
+      <div className={cx('grid gap-4', profileCount > 1 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'max-w-sm')}>
+        {Array.from({ length: statCount }, (_, index) => (
+          <div key={index} className="h-[122px] animate-pulse rounded-2xl border border-[#E8E8E8] bg-white/70" />
+        ))}
+      </div>
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="space-y-4">
+          <div className="h-14 animate-pulse rounded-xl bg-white/65" />
+          <div className="h-36 animate-pulse rounded-2xl border border-[#E8E8E8] bg-white/70" />
+          <div className="h-36 animate-pulse rounded-2xl border border-[#E8E8E8] bg-white/70" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-14 animate-pulse rounded-xl bg-white/65" />
+          <div className="h-28 animate-pulse rounded-2xl border border-[#E8E8E8] bg-white/70" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+async function DashboardActivity({
+  userId,
+  bands,
+  venues,
+  bandIds,
+  venueIds,
+  showProfileTags,
+}: {
+  userId: string
+  bands: Array<{ id: string; name: string }>
+  venues: Array<{ id: string; name: string }>
+  bandIds: string[]
+  venueIds: string[]
+  showProfileTags: boolean
+}) {
   const startedAt = getServerTimingStart()
   const supabase = await createClient()
-  const sessionStartedAt = getServerTimingStart()
-  const { data: { session } } = await supabase.auth.getSession()
-  const sessionMs = getServerTimingStart() - sessionStartedAt
-  const userId = session?.user.id
-  if (!userId) return redirect('/login')
-
-  const identityStartedAt = getServerTimingStart()
-  const [managedUserData, { data: pendingClaims }] = await Promise.all([
-    getManagedUserData(userId),
+  const [{ data: pendingClaims }, { data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     supabase
       .from('venue_claims')
       .select('id, created_at, venues(id, name, slug, location_city, location_state)')
       .eq('user_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
-  ])
-  const identityMs = getServerTimingStart() - identityStartedAt
-  const { profile, bands, venues } = managedUserData
-
-  const identities: ManagedIdentity[] = [
-    ...(bands ?? []).map((band) => ({
-      kind: 'band' as const,
-      id: band.id,
-      name: band.name,
-      href: `/dashboard/bands/${band.id}/edit`,
-    })),
-    ...(venues ?? []).map((venue) => ({
-      kind: 'venue' as const,
-      id: venue.id,
-      name: venue.name,
-      href: `/dashboard/venues/${venue.id}/edit`,
-    })),
-  ]
-  const cookieStore = await cookies()
-  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
-  const allBandIds = (bands ?? []).map((band) => band.id)
-  const allVenueIds = (venues ?? []).map((venue) => venue.id)
-  const totalProfileCount = allBandIds.length + allVenueIds.length
-  const hasMultipleProfiles = totalProfileCount > 1
-  const showProfileTags = hasMultipleProfiles && activeIdentity.kind === 'all'
-  const bandNameById = new Map((bands ?? []).map((band) => [band.id, band.name]))
-  const venueNameById = new Map((venues ?? []).map((venue) => [venue.id, venue.name]))
-  const bandIds = activeIdentity.kind === 'all'
-    ? allBandIds
-    : activeIdentity.kind === 'band'
-      ? [activeIdentity.id]
-      : []
-  const venueIds = activeIdentity.kind === 'all'
-    ? allVenueIds
-    : activeIdentity.kind === 'venue'
-      ? [activeIdentity.id]
-      : []
-
-  const eventsStartedAt = getServerTimingStart()
-  const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     venueIds.length
       ? supabase
           .from('events')
-          .select('*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status)')
+          .select(`
+            id,
+            venue_id,
+            title,
+            slug,
+            event_date,
+            start_time,
+            needed_artist_count,
+            status,
+            venues(name, location_city, location_state, claimed_by_user_id),
+            event_artist_memberships(status)
+          `)
           .in('venue_id', venueIds)
           .in('status', ['draft', 'active'])
           .order('event_date', { ascending: true })
@@ -234,19 +238,29 @@ export default async function DashboardPage() {
     bandIds.length
       ? supabase
           .from('event_artist_memberships')
-          .select('id, band_id, status, events(*, venues(name, location_city, location_state, claimed_by_user_id), event_artist_memberships(status))')
+          .select(`
+            id,
+            band_id,
+            status,
+            events(
+              id,
+              venue_id,
+              title,
+              slug,
+              event_date,
+              start_time,
+              needed_artist_count,
+              status,
+              venues(name, location_city, location_state, claimed_by_user_id),
+              event_artist_memberships(status)
+            )
+          `)
           .in('band_id', bandIds)
           .in('status', ['applied', 'invited', 'accepted', 'removal_requested'])
           .limit(8)
       : Promise.resolve({ data: [] }),
   ])
-  const eventsMs = getServerTimingStart() - eventsStartedAt
-  logServerTiming('dashboard page', {
-    session: sessionMs,
-    identities: identityMs,
-    events: eventsMs,
-    total: getServerTimingStart() - startedAt,
-  })
+  logServerTiming('dashboard activity', { total: getServerTimingStart() - startedAt })
 
   const artistEvents = ((artistMemberships ?? []) as unknown as Array<{
     id: string
@@ -263,12 +277,13 @@ export default async function DashboardPage() {
     .filter((row): row is { membershipId: string; bandId: string; status: EventArtistMembership['status']; event: DashboardEvent } => !!row.event)
 
   const venueEventRows = (venueEvents ?? []) as unknown as DashboardEvent[]
-  const name = profile?.full_name?.split(' ')[0] ?? 'there'
+  const allBandIds = bands.map((band) => band.id)
+  const allVenueIds = venues.map((venue) => venue.id)
+  const hasMultipleProfiles = allBandIds.length + allVenueIds.length > 1
   const hasAnyEvents = venueEventRows.length > 0 || artistEvents.length > 0
   const canCreateEvent = venueIds.length > 0
-  const headerDescription = hasMultipleProfiles
-    ? 'Your dashboard highlights booking work that needs attention, plus the next Backstages for the selected profile.'
-    : 'Your dashboard highlights booking work that needs attention, plus your next Backstages.'
+  const bandNameById = new Map(bands.map((band) => [band.id, band.name]))
+  const venueNameById = new Map(venues.map((venue) => [venue.id, venue.name]))
   const backstageDescription = hasMultipleProfiles
     ? 'The next events tied to the selected profile.'
     : 'The next events tied to your profile.'
@@ -323,27 +338,7 @@ export default async function DashboardPage() {
     .slice(0, 6)
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-      <PageHeader
-        eyebrow="Action center"
-        title={`Hey, ${name}`}
-        description={headerDescription}
-        actions={
-          <>
-            {canCreateEvent && (
-              <ButtonLink href="/dashboard/events/new">
-                <Plus className="h-4 w-4" />
-                Create Event
-              </ButtonLink>
-            )}
-            <ButtonLink href="/events" tone="secondary">
-              <Search className="h-4 w-4" />
-              Browse Events
-            </ButtonLink>
-          </>
-        }
-      />
-
+    <>
       <div className={cx('grid gap-4', hasMultipleProfiles ? 'sm:grid-cols-2 lg:grid-cols-3' : 'max-w-sm')}>
         <StatCard label="Active Backstages" value={venueEventRows.length + artistEvents.length} icon={CalendarRange} href="/dashboard/backstage" />
         {hasMultipleProfiles && allBandIds.length > 0 && (
@@ -412,6 +407,100 @@ export default async function DashboardPage() {
           </Card>
         </aside>
       </div>
+    </>
+  )
+}
+
+export default async function DashboardPage() {
+  const startedAt = getServerTimingStart()
+  const supabase = await createClient()
+  const sessionStartedAt = getServerTimingStart()
+  const { data: { session } } = await supabase.auth.getSession()
+  const sessionMs = getServerTimingStart() - sessionStartedAt
+  const userId = session?.user.id
+  if (!userId) return redirect('/login')
+
+  const identityStartedAt = getServerTimingStart()
+  const [managedUserData, cookieStore] = await Promise.all([
+    getManagedUserData(userId),
+    cookies(),
+  ])
+  const identityMs = getServerTimingStart() - identityStartedAt
+  const { profile, bands, venues } = managedUserData
+  const identities: ManagedIdentity[] = [
+    ...bands.map((band) => ({
+      kind: 'band' as const,
+      id: band.id,
+      name: band.name,
+      href: `/dashboard/bands/${band.id}/edit`,
+    })),
+    ...venues.map((venue) => ({
+      kind: 'venue' as const,
+      id: venue.id,
+      name: venue.name,
+      href: `/dashboard/venues/${venue.id}/edit`,
+    })),
+  ]
+  const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+  const allBandIds = bands.map((band) => band.id)
+  const allVenueIds = venues.map((venue) => venue.id)
+  const profileCount = allBandIds.length + allVenueIds.length
+  const hasMultipleProfiles = profileCount > 1
+  const statCount = 1 + (hasMultipleProfiles && allBandIds.length > 0 ? 1 : 0) + (hasMultipleProfiles && allVenueIds.length > 0 ? 1 : 0)
+  const bandIds = activeIdentity.kind === 'all'
+    ? allBandIds
+    : activeIdentity.kind === 'band'
+      ? [activeIdentity.id]
+      : []
+  const venueIds = activeIdentity.kind === 'all'
+    ? allVenueIds
+    : activeIdentity.kind === 'venue'
+      ? [activeIdentity.id]
+      : []
+  const name = profile?.full_name?.split(' ')[0] ?? 'there'
+  const canCreateEvent = venueIds.length > 0
+  const headerDescription = hasMultipleProfiles
+    ? 'Your dashboard highlights booking work that needs attention, plus the next Backstages for the selected profile.'
+    : 'Your dashboard highlights booking work that needs attention, plus your next Backstages.'
+
+  logServerTiming('dashboard shell', {
+    session: sessionMs,
+    identities: identityMs,
+    total: getServerTimingStart() - startedAt,
+  })
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Action center"
+        title={`Hey, ${name}`}
+        description={headerDescription}
+        actions={
+          <>
+            {canCreateEvent && (
+              <ButtonLink href="/dashboard/events/new">
+                <Plus className="h-4 w-4" />
+                Create Event
+              </ButtonLink>
+            )}
+            <ButtonLink href="/events" tone="secondary">
+              <Search className="h-4 w-4" />
+              Browse Events
+            </ButtonLink>
+          </>
+        }
+      />
+
+      <Suspense fallback={<DashboardActivitySkeleton profileCount={profileCount} statCount={statCount} />}>
+        <DashboardActivity
+          userId={userId}
+          bands={bands}
+          venues={venues}
+          bandIds={bandIds}
+          venueIds={venueIds}
+          showProfileTags={hasMultipleProfiles && activeIdentity.kind === 'all'}
+        />
+      </Suspense>
     </div>
   )
 }

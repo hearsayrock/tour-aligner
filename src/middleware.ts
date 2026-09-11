@@ -92,35 +92,34 @@ export async function middleware(request: NextRequest) {
   }
 
   const accessStartedAt = performance.now()
-  const [profileResult, bandsResult, venuesResult, termsAcceptanceResult] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single(),
-    supabase
-      .from('bands')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1),
-    supabase
-      .from('venues')
-      .select('id')
-      .eq('claimed_by_user_id', user.id)
-      .limit(1),
-    supabase
-      .from('legal_document_acceptances')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('document_key', TERMS_DOCUMENT_KEY)
-      .eq('document_version', TERMS_DOCUMENT_VERSION)
-      .maybeSingle(),
-  ])
+  // Route access used to make four concurrent PostgREST requests here. A single
+  // embedded profile request preserves the same RLS checks while avoiding four
+  // connections for every navigation and every Next.js link prefetch.
+  const { data: rawAccess } = await supabase
+    .from('profiles')
+    .select(`
+      is_admin,
+      bands!bands_user_id_fkey(id),
+      venues!venues_claimed_by_user_id_fkey(id),
+      legal_document_acceptances!legal_document_acceptances_user_id_fkey(id, document_key, document_version)
+    `)
+    .eq('id', user.id)
+    .eq('legal_document_acceptances.document_key', TERMS_DOCUMENT_KEY)
+    .eq('legal_document_acceptances.document_version', TERMS_DOCUMENT_VERSION)
+    .limit(1, { referencedTable: 'bands' })
+    .limit(1, { referencedTable: 'venues' })
+    .limit(1, { referencedTable: 'legal_document_acceptances' })
+    .maybeSingle()
   const accessMs = performance.now() - accessStartedAt
 
-  const profile = profileResult.data
-  const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
-  const hasAcceptedCurrentTerms = Boolean(termsAcceptanceResult.data)
+  const access = rawAccess as unknown as {
+    is_admin: boolean
+    bands: Array<{ id: string }> | null
+    venues: Array<{ id: string }> | null
+    legal_document_acceptances: Array<{ id: string }> | null
+  } | null
+  const hasManagedProfile = Boolean(access?.bands?.length || access?.venues?.length)
+  const hasAcceptedCurrentTerms = Boolean(access?.legal_document_acceptances?.length)
 
   if (!hasAcceptedCurrentTerms) {
     log('terms-redirect', accessMs)
@@ -132,12 +131,12 @@ export async function middleware(request: NextRequest) {
     return redirectWithSession(
       request,
       response,
-      profile?.is_admin ? '/dashboard' : hasManagedProfile ? '/dashboard/profiles' : '/onboarding'
+      access?.is_admin ? '/dashboard' : hasManagedProfile ? '/dashboard/profiles' : '/onboarding'
     )
   }
 
   // Administrators retain access to the admin workspace without a managed artist or venue.
-  if (profile?.is_admin) {
+  if (access?.is_admin) {
     log('admin', accessMs)
     return response
   }
