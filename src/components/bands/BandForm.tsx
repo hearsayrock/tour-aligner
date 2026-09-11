@@ -7,6 +7,10 @@ import { Eye, Palette, Plus, Search, Sparkles, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
+import {
+  parseArtistProfileTheme,
+  type ArtistProfileTheme,
+} from '@/components/profile-page/artist/artist-page-config'
 import type { Genre, Band, Json } from '@/types/database'
 
 // ─────────────────────────────────────────────────────────────
@@ -103,38 +107,6 @@ const APPEARANCE_PRESETS = [
   { name: 'Ocean', accent: '#00A6A6', background: 'mist' as const },
   { name: 'Lime light', accent: '#7AAE23', background: 'paper' as const },
 ]
-
-type ProfileTheme = {
-  accent: string
-  background: 'paper' | 'night' | 'mist'
-  buttonStyle: 'rounded' | 'square' | 'pill'
-  wallpaperOpacity: number
-}
-
-const DEFAULT_THEME: ProfileTheme = {
-  accent: '#FD6A2F',
-  background: 'paper',
-  buttonStyle: 'rounded',
-  wallpaperOpacity: 12,
-}
-
-function parseProfileTheme(value: Json | undefined): ProfileTheme {
-  if (!value || Array.isArray(value) || typeof value !== 'object') return DEFAULT_THEME
-  const candidate = value as Record<string, Json | undefined>
-  const accent = typeof candidate.accent === 'string' && /^#[0-9A-Fa-f]{6}$/.test(candidate.accent)
-    ? candidate.accent.toUpperCase()
-    : DEFAULT_THEME.accent
-  const background = candidate.background === 'night' || candidate.background === 'mist' || candidate.background === 'paper'
-    ? candidate.background
-    : DEFAULT_THEME.background
-  const buttonStyle = candidate.buttonStyle === 'square' || candidate.buttonStyle === 'pill' || candidate.buttonStyle === 'rounded'
-    ? candidate.buttonStyle
-    : DEFAULT_THEME.buttonStyle
-  const wallpaperOpacity = typeof candidate.wallpaperOpacity === 'number'
-    ? Math.round(Math.min(100, Math.max(0, candidate.wallpaperOpacity)))
-    : DEFAULT_THEME.wallpaperOpacity
-  return { accent, background, buttonStyle, wallpaperOpacity }
-}
 
 type SocialFields = Pick<
   BandFormInitial,
@@ -434,7 +406,7 @@ export function BandForm({ mode, userId, genres, initial = {} }: BandFormProps) 
   const [removeProfile, setRemoveProfile] = useState(false)
   const [removeCover, setRemoveCover] = useState(false)
   const [removeBackground, setRemoveBackground] = useState(false)
-  const [profileTheme, setProfileTheme] = useState<ProfileTheme>(() => parseProfileTheme(initial.profile_theme))
+  const [profileTheme, setProfileTheme] = useState<ArtistProfileTheme>(() => parseArtistProfileTheme(initial.profile_theme))
 
   function handleProfileSelect(file: File, previewUrl: string) {
     setProfileFile(file)

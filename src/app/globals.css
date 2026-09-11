@@ -111,3 +111,99 @@ textarea {
   outline: 2px solid #FD6A2F;
   outline-offset: 2px;
 }
+
+/* Shared public-profile canvas. Layout data remains simple enough to render as
+   static CSS Grid while Artist/Venue Studio can add editing chrome around it. */
+.profile-page-frame {
+  min-height: 100vh;
+}
+
+.artist-page-link-button {
+  border-radius: var(--profile-button-radius, 1rem);
+}
+
+.artist-page-grid {
+  grid-auto-flow: row dense;
+  align-items: stretch;
+}
+
+.profile-page-frame[data-hero-height='compact'] .artist-page-hero-inner {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.profile-page-frame[data-hero-height='cinematic'] .artist-page-hero-inner {
+  padding-top: 6.5rem;
+  padding-bottom: 6.5rem;
+}
+
+.profile-page-frame[data-hero-alignment='center'] .artist-page-hero-main {
+  max-width: 60rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.profile-page-frame[data-hero-alignment='center'] .artist-page-hero-badges,
+.profile-page-frame[data-hero-alignment='center'] .artist-page-identity,
+.profile-page-frame[data-hero-alignment='center'] .artist-page-location,
+.profile-page-frame[data-hero-alignment='center'] .artist-page-genres {
+  justify-content: center;
+}
+
+.profile-page-frame[data-hero-alignment='center'] .artist-page-location {
+  margin-inline: auto;
+}
+
+@media (min-width: 1024px) {
+  .profile-page-frame[data-hero-alignment='center'] .artist-page-hero-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-page-frame[data-hero-alignment='center'] .artist-page-facts {
+    width: min(100%, 46rem);
+    margin-inline: auto;
+  }
+}
+
+/* The editor's mobile preview is container-sized inside a desktop viewport, so
+   these rules deliberately override viewport-based utility breakpoints. */
+.profile-page-editor-mobile .artist-page-hero-inner {
+  padding: 3rem 1.5rem;
+}
+
+.profile-page-editor-mobile .artist-page-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profile-page-editor-mobile .artist-page-identity {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.profile-page-editor-mobile .artist-page-name {
+  font-size: 3rem;
+}
+
+.profile-page-editor-mobile .artist-page-grid {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 2rem 1rem;
+  gap: 1.25rem;
+}
+
+.profile-page-editor-mobile .artist-page-grid > article {
+  grid-column: 1 / -1 !important;
+}
+
+.profile-page-editor-mobile .artist-page-facts {
+  width: 100%;
+}
+
+.profile-page-editor-mobile .artist-page-hero-layout,
+.profile-page-editor-mobile .artist-page-hero-main {
+  min-width: 0;
+}
+
+.profile-page-editor-mobile .artist-page-hero-main,
+.profile-page-editor-mobile .artist-page-facts {
+  max-width: 100%;
+}
