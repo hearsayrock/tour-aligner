@@ -91,12 +91,15 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   style,
   exitHref,
   editDetailsHref,
+  onEditDetails,
   saveAction,
   externalDirty = false,
   inspector,
   inspectorOpen = false,
   onOpenInspector,
   inspectorLabel = 'Customize',
+  onEditSection,
+  editableSectionIds,
 }: {
   initialLayout: ProfilePageLayout<SectionId>
   definitions: readonly ProfilePageSectionDefinition<SectionId>[]
@@ -106,12 +109,15 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   style?: CSSProperties
   exitHref: string
   editDetailsHref: string
+  onEditDetails?: () => void
   saveAction: (layout: ProfilePageLayout<SectionId>) => Promise<SaveResult>
   externalDirty?: boolean
   inspector?: ReactNode
   inspectorOpen?: boolean
   onOpenInspector?: () => void
   inspectorLabel?: string
+  onEditSection?: (sectionId: SectionId) => void
+  editableSectionIds?: readonly SectionId[]
 }) {
   const router = useRouter()
   const [layout, setLayout] = useState(initialLayout)
@@ -351,7 +357,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
               <PanelRight className="h-4 w-4" /> <span className="hidden sm:inline">{inspectorLabel}</span>
             </button>
           )}
-          <button type="button" onClick={() => navigateAway(editDetailsHref)} className="hidden min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10 sm:flex">
+          <button type="button" onClick={() => onEditDetails ? onEditDetails() : navigateAway(editDetailsHref)} className="hidden min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10 sm:flex">
             <PencilLine className="h-4 w-4" /> Edit content
           </button>
           <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit page editor" className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10">
@@ -411,6 +417,11 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                       <GripVertical className="h-4 w-4" />
                     </button>
                     <span className="min-w-0 flex-1 truncate text-xs font-bold">{definition?.label ?? item.sectionId}</span>
+                    {onEditSection && editableSectionIds?.includes(item.sectionId) && (
+                      <button type="button" onClick={() => onEditSection(item.sectionId)} className="flex min-h-7 items-center gap-1 rounded-md px-2 text-[10px] font-bold text-white/75 hover:bg-white/10 hover:text-white">
+                        <PencilLine className="h-3 w-3" /> Edit
+                      </button>
+                    )}
                     {viewport === 'desktop' && definition?.allowedSpans.map((span) => (
                       <button key={span} type="button" onClick={() => updateSection(item.sectionId, { span })} className={cx('hidden min-h-7 rounded-md px-2 text-[10px] font-bold sm:block', item.span === span ? 'bg-white text-[#252525]' : 'text-white/65 hover:bg-white/10 hover:text-white')} title={`Set width to ${SPAN_LABELS[span]}`}>
                         {SPAN_LABELS[span]}

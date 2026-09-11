@@ -96,10 +96,35 @@ export type ArtistProfileAppearance = Omit<ArtistProfileTheme, 'layout'>
 
 export type ArtistPageImageChanges = Partial<Record<'profile' | 'cover' | 'background', 'replace' | 'remove'>>
 
+export type ArtistPageEditableContent = {
+  name: string
+  tagline: string
+  description: string
+  location_city: string
+  location_state: string
+  touring_radius: '' | 'local' | 'regional' | 'national' | 'international'
+  artist_type: '' | 'solo' | 'band'
+  set_length_min: string
+  featured_track_url: string
+  website_url: string
+  instagram_url: string
+  spotify_url: string
+  youtube_url: string
+  bandcamp_url: string
+  apple_music_url: string
+  tiktok_url: string
+  soundcloud_url: string
+  facebook_url: string
+  twitter_url: string
+  genre_ids: string[]
+  lyrics: { id?: string; title: string; body: string }[]
+}
+
 export type ArtistPageCustomization = {
   layout: ProfilePageLayout<ArtistPageSectionId>
   appearance: ArtistProfileAppearance
   imageChanges: ArtistPageImageChanges
+  content: ArtistPageEditableContent
 }
 
 export function getArtistProfileAppearance(theme: ArtistProfileTheme): ArtistProfileAppearance {

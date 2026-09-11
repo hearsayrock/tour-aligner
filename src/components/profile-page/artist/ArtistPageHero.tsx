@@ -35,6 +35,7 @@ export function ArtistPageHero({
   coverImage,
   profileImage,
   editAppearanceControl,
+  editContentControl,
 }: {
   band: Band
   genreNames: string[]
@@ -44,6 +45,7 @@ export function ArtistPageHero({
   coverImage: string
   profileImage: string | null
   editAppearanceControl?: React.ReactNode
+  editContentControl?: React.ReactNode
 }) {
   const location = formatLocation(band)
   const artistType = band.artist_type ? ARTIST_TYPE_LABELS[band.artist_type] : null
@@ -70,6 +72,7 @@ export function ArtistPageHero({
             Tour Aligner
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            {editContentControl}
             {editAppearanceControl}
             {isOwner && !isEditing && (
               <ButtonLink href={`/bands/${band.slug}?edit=1`} tone="secondary" className="border-white/20 bg-white/10 text-white hover:border-white/35 hover:bg-white/20">
