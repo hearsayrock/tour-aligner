@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { ProfilePageCanvas } from '@/components/profile-page/ProfilePageCanvas'
-import { getArtistProfileAppearance, parseArtistProfileTheme } from '@/components/profile-page/artist/artist-page-config'
+import { ARTIST_PAGE_SECTION_DEFINITIONS, getArtistProfileAppearance, parseArtistProfileTheme } from '@/components/profile-page/artist/artist-page-config'
 import { ArtistPageHero } from '@/components/profile-page/artist/ArtistPageHero'
 import { ArtistPageVisualEditor } from '@/components/profile-page/artist/ArtistPageVisualEditor'
 import {
@@ -10,6 +10,16 @@ import {
 } from '@/components/profile-page/artist/ArtistPageSections'
 import { saveArtistPageCustomization } from '@/app/actions/artist-page'
 import type { Band, Genre } from '@/types/database'
+import {
+  blockSectionId,
+  createBlockDefinition,
+  ProfilePageBlockView,
+  type BookingCtaBlockContent,
+  type ProfilePageBlockDraft,
+} from '@/components/profile-page/blocks/profile-page-blocks'
+import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
+import { ButtonLink } from '@/components/ui/primitives'
+import type { ManagedIdentity } from '@/lib/managed-identity'
 
 export type { ArtistPageLyric, ArtistPageShow } from '@/components/profile-page/artist/ArtistPageSections'
 
@@ -18,6 +28,9 @@ export type ArtistPageCanvasProps = {
   genreNames: string[]
   selectedGenreIds: string[]
   availableGenres: Pick<Genre, 'id' | 'name'>[]
+  blocks: ProfilePageBlockDraft[]
+  contactIdentity: ManagedIdentity | null
+  contactNeedsIdentitySelection: boolean
   shows: ArtistPageShow[]
   lyrics: ArtistPageLyric[]
   isOwner: boolean
@@ -41,6 +54,9 @@ export function ArtistPageCanvas({
   genreNames,
   selectedGenreIds,
   availableGenres,
+  blocks,
+  contactIdentity,
+  contactNeedsIdentitySelection,
   shows,
   lyrics,
   isOwner,
@@ -50,7 +66,8 @@ export function ArtistPageCanvas({
   const coverImage = versionedImageUrl(band.cover_photo_url, band.updated_at)
   const heroImage = coverImage ?? '/concert-hero.jpg'
   const profileImage = versionedImageUrl(band.profile_photo_url, band.updated_at)
-  const theme = parseArtistProfileTheme(band.profile_theme)
+  const blockDefinitions = blocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
+  const theme = parseArtistProfileTheme(band.profile_theme, blockDefinitions)
   const pageBackground = theme.background === 'night' ? '#17151B' : theme.background === 'mist' ? '#EDF7F6' : '#F7F4EE'
   const wallpaperImage = versionedImageUrl(band.profile_background_url, band.updated_at)
   const wallpaperBase = theme.background === 'night' ? '23,21,27' : theme.background === 'mist' ? '237,247,246' : '247,244,238'
@@ -74,7 +91,23 @@ export function ArtistPageCanvas({
       profileImage={profileImage}
     />
   )
-  const sections = createArtistPageSections({ band, shows, lyrics, isOwner, isEditing })
+  const sections = [
+    ...createArtistPageSections({ band, shows, lyrics, isOwner, isEditing }),
+    ...blocks.map((block) => {
+      const buttonLabel = block.blockType === 'booking_cta' ? (block.content as BookingCtaBlockContent).buttonLabel : ''
+      const bookingAction = block.blockType !== 'booking_cta' ? undefined
+        : contactIdentity ? (
+          <PrivateChatRequestButton senderIdentity={contactIdentity} targetKind="band" targetId={band.id} targetName={band.name} buttonLabel={buttonLabel} tone="dark" />
+        ) : contactNeedsIdentitySelection ? (
+          <ButtonLink href="/dashboard/profiles" tone="dark">Choose a profile to contact</ButtonLink>
+        ) : hasViewer ? (
+          <ButtonLink href="/dashboard/profiles" tone="dark">Create a profile to contact</ButtonLink>
+        ) : (
+          <ButtonLink href={`/login?next=${encodeURIComponent(`/bands/${band.slug}`)}`} tone="dark">Sign in to contact</ButtonLink>
+        )
+      return { sectionId: blockSectionId(block.id), content: <ProfilePageBlockView block={block} bookingAction={bookingAction} /> }
+    }),
+  ]
 
   if (isOwner && isEditing) {
     const saveAction = saveArtistPageCustomization.bind(null, band.id)
@@ -83,6 +116,7 @@ export function ArtistPageCanvas({
         band={band}
         selectedGenreIds={selectedGenreIds}
         availableGenres={availableGenres}
+        initialBlocks={blocks}
         shows={shows}
         lyrics={lyrics}
         initialTheme={theme}

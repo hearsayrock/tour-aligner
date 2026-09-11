@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -8,6 +9,13 @@ import {
   type ArtistPageShow,
 } from '@/components/profile-page/artist/ArtistPageCanvas'
 import type { Band, Genre } from '@/types/database'
+import type { ProfilePageBlock } from '@/types/database'
+import { parseProfilePageBlock } from '@/components/profile-page/blocks/profile-page-blocks'
+import {
+  ACTIVE_IDENTITY_COOKIE,
+  resolveActiveIdentity,
+  type ManagedIdentity,
+} from '@/lib/managed-identity'
 
 export const revalidate = 60
 
@@ -97,7 +105,7 @@ export default async function BandProfilePage({
     ...previewDraft,
   }) as Band
 
-  const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }, { data: rawGenres }] = await Promise.all([
+  const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }, { data: rawGenres }, { data: rawBlocks }] = await Promise.all([
     supabase.from('band_genres').select('genre_id, genres(name)').eq('band_id', band.id),
     supabase
       .from('bookings')
@@ -116,6 +124,7 @@ export default async function BandProfilePage({
     isOwner && edit === '1'
       ? supabase.from('genres').select('id, name').order('name')
       : Promise.resolve({ data: [] as Pick<Genre, 'id' | 'name'>[] }),
+    supabase.from('profile_page_blocks').select('*').eq('band_id', band.id).order('created_at'),
   ])
 
   let genreNames = (
@@ -127,12 +136,36 @@ export default async function BandProfilePage({
     genreNames = previewDraft.genre_names.filter((genre): genre is string => typeof genre === 'string' && genre.trim().length > 0)
   }
 
+  const blocks = (structuredClone(rawBlocks ?? []) as ProfilePageBlock[]).flatMap((block) => {
+    const parsed = parseProfilePageBlock(block)
+    return parsed ? [parsed] : []
+  })
+  let contactIdentity: ManagedIdentity | null = null
+  let contactNeedsIdentitySelection = false
+  if (user && blocks.some((block) => block.blockType === 'booking_cta')) {
+    const [{ data: ownedBands }, { data: ownedVenues }] = await Promise.all([
+      supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true),
+      supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true),
+    ])
+    const identities: ManagedIdentity[] = [
+      ...(ownedBands ?? []).map((ownedBand) => ({ kind: 'band' as const, id: ownedBand.id, name: ownedBand.name, href: `/dashboard/bands/${ownedBand.id}/edit` })),
+      ...(ownedVenues ?? []).map((venue) => ({ kind: 'venue' as const, id: venue.id, name: venue.name, href: `/dashboard/venues/${venue.id}/edit` })),
+    ]
+    const cookieStore = await cookies()
+    const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+    contactIdentity = activeIdentity.kind === 'all' ? null : activeIdentity
+    contactNeedsIdentitySelection = identities.length > 0 && activeIdentity.kind === 'all'
+  }
+
   return (
     <ArtistPageCanvas
       band={displayBand}
       genreNames={genreNames}
       selectedGenreIds={(bandGenres ?? []).map((bandGenre) => bandGenre.genre_id)}
       availableGenres={structuredClone(rawGenres ?? []) as Pick<Genre, 'id' | 'name'>[]}
+      blocks={blocks}
+      contactIdentity={contactIdentity}
+      contactNeedsIdentitySelection={contactNeedsIdentitySelection}
       shows={structuredClone(rawShows ?? []) as unknown as ArtistPageShow[]}
       lyrics={structuredClone(rawLyrics ?? []) as ArtistPageLyric[]}
       isOwner={isOwner}

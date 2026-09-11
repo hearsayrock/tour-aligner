@@ -5,6 +5,7 @@ import {
   type ProfilePageLayout,
   type ProfilePageSectionDefinition,
 } from '@/components/profile-page/profile-page-types'
+import type { ProfilePageBlockDraft, ProfilePageBlockSectionId } from '@/components/profile-page/blocks/profile-page-blocks'
 
 export type ArtistPageSectionId =
   | 'overview'
@@ -14,6 +15,7 @@ export type ArtistPageSectionId =
   | 'streaming-links'
   | 'social-links'
   | 'profile-management'
+  | ProfilePageBlockSectionId
 
 export const ARTIST_PAGE_SECTION_DEFINITIONS = [
   {
@@ -125,6 +127,7 @@ export type ArtistPageCustomization = {
   appearance: ArtistProfileAppearance
   imageChanges: ArtistPageImageChanges
   content: ArtistPageEditableContent
+  blocks: ProfilePageBlockDraft[]
 }
 
 export function getArtistProfileAppearance(theme: ArtistProfileTheme): ArtistProfileAppearance {
@@ -150,13 +153,39 @@ function isJsonObject(value: Json | undefined | null): value is Record<string, J
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
-export function parseArtistProfileTheme(value: Json | undefined | null): ArtistProfileTheme {
+export function parseArtistProfileTheme(
+  value: Json | undefined | null,
+  additionalDefinitions: readonly ProfilePageSectionDefinition<ArtistPageSectionId>[] = []
+): ArtistProfileTheme {
   if (!isJsonObject(value)) {
     return {
       ...DEFAULT_ARTIST_PROFILE_THEME,
-      layout: normalizeProfilePageLayout(undefined, ARTIST_PAGE_SECTION_DEFINITIONS),
+      layout: normalizeProfilePageLayout(undefined, [...ARTIST_PAGE_SECTION_DEFINITIONS, ...additionalDefinitions]),
     }
   }
+
+  const knownIds = new Set<string>([
+    ...ARTIST_PAGE_SECTION_DEFINITIONS.map((definition) => definition.sectionId),
+    ...additionalDefinitions.map((definition) => definition.sectionId),
+  ])
+  const rawLayout = isJsonObject(value.layout) ? value.layout : null
+  const inferredDefinitions: ProfilePageSectionDefinition<ArtistPageSectionId>[] = []
+  if (rawLayout && Array.isArray(rawLayout.sections)) {
+    rawLayout.sections.forEach((section, index) => {
+      if (!isJsonObject(section) || typeof section.sectionId !== 'string' || !section.sectionId.startsWith('block:') || knownIds.has(section.sectionId)) return
+      knownIds.add(section.sectionId)
+      inferredDefinitions.push({
+        sectionId: section.sectionId as ProfilePageBlockSectionId,
+        label: 'Page block',
+        description: 'Custom profile page content.',
+        defaultOrder: ARTIST_PAGE_SECTION_DEFINITIONS.length + index,
+        defaultSpan: 8,
+        allowedSpans: [4, 6, 8, 12],
+        defaultVariant: typeof section.variant === 'string' ? section.variant : 'card',
+      })
+    })
+  }
+  const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...additionalDefinitions, ...inferredDefinitions]
 
   const accent = typeof value.accent === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value.accent)
     ? value.accent.toUpperCase()
@@ -176,6 +205,6 @@ export function parseArtistProfileTheme(value: Json | undefined | null): ArtistP
     background,
     buttonStyle,
     wallpaperOpacity,
-    layout: normalizeProfilePageLayout(value.layout, ARTIST_PAGE_SECTION_DEFINITIONS),
+    layout: normalizeProfilePageLayout(value.layout, definitions),
   }
 }

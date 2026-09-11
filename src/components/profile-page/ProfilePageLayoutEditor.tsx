@@ -31,6 +31,7 @@ import {
 import { buttonBaseClass, cx } from '@/components/ui/primitives'
 import {
   createDefaultProfilePageLayout,
+  normalizeProfilePageLayout,
   profilePageLayoutsEqual,
   type ProfilePageLayout,
   type ProfilePageSectionContent,
@@ -100,6 +101,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   inspectorLabel = 'Customize',
   onEditSection,
   editableSectionIds,
+  toolbarActions,
 }: {
   initialLayout: ProfilePageLayout<SectionId>
   definitions: readonly ProfilePageSectionDefinition<SectionId>[]
@@ -118,6 +120,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   inspectorLabel?: string
   onEditSection?: (sectionId: SectionId) => void
   editableSectionIds?: readonly SectionId[]
+  toolbarActions?: ReactNode
 }) {
   const router = useRouter()
   const [layout, setLayout] = useState(initialLayout)
@@ -141,6 +144,13 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     [definitions]
   )
   const isDirty = !profilePageLayoutsEqual(layout, savedLayout) || externalDirty
+
+  useEffect(() => {
+    const normalized = normalizeProfilePageLayout(layoutRef.current, definitions)
+    if (profilePageLayoutsEqual(layoutRef.current, normalized)) return
+    layoutRef.current = normalized
+    setLayout(normalized)
+  }, [definitions])
 
   function replaceLayout(next: ProfilePageLayout<SectionId>) {
     layoutRef.current = next
@@ -345,6 +355,8 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
               )}
             </div>
           </details>
+
+          {toolbarActions}
 
           <button type="button" onClick={undo} disabled={history.length === 0} aria-label="Undo layout change" className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-35">
             <Undo2 className="h-4 w-4" /> <span className="hidden lg:inline">Undo</span>

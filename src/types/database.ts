@@ -204,6 +204,39 @@ export interface Database {
           updated_at?: string
         }
       }
+      profile_page_blocks: {
+        Row: {
+          id: string
+          band_id: string | null
+          venue_id: string | null
+          block_type: 'custom' | 'gallery' | 'video' | 'quote' | 'booking_cta' | 'divider'
+          schema_version: number
+          content: Json
+          settings: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          band_id?: string | null
+          venue_id?: string | null
+          block_type: 'custom' | 'gallery' | 'video' | 'quote' | 'booking_cta' | 'divider'
+          schema_version?: number
+          content?: Json
+          settings?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          band_id?: string | null
+          venue_id?: string | null
+          block_type?: 'custom' | 'gallery' | 'video' | 'quote' | 'booking_cta' | 'divider'
+          schema_version?: number
+          content?: Json
+          settings?: Json
+          updated_at?: string
+        }
+      }
       band_genres: {
         Row: {
           band_id: string
@@ -1252,6 +1285,7 @@ export type Band           = Database['public']['Tables']['bands']['Row']
 export type BandGenre      = Database['public']['Tables']['band_genres']['Row']
 export type BandShowDate   = Database['public']['Tables']['band_show_dates']['Row']
 export type BandLyric      = Database['public']['Tables']['band_lyrics']['Row']
+export type ProfilePageBlock = Database['public']['Tables']['profile_page_blocks']['Row']
 export type Venue          = Database['public']['Tables']['venues']['Row']
 export type VenueGenre     = Database['public']['Tables']['venue_genres']['Row']
 export type VenueClaim     = Database['public']['Tables']['venue_claims']['Row']

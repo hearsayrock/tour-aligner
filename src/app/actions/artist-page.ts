@@ -10,6 +10,11 @@ import {
   type ArtistPageEditableContent,
 } from '@/components/profile-page/artist/artist-page-config'
 import { normalizeProfilePageLayout } from '@/components/profile-page/profile-page-types'
+import {
+  createBlockDefinition,
+  normalizeProfilePageBlockDraft,
+  type ProfilePageBlockDraft,
+} from '@/components/profile-page/blocks/profile-page-blocks'
 
 export type SaveArtistPageLayoutResult = {
   success?: true
@@ -120,6 +125,18 @@ export async function saveArtistPageCustomization(
   const currentTheme = parseArtistProfileTheme(band.profile_theme)
   const normalizedContent = normalizeContent(customization.content)
   if ('error' in normalizedContent) return { error: normalizedContent.error }
+  if (!Array.isArray(customization.blocks) || customization.blocks.length > 30) {
+    return { error: 'The artist page can contain up to 30 custom blocks.' }
+  }
+  const normalizedBlocks: ProfilePageBlockDraft[] = []
+  const blockIds = new Set<string>()
+  for (const rawBlock of customization.blocks) {
+    const normalized = normalizeProfilePageBlockDraft(rawBlock)
+    if ('error' in normalized) return { error: normalized.error }
+    if (blockIds.has(normalized.value.id)) return { error: 'The artist page contained a duplicate block.' }
+    blockIds.add(normalized.value.id)
+    normalizedBlocks.push(normalized.value)
+  }
   if (normalizedContent.value.genreIds.length > 0) {
     const { data: validGenres, error: genresLookupError } = await supabase
       .from('genres')
@@ -129,12 +146,14 @@ export async function saveArtistPageCustomization(
       return { error: 'One or more selected genres are invalid.' }
     }
   }
-  const normalizedLayout = normalizeProfilePageLayout(customization.layout, ARTIST_PAGE_SECTION_DEFINITIONS)
+  const blockDefinitions = normalizedBlocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
+  const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...blockDefinitions]
+  const normalizedLayout = normalizeProfilePageLayout(customization.layout, definitions)
   const nextTheme = parseArtistProfileTheme({
     ...currentTheme,
     ...customization.appearance,
     layout: normalizedLayout,
-  } as unknown as Json)
+  } as unknown as Json, blockDefinitions)
   const imageChanges = customization.imageChanges ?? {}
   const imageUpdates: {
     profile_photo_url?: string | null
@@ -160,6 +179,34 @@ export async function saveArtistPageCustomization(
     .eq('user_id', user.id)
 
   if (error) return { error: error.message }
+
+  if (normalizedBlocks.length > 0) {
+    const { error: blocksError } = await supabase.from('profile_page_blocks').upsert(
+      normalizedBlocks.map((block) => ({
+        id: block.id,
+        band_id: bandId,
+        venue_id: null,
+        block_type: block.blockType,
+        schema_version: block.schemaVersion,
+        content: block.content as unknown as Json,
+        settings: {
+          ...block.settings,
+          placement: (() => {
+            const item = normalizedLayout.sections.find((section) => section.sectionId === `block:${block.id}`)
+            return item ? { order: item.order, span: item.span, visible: item.visible } : undefined
+          })(),
+        } as unknown as Json,
+      }))
+    )
+    if (blocksError) return { error: blocksError.message }
+  }
+  const existingBlocks = await supabase.from('profile_page_blocks').select('id').eq('band_id', bandId)
+  if (existingBlocks.error) return { error: existingBlocks.error.message }
+  const removedBlockIds = (existingBlocks.data ?? []).map((block) => block.id).filter((id) => !blockIds.has(id))
+  if (removedBlockIds.length > 0) {
+    const { error: removeBlocksError } = await supabase.from('profile_page_blocks').delete().in('id', removedBlockIds).eq('band_id', bandId)
+    if (removeBlocksError) return { error: removeBlocksError.message }
+  }
 
   const { error: deleteGenresError } = await supabase.from('band_genres').delete().eq('band_id', bandId)
   if (deleteGenresError) return { error: deleteGenresError.message }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react'
-import { ImageIcon, Link2, Music2, Palette, Plus, SlidersHorizontal, Trash2, Type, Upload, X } from 'lucide-react'
+import { ImageIcon, Layers3, Link2, Music2, Palette, Plus, SlidersHorizontal, Trash2, Type, Upload, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { ProfilePageLayoutEditor } from '@/components/profile-page/ProfilePageLayoutEditor'
@@ -24,9 +24,23 @@ import {
   type ArtistPageShow,
 } from '@/components/profile-page/artist/ArtistPageSections'
 import type { Band, Genre } from '@/types/database'
+import {
+  blockIdFromSection,
+  blockSectionId,
+  createBlockDefinition,
+  createProfilePageBlock,
+  normalizeProfilePageBlockDraft,
+  ProfilePageBlockView,
+  type CustomBlockContent,
+  type GalleryBlockContent,
+  type ProfilePageBlockDraft,
+  type ProfilePageBlockType,
+} from '@/components/profile-page/blocks/profile-page-blocks'
+import { ArtistPageBlockInspector, ArtistPageBlockPicker } from '@/components/profile-page/artist/ArtistPageBlockEditor'
 
 type SaveResult = { success?: true; error?: string }
 type ArtistImageType = 'profile' | 'cover' | 'background'
+type PendingBlockImage = { blockId: string; imageId: string; file: File; previewUrl: string; target: 'custom' | 'gallery' }
 type ProfileFrameStyle = CSSProperties & {
   '--profile-accent': string
   '--profile-button-radius': string
@@ -132,6 +146,15 @@ async function uploadArtistImage(file: File, bandId: string, type: ArtistImageTy
   const { error } = await supabase.storage
     .from('band-images')
     .upload(path, file, { cacheControl: '3600', contentType: 'image/jpeg', upsert: true })
+  if (error) throw error
+  return supabase.storage.from('band-images').getPublicUrl(path).data.publicUrl
+}
+
+async function uploadArtistBlockImage(image: PendingBlockImage, bandId: string) {
+  const supabase = createClient()
+  const extension = image.file.type === 'image/png' ? 'png' : image.file.type === 'image/webp' ? 'webp' : 'jpg'
+  const path = `bands/${bandId}/blocks/${image.blockId}/${image.imageId}.${extension}`
+  const { error } = await supabase.storage.from('band-images').upload(path, image.file, { cacheControl: '3600', contentType: image.file.type || 'image/jpeg', upsert: true })
   if (error) throw error
   return supabase.storage.from('band-images').getPublicUrl(path).data.publicUrl
 }
@@ -342,6 +365,7 @@ export function ArtistPageVisualEditor({
   band,
   selectedGenreIds,
   availableGenres,
+  initialBlocks,
   shows,
   lyrics,
   initialTheme,
@@ -355,6 +379,7 @@ export function ArtistPageVisualEditor({
   band: Band
   selectedGenreIds: string[]
   availableGenres: Pick<Genre, 'id' | 'name'>[]
+  initialBlocks: ProfilePageBlockDraft[]
   shows: ArtistPageShow[]
   lyrics: ArtistPageLyric[]
   initialTheme: ArtistProfileTheme
@@ -370,8 +395,12 @@ export function ArtistPageVisualEditor({
   const [savedAppearance, setSavedAppearance] = useState(initialAppearance)
   const [content, setContent] = useState(() => createEditableContent(band, selectedGenreIds, lyrics))
   const [savedContent, setSavedContent] = useState(() => createEditableContent(band, selectedGenreIds, lyrics))
+  const [blocks, setBlocks] = useState(initialBlocks)
+  const [savedBlocks, setSavedBlocks] = useState(initialBlocks)
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
+  const [pendingBlockImages, setPendingBlockImages] = useState<PendingBlockImage[]>([])
   const [inspectorOpen, setInspectorOpen] = useState(true)
-  const [inspectorMode, setInspectorMode] = useState<'appearance' | 'content'>('appearance')
+  const [inspectorMode, setInspectorMode] = useState<'appearance' | 'content' | 'blocks'>('appearance')
   const [contentSection, setContentSection] = useState<ArtistContentSection>('identity')
 
   const [profileFile, setProfileFile] = useState<File | null>(null)
@@ -400,6 +429,7 @@ export function ArtistPageVisualEditor({
   const imagesDirty = !!profileFile || !!coverFile || !!backgroundFile || profileRemoved || coverRemoved || backgroundRemoved
   const appearanceDirty = !appearancesEqual(appearance, savedAppearance) || imagesDirty
   const contentDirty = !contentEqual(content, savedContent)
+  const blocksDirty = JSON.stringify(blocks) !== JSON.stringify(savedBlocks) || pendingBlockImages.length > 0
   const displayProfileImage = profileRemoved ? null : profilePreview ?? profileImage
   const displayCoverImage = coverRemoved ? '/concert-hero.jpg' : coverPreview ?? coverImage ?? '/concert-hero.jpg'
   const displayWallpaperImage = backgroundRemoved ? null : backgroundPreview ?? wallpaperImage
@@ -434,14 +464,93 @@ export function ArtistPageVisualEditor({
     setInspectorOpen(true)
   }
 
-  const sections = createArtistPageSections({
-    band: draftBand,
-    shows,
-    lyrics: draftLyrics,
-    isOwner: true,
-    isEditing: true,
-    onEditContent: openContent,
-  })
+  function openBlocks(blockId: string | null = null) {
+    setSelectedBlockId(blockId)
+    setInspectorMode('blocks')
+    setInspectorOpen(true)
+  }
+
+  function addBlock(type: ProfilePageBlockType) {
+    const block = createProfilePageBlock(type)
+    setBlocks((current) => [...current, block])
+    openBlocks(block.id)
+  }
+
+  function updateBlock(next: ProfilePageBlockDraft) {
+    setBlocks((current) => current.map((block) => block.id === next.id ? next : block))
+  }
+
+  function duplicateBlock(blockId: string) {
+    const source = blocks.find((block) => block.id === blockId)
+    if (!source) return
+    const copy = structuredClone(source)
+    copy.id = crypto.randomUUID()
+    const copiedPendingImages: PendingBlockImage[] = []
+    if (copy.blockType === 'custom') {
+      const content = copy.content as CustomBlockContent
+      const pendingImage = pendingBlockImages.find((image) => (
+        image.blockId === source.id && image.target === 'custom' && image.previewUrl === content.imageUrl
+      ))
+      if (pendingImage) {
+        const previewUrl = URL.createObjectURL(pendingImage.file)
+        content.imageUrl = previewUrl
+        copiedPendingImages.push({ ...pendingImage, blockId: copy.id, imageId: crypto.randomUUID(), previewUrl })
+      }
+    }
+    if (copy.blockType === 'gallery') {
+      const content = copy.content as GalleryBlockContent
+      content.images = content.images.map((image) => {
+        const id = crypto.randomUUID()
+        const pendingImage = pendingBlockImages.find((pending) => (
+          pending.blockId === source.id && pending.target === 'gallery' && pending.imageId === image.id
+        ))
+        if (!pendingImage) return { ...image, id }
+        const previewUrl = URL.createObjectURL(pendingImage.file)
+        copiedPendingImages.push({ ...pendingImage, blockId: copy.id, imageId: id, previewUrl })
+        return { ...image, id, url: previewUrl }
+      })
+    }
+    if (copiedPendingImages.length > 0) setPendingBlockImages((current) => [...current, ...copiedPendingImages])
+    setBlocks((current) => [...current, copy])
+    openBlocks(copy.id)
+  }
+
+  function removeBlock(blockId: string) {
+    if (!window.confirm('Remove this block from the page?')) return
+    setPendingBlockImages((current) => {
+      current.filter((image) => image.blockId === blockId).forEach((image) => URL.revokeObjectURL(image.previewUrl))
+      return current.filter((image) => image.blockId !== blockId)
+    })
+    setBlocks((current) => current.filter((block) => block.id !== blockId))
+    openBlocks(null)
+  }
+
+  function chooseBlockImages(blockId: string, files: File[], target: 'custom' | 'gallery') {
+    const validFiles = files.filter((file) => file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024)
+    const selectedFiles = target === 'custom' ? validFiles.slice(0, 1) : validFiles.slice(0, 24)
+    if (selectedFiles.length === 0) return
+    const uploads = selectedFiles.map((file) => ({ blockId, imageId: crypto.randomUUID(), file, previewUrl: URL.createObjectURL(file), target }))
+    setPendingBlockImages((current) => {
+      if (target === 'custom') {
+        current.filter((image) => image.blockId === blockId && image.target === 'custom').forEach((image) => URL.revokeObjectURL(image.previewUrl))
+        return [...current.filter((image) => !(image.blockId === blockId && image.target === 'custom')), ...uploads]
+      }
+      return [...current, ...uploads]
+    })
+    setBlocks((current) => current.map((block) => {
+      if (block.id !== blockId) return block
+      if (target === 'custom') return { ...block, content: { ...block.content, imageUrl: uploads[0]?.previewUrl ?? '' } as CustomBlockContent }
+      const content = block.content as GalleryBlockContent
+      return { ...block, content: { ...content, images: [...content.images, ...uploads.map((image) => ({ id: image.imageId, url: image.previewUrl, alt: '' }))].slice(0, 24) } }
+    }))
+  }
+
+  const blockDefinitions = blocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
+  const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...blockDefinitions]
+  const sections = [
+    ...createArtistPageSections({ band: draftBand, shows, lyrics: draftLyrics, isOwner: true, isEditing: true, onEditContent: openContent }),
+    ...blocks.map((block) => ({ sectionId: blockSectionId(block.id), content: <ProfilePageBlockView block={block} /> })),
+  ]
 
   function resetAppearance() {
     setAppearance(savedAppearance)
@@ -460,6 +569,13 @@ export function ArtistPageVisualEditor({
     setContent(savedContent)
   }
 
+  function resetBlocks() {
+    pendingBlockImages.forEach((image) => URL.revokeObjectURL(image.previewUrl))
+    setPendingBlockImages([])
+    setBlocks(savedBlocks)
+    setSelectedBlockId(null)
+  }
+
   async function saveCustomization(layout: ProfilePageLayout<ArtistPageSectionId>): Promise<SaveResult> {
     if (!content.name.trim()) return { error: 'Artist name is required.' }
     const urls = [{ key: 'featured_track_url' as const, label: 'Featured track' }, ...LINK_FIELDS.map(({ key, label }) => ({ key, label }))]
@@ -473,6 +589,25 @@ export function ArtistPageVisualEditor({
         return { error: `${label} must be a complete URL.` }
       }
     }
+    const activePendingBlockImages = pendingBlockImages.filter((image) => blocks.some((block) => {
+      if (block.id !== image.blockId) return false
+      if (block.blockType === 'custom') return (block.content as CustomBlockContent).imageUrl === image.previewUrl
+      if (block.blockType === 'gallery') return (block.content as GalleryBlockContent).images.some((item) => item.id === image.imageId && item.url === image.previewUrl)
+      return false
+    }))
+    for (const block of blocks) {
+      const validationBlock = structuredClone(block)
+      const previewUrls = new Set(activePendingBlockImages.filter((image) => image.blockId === block.id).map((image) => image.previewUrl))
+      if (validationBlock.blockType === 'custom') {
+        const custom = validationBlock.content as CustomBlockContent
+        if (previewUrls.has(custom.imageUrl)) custom.imageUrl = 'https://preview.invalid/image.jpg'
+      } else if (validationBlock.blockType === 'gallery') {
+        const gallery = validationBlock.content as GalleryBlockContent
+        gallery.images = gallery.images.map((image) => previewUrls.has(image.url) ? { ...image, url: 'https://preview.invalid/image.jpg' } : image)
+      }
+      const normalized = normalizeProfilePageBlockDraft(validationBlock)
+      if ('error' in normalized) return { error: normalized.error }
+    }
     try {
       const imageChanges: ArtistPageImageChanges = {}
       const uploads = await Promise.all([
@@ -481,6 +616,21 @@ export function ArtistPageVisualEditor({
         backgroundFile ? uploadArtistImage(backgroundFile, band.id, 'background') : Promise.resolve(null),
       ])
 
+      const blockUploadUrls = await Promise.all(activePendingBlockImages.map(async (image) => ({ image, url: await uploadArtistBlockImage(image, band.id) })))
+      let blocksToSave = structuredClone(blocks)
+      blockUploadUrls.forEach(({ image, url }) => {
+        blocksToSave = blocksToSave.map((block) => {
+          if (block.id !== image.blockId) return block
+          if (image.target === 'custom') return { ...block, content: { ...block.content, imageUrl: url } as CustomBlockContent }
+          const gallery = block.content as GalleryBlockContent
+          return { ...block, content: { ...gallery, images: gallery.images.map((item) => item.id === image.imageId ? { ...item, url } : item) } }
+        })
+      })
+      for (const block of blocksToSave) {
+        const normalized = normalizeProfilePageBlockDraft(block)
+        if ('error' in normalized) return { error: normalized.error }
+      }
+
       if (profileFile) imageChanges.profile = 'replace'
       else if (profileRemoved) imageChanges.profile = 'remove'
       if (coverFile) imageChanges.cover = 'replace'
@@ -488,7 +638,7 @@ export function ArtistPageVisualEditor({
       if (backgroundFile) imageChanges.background = 'replace'
       else if (backgroundRemoved) imageChanges.background = 'remove'
 
-      const result = await saveAction({ layout, appearance, imageChanges, content })
+      const result = await saveAction({ layout, appearance, imageChanges, content, blocks: blocksToSave })
       if (result.error) return result
 
       const [nextProfileImage, nextCoverImage, nextWallpaperImage] = uploads
@@ -501,6 +651,10 @@ export function ArtistPageVisualEditor({
 
       setSavedAppearance(appearance)
       setSavedContent(content)
+      pendingBlockImages.forEach((image) => URL.revokeObjectURL(image.previewUrl))
+      setPendingBlockImages([])
+      setBlocks(blocksToSave)
+      setSavedBlocks(blocksToSave)
       setProfileFile(null)
       setCoverFile(null)
       setBackgroundFile(null)
@@ -623,12 +777,26 @@ export function ArtistPageVisualEditor({
     />
   )
 
-  const inspector = inspectorMode === 'appearance' ? appearanceInspector : contentInspector
+  const selectedBlock = blocks.find((block) => block.id === selectedBlockId) ?? null
+  const blockInspector = selectedBlock ? (
+    <>
+      <ArtistPageBlockInspector
+        block={selectedBlock}
+        onChange={updateBlock}
+        onChooseImages={(files, target) => chooseBlockImages(selectedBlock.id, files, target)}
+        onDuplicate={() => duplicateBlock(selectedBlock.id)}
+        onDelete={() => removeBlock(selectedBlock.id)}
+        onClose={() => setInspectorOpen(false)}
+      />
+      <div className="px-5 pb-6 sm:px-6"><button type="button" onClick={resetBlocks} disabled={!blocksDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] disabled:opacity-40">Revert all block changes</button></div>
+    </>
+  ) : <ArtistPageBlockPicker onAdd={addBlock} onClose={() => setInspectorOpen(false)} />
+  const inspector = inspectorMode === 'appearance' ? appearanceInspector : inspectorMode === 'content' ? contentInspector : blockInspector
 
   return (
     <ProfilePageLayoutEditor
       initialLayout={initialTheme.layout}
-      definitions={ARTIST_PAGE_SECTION_DEFINITIONS}
+      definitions={definitions}
       sections={sections}
       hero={(
         <ArtistPageHero
@@ -656,13 +824,19 @@ export function ArtistPageVisualEditor({
       editDetailsHref={editDetailsHref}
       onEditDetails={() => openContent()}
       saveAction={saveCustomization}
-      externalDirty={appearanceDirty || contentDirty}
+      externalDirty={appearanceDirty || contentDirty || blocksDirty}
       inspector={inspector}
       inspectorOpen={inspectorOpen}
       onOpenInspector={() => inspectorMode === 'appearance' ? openContent() : openAppearance()}
       inspectorLabel={inspectorMode === 'appearance' ? 'Content' : 'Appearance'}
-      editableSectionIds={['overview', 'featured-track', 'lyrics', 'streaming-links', 'social-links', 'profile-management']}
+      toolbarActions={<button type="button" onClick={() => openBlocks(null)} className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10"><Layers3 className="h-4 w-4" /> <span className="hidden sm:inline">Add block</span></button>}
+      editableSectionIds={['overview', 'featured-track', 'lyrics', 'streaming-links', 'social-links', 'profile-management', ...blocks.map((block) => blockSectionId(block.id))]}
       onEditSection={(sectionId) => {
+        const blockId = blockIdFromSection(sectionId)
+        if (blockId) {
+          openBlocks(blockId)
+          return
+        }
         const contentSectionByPageSection: Partial<Record<ArtistPageSectionId, ArtistContentSection>> = {
           overview: 'details',
           'featured-track': 'music',
