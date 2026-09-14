@@ -74,7 +74,7 @@ const audiences = [
 
 function Hero() {
   return (
-    <section className="relative flex min-h-screen items-end overflow-hidden border-b border-[#2A2A2A] pt-24 sm:pt-28">
+    <section className="relative flex min-h-screen items-end overflow-hidden border-b border-[#2A2A2A] pt-24 sm:pt-28 lg:items-start lg:pt-[clamp(8rem,calc(100svh-36rem),23rem)]">
       <Image
         src="/landing-hero-crowd.jpg"
         alt="Concert crowd raising their hands toward a lit stage"
