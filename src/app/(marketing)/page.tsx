@@ -76,8 +76,8 @@ function Hero() {
   return (
     <section className="relative flex min-h-screen items-end overflow-hidden border-b border-[#2A2A2A] pt-24 sm:pt-28">
       <Image
-        src="/concert-hero.jpg"
-        alt="Live band performing on stage in front of a crowd"
+        src="/landing-hero-crowd.jpg"
+        alt="Concert crowd raising their hands toward a lit stage"
         fill
         priority
         className="object-cover object-center"
