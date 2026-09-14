@@ -66,7 +66,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm text-center">
         <div className="mb-8">
           <Link href="/">
-            <Image src="/logo.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+            <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
           </Link>
         </div>
         <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-8">
@@ -87,7 +87,7 @@ export default function SignupPage() {
       {loading && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
-          <Image src="/logo.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+          <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
         </Link>
       </div>
 

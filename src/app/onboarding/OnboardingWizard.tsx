@@ -249,7 +249,7 @@ export default function OnboardingWizard({ userId, userName }: Props) {
     <div className="relative min-h-screen bg-[#FFFDFC] lg:grid lg:grid-cols-[minmax(330px,0.85fr)_minmax(0,1.65fr)]">
       {/* Desktop welcome panel */}
       <aside className="relative hidden overflow-hidden bg-[#FFF1EA] p-8 lg:flex lg:flex-col xl:p-12">
-        <Image src="/logo.png" alt="TourAligner" width={201} height={56} priority className="h-auto w-[201px]" />
+        <Image src="/logo-v2.png" alt="TourAligner" width={201} height={56} priority className="h-auto w-[201px]" />
         <div className="relative z-10 my-auto max-w-md">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#D94F1A] shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-[#FD6A2F]" /> Artist setup
@@ -276,7 +276,7 @@ export default function OnboardingWizard({ userId, userName }: Props) {
       <section className="flex min-w-0 flex-col">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b border-[#F0E9E5] bg-white px-5 py-4 lg:hidden">
-          <Image src="/logo.png" alt="TourAligner" width={161} height={45} priority className="h-auto w-[161px]" />
+          <Image src="/logo-v2.png" alt="TourAligner" width={161} height={45} priority className="h-auto w-[161px]" />
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium text-[#9B918C]">{step} of {TOTAL_STEPS}</span>
             <NavAccountMenu showManageProfiles={false} />

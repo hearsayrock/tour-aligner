@@ -13,7 +13,7 @@ export function Navbar({ userId }: { userId: string | null }) {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/75 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         <Link href={userId ? '/dashboard' : '/'} className="flex items-center gap-2">
-          <Image src="/logo.png" alt="TourAligner" width={140} height={36} priority />
+          <Image src="/logo-v2.png" alt="TourAligner" width={140} height={36} priority />
           {showStagingBadge && <EnvironmentBadge />}
         </Link>
 

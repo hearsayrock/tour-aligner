@@ -287,7 +287,7 @@ export function DashboardNav({
           <div className={cx('border-b border-[#E8E6E0] py-4', sidebarCollapsed ? 'px-3' : 'px-5')}>
             <div className={cx('flex items-center gap-2', sidebarCollapsed ? 'flex-col' : 'justify-between')}>
               <Link href="/dashboard" aria-label="TourAligner dashboard" className={cx('flex min-h-10 items-center', sidebarCollapsed && 'h-10 w-10 justify-center rounded-xl bg-[#FFF3EE] text-[#FD6A2F]')}>
-                {sidebarCollapsed ? <Mic2 className="h-5 w-5" /> : <Image src="/logo.png" alt="TourAligner" width={132} height={35} priority />}
+                {sidebarCollapsed ? <Mic2 className="h-5 w-5" /> : <Image src="/logo-v2.png" alt="TourAligner" width={132} height={35} priority />}
               </Link>
               <button type="button" onClick={toggleSidebar} aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#888888] transition-colors hover:bg-white hover:text-[#252525]">
                 {sidebarCollapsed ? <PanelLeftOpen className="h-4.5 w-4.5" /> : <PanelLeftClose className="h-4.5 w-4.5" />}
@@ -364,7 +364,7 @@ export function DashboardNav({
       <header className={cx('sticky top-0 z-30 border-b border-[#E3E1DC] bg-[#FBFBFA]/95 px-4 py-3 backdrop-blur', !isPhaseOneArtist && 'lg:hidden')}>
         <div className={cx('flex items-center justify-between gap-3', isPhaseOneArtist && 'mx-auto max-w-7xl')}>
           <Link href={isPhaseOneArtist ? '/dashboard/profiles' : '/dashboard'} className="flex min-h-10 items-center gap-2">
-            <Image src="/logo.png" alt="TourAligner" width={isPhaseOneArtist ? 142 : 126} height={isPhaseOneArtist ? 37 : 33} priority />
+            <Image src="/logo-v2.png" alt="TourAligner" width={isPhaseOneArtist ? 142 : 126} height={isPhaseOneArtist ? 37 : 33} priority />
             {showStagingBadge && <EnvironmentBadge />}
           </Link>
           <div className="flex items-center gap-2">

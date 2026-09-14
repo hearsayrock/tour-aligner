@@ -116,7 +116,7 @@ function LoginForm() {
       {signInPhase === 'authenticating' && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
-          <Image src="/logo.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+          <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
         </Link>
       </div>
 
