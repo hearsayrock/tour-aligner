@@ -18,30 +18,30 @@ export const metadata: Metadata = {
 const pillars = [
   {
     icon: Compass,
-    title: 'Start with an artist profile that works harder',
-    body: 'Put your sound, socials, draw, tour radius, and show history in one place so booking conversations start with the right context.',
+    title: 'Start with a profile that hits harder',
+    body: 'Show off your vibe and define your brand. Start booking conversations off right with vital info already locked in.',
   },
   {
     icon: Inbox,
-    title: 'Tell us what booking keeps breaking',
-    body: 'The waitlist is not just a signup form. Your feedback helps shape the tools independent artists need first.',
+    title: 'Spill the tea on what\'s broken',
+    body: 'Tell us what wastes your time or makes booking harder than it should be. We’re building around that.',
   },
   {
     icon: CalendarRange,
-    title: 'Get ready before the wider launch',
-    body: 'Join early, build your artist presence, and be ready when routing, availability, and booking workflows open up at scale.',
+    title: 'Get ahead of booking chaos',
+    body: 'Join early, build your profile, and be ready when venues come knocking.',
   },
   {
     icon: Radar,
-    title: 'Built for artists booking direct or with a team',
-    body: 'Solo artists, bands, agents, and managers can organize the details that make a booking pitch easier to trust.',
+    title: 'Built for DIY artists and venues',
+    body: 'Solo artists, bands, agents, and venues are all welcome.',
   },
 ]
 
 const workflow = [
   {
     step: 'Join',
-    body: 'Get on the artist waitlist and tell us what should be fixed first.',
+    body: 'Get on the waitlist and have front row tickets when we launch.',
   },
   {
     step: 'Create',
@@ -49,26 +49,26 @@ const workflow = [
   },
   {
     step: 'Prepare',
-    body: 'Collect the links, dates, and context that help your pitch land.',
+    body: 'Set your tone and vibe. Myspace the hell out of your personal public page.',
   },
   {
     step: 'Launch',
-    body: 'Be ready when the full booking workflow opens for early artists.',
+    body: 'Be ready for when the president shits his pants on live tv.',
   },
 ]
 
 const audiences = [
   {
     title: 'Artists',
-    body: 'Independent artists can claim early access, shape the roadmap, and start turning scattered booking details into a real profile.',
+    body: 'Build a profile with your music, socials, draw, show history, and booking details so venues can quickly see who you are and whether you fit.',
+  },
+  {
+    title: 'Venues',
+    body: 'Keep your room details, capacity, availability, booking preferences, and show info organized so artists know what you need before they reach out.',
   },
   {
     title: 'Bands',
-    body: 'Bands can keep members, music links, social proof, show history, and tour readiness organized before outreach starts.',
-  },
-  {
-    title: 'Agents and managers',
-    body: 'Teams can prepare cleaner artist records now, then move faster when routing and booking tools come online.',
+    body: 'Bands can capture stage-plot, links, show history, tour plans, and booking details together so everyone is working from the same information.',
   },
 ]
 
@@ -89,12 +89,13 @@ function Hero() {
       <div className="relative mx-auto w-full max-w-7xl px-6 pb-10 sm:pb-12 lg:px-8 lg:pb-14">
         <div className="rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:p-9">
           <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[5.1rem]">
-            Get your artist profile ready before the tour starts.
+            Create your profile 
+            <br/>
+            Get ready for tour
           </h1>
 
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/82 sm:text-xl">
-            TourAligner is opening first for independent artists who want cleaner booking,
-            stronger profiles, and less chaos between the first message and the confirmed show.
+          <p className="mt-6 max-w-4xl text-lg leading-8 text-white/82 sm:text-xl">
+            The problem with the current booking system is that there is no system.  With TourAligner your profile, venues, dates and messages are all in one place. Look, know, play the show.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -109,7 +110,7 @@ function Hero() {
             {[
               'Early access for independent artists',
               'Build your artist profile before launch',
-              'Help shape the booking workflow from day one',
+              'Torch the DM booking grind',
             ].map((item) => (
               <div
                 key={item}
@@ -137,8 +138,7 @@ function Pillars() {
             Why it works
           </p>
           <h2 className="mt-4 max-w-5xl text-2xl font-semibold tracking-tight text-[#111111] sm:text-4xl">
-            TourAligner is starting with independent artists: the people chasing replies,
-            sharing links, proving fit, and trying to turn momentum into booked dates.
+            Independent artists are doing more than making music. They’re chasing replies, sharing links, proving they belong on the bill, and trying to turn momentum into booked dates.
           </h2>
         </div>
 
@@ -174,11 +174,10 @@ function WorkflowSection() {
             How it works
           </p>
           <h2 className="mt-4 font-[var(--font-barlow)] text-4xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white sm:text-5xl">
-            Join early. Build the profile. Shape what comes next.
+            Join early<br/>Build the profile<br/>Set the stage
           </h2>
           <p className="mt-5 text-base leading-8 text-white/72 sm:text-lg">
-            The first launch wave is about artist acquisition and profile building, so the
-            booking workflow is grounded in real artist problems from the beginning.
+            Artists and venues both deal with the same booking mess from different sides. Join early, build your profile, and tell us what slows things down.
           </p>
         </div>
 
@@ -241,16 +240,11 @@ function FinalCta() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(253,106,47,0.22),_transparent_28%),radial-gradient(circle_at_85%_15%,_rgba(14,116,144,0.16),_transparent_22%)]" />
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F6B293]">
-                Ready when you are
-              </p>
+              
               <h2 className="mt-4 font-[var(--font-barlow)] text-4xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white sm:text-5xl">
-                Get on the list before the next route comes together.
+                Practice up<br/>Set the stage<br/>The next tour starts soon
               </h2>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-white/74 sm:text-lg">
-                Join the artist waitlist, tell us what makes booking painful, then create
-                your account and start building the profile venues and booking teams will see.
-              </p>
+              
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
