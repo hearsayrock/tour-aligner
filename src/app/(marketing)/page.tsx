@@ -53,7 +53,7 @@ const workflow = [
   },
   {
     step: 'Launch',
-    body: 'Be ready for when the president shits his pants on live tv.',
+    body: 'Doors open, profile\'s tight, and you\'re first in line.',
   },
 ]
 
@@ -148,7 +148,7 @@ function Pillars() {
               key={title}
               className="rounded-[24px] border border-[#ECE7DE] bg-[#FBFAF7] p-6 shadow-[0_16px_36px_rgba(17,17,17,0.04)]"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FD6A2F] text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#c4682f] text-white">
                 <Icon size={19} />
               </div>
               <h3 className="mt-5 text-xl font-semibold text-[#111111]">{title}</h3>

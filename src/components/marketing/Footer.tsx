@@ -21,7 +21,7 @@ export function Footer() {
               href="/"
               className="inline-flex font-[var(--font-barlow)] text-2xl font-black uppercase tracking-[-0.02em] text-white"
             >
-              Tour<span className="text-[#FD6A2F]">Aligner</span>
+              Tour<span className="text-[#c4682f]">Aligner</span>
             </Link>
             <p className="mt-4 max-w-md text-sm leading-7 text-white/58 sm:text-base">
               Stronger artist profiles and a cleaner way to route tours, connect with venues,
