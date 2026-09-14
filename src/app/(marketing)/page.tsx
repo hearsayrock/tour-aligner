@@ -86,27 +86,27 @@ function Hero() {
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.34)_0%,rgba(8,8,8,0.56)_42%,rgba(8,8,8,0.84)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(253,106,47,0.18),_transparent_28%),radial-gradient(circle_at_82%_22%,_rgba(14,116,144,0.16),_transparent_24%)]" />
 
-      <div className="relative mx-auto w-full max-w-7xl px-6 pb-10 sm:pb-12 lg:px-8 lg:pb-14">
-        <div className="rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:p-9">
-          <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[5.1rem]">
+      <div className="relative mx-auto w-full max-w-[clamp(80rem,64vw,144rem)] px-6 pb-10 sm:pb-12 lg:px-8 lg:pb-[clamp(3.5rem,5svh,6rem)]">
+        <div className="rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:rounded-[clamp(1.75rem,1.5vw,2.5rem)] lg:p-[clamp(2.25rem,min(1.8vw,3.4svh),3.5rem)]">
+          <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[clamp(5.1rem,min(4.25vw,7.5svh),7.5rem)]">
             Create your profile 
             <br/>
             Get ready for tour
           </h1>
 
-          <p className="mt-6 max-w-4xl text-lg leading-8 text-white/82 sm:text-xl">
+          <p className="mt-6 max-w-4xl text-lg leading-8 text-white/82 sm:text-xl lg:mt-[clamp(1.5rem,2.3svh,2.5rem)] lg:max-w-[clamp(56rem,48vw,76rem)] lg:text-[clamp(1.25rem,min(1.05vw,1.85svh),1.625rem)] lg:leading-[1.6]">
             The problem with the current booking system is that there is no system.  With TourAligner your profile, venues, dates and messages are all in one place. Look, know, play the show.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row lg:mt-[clamp(2rem,3svh,3rem)]">
             <WaitlistButton
               label="Join Wait List"
               icon
-              className="min-h-[52px] px-6 py-3.5"
+              className="min-h-[52px] px-6 py-3.5 lg:min-h-[clamp(3.25rem,5svh,4rem)] lg:px-[clamp(1.5rem,1.5vw,2.25rem)] lg:py-[clamp(0.875rem,1.3svh,1.125rem)] lg:text-[clamp(0.875rem,0.75vw,1.125rem)]"
             />
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:mt-[clamp(2rem,3svh,3rem)] lg:gap-[clamp(0.75rem,0.8vw,1.25rem)]">
             {[
               'Early access for independent artists',
               'Build your artist profile before launch',
@@ -114,7 +114,7 @@ function Hero() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm leading-6 text-white/86 shadow-[0_12px_28px_rgba(0,0,0,0.14)] backdrop-blur-sm"
+                className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm leading-6 text-white/86 shadow-[0_12px_28px_rgba(0,0,0,0.14)] backdrop-blur-sm lg:rounded-[clamp(1rem,1vw,1.5rem)] lg:p-[clamp(1rem,min(1vw,1.9svh),1.5rem)] lg:text-[clamp(0.875rem,min(0.75vw,1.3svh),1.125rem)] lg:leading-[1.7]"
               >
                 <div className="mb-2 flex items-center gap-2 text-[#FD6A2F]">
                   <CheckCircle2 size={15} />
