@@ -29,7 +29,7 @@ export type ArtistPageLyric = {
   sort_order: number
 }
 
-export type ArtistContentSection = 'identity' | 'details' | 'music' | 'links' | 'lyrics'
+export type ArtistContentSection = 'identity' | 'details' | 'music' | 'links' | 'lyrics' | 'members'
 
 const TOURING_RADIUS_LABELS: Record<string, string> = {
   local: 'Local',
@@ -173,6 +173,16 @@ export function createArtistPageSections({
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#555555]">{lyric.body}</p>
               </article>
             ))}
+          </div>
+        </SectionCard>
+      ),
+    }] : []),
+    ...((band.members ?? []).length > 0 ? [{
+      sectionId: 'members' as const,
+      content: (
+        <SectionCard eyebrow="On stage" title="Members" action={<InlineEditButton label="Edit members" onClick={onEditContent ? () => onEditContent('members') : undefined} />}>
+          <div className="flex flex-wrap gap-2">
+            {(band.members ?? []).map((member) => <span key={member} className="rounded-full border border-[#E3DDD7] bg-[#FAF8F5] px-4 py-2 text-sm font-semibold text-[#4E4945]">{member}</span>)}
           </div>
         </SectionCard>
       ),

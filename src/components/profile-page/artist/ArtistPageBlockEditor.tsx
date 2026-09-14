@@ -18,7 +18,7 @@ import {
 const fieldClass = 'mt-2 min-h-11 w-full rounded-xl border border-[#DDD5CE] bg-white px-3 text-sm text-[#333333] outline-none transition focus:border-[#FD6A2F] focus:ring-2 focus:ring-[#FD6A2F]/15'
 const labelClass = 'block text-sm font-semibold text-[#444444]'
 
-export function ArtistPageBlockPicker({ onAdd, onClose }: { onAdd: (type: ProfilePageBlockDraft['blockType']) => void; onClose: () => void }) {
+export function ArtistPageBlockPicker({ onAdd, onClose, allowedTypes }: { onAdd: (type: ProfilePageBlockDraft['blockType']) => void; onClose: () => void; allowedTypes?: readonly ProfilePageBlockDraft['blockType'][] }) {
   return (
     <div className="p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
@@ -26,7 +26,7 @@ export function ArtistPageBlockPicker({ onAdd, onClose }: { onAdd: (type: Profil
         <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9]" aria-label="Close block picker"><X className="h-4 w-4" /></button>
       </div>
       <div className="mt-7 grid gap-3">
-        {PROFILE_PAGE_BLOCK_REGISTRY.map(({ type, label, description, icon: Icon }) => (
+        {PROFILE_PAGE_BLOCK_REGISTRY.filter(({ type }) => !allowedTypes || allowedTypes.includes(type)).map(({ type, label, description, icon: Icon }) => (
           <button key={type} type="button" onClick={() => onAdd(type)} className="group flex min-h-20 items-center gap-4 rounded-2xl border border-[#E4DDD6] bg-white p-4 text-left transition hover:border-[#FD6A2F] hover:shadow-[0_10px_30px_rgba(45,30,20,0.08)]">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FFF1E9] text-[#D95520] group-hover:bg-[#FD6A2F] group-hover:text-white"><Icon className="h-5 w-5" /></span>
             <span><span className="block text-sm font-bold text-[#252525]">{label}</span><span className="mt-1 block text-xs leading-5 text-[#777777]">{description}</span></span>

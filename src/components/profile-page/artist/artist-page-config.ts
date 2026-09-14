@@ -11,6 +11,7 @@ export type ArtistPageSectionId =
   | 'overview'
   | 'featured-track'
   | 'lyrics'
+  | 'members'
   | 'shows'
   | 'streaming-links'
   | 'social-links'
@@ -65,10 +66,19 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
     defaultVariant: 'editorial',
   },
   {
+    sectionId: 'members',
+    label: 'Members',
+    description: 'The people who make up the artist or band.',
+    defaultOrder: 5,
+    defaultSpan: 4,
+    allowedSpans: [4, 6, 8, 12],
+    defaultVariant: 'card',
+  },
+  {
     sectionId: 'profile-management',
     label: 'Profile actions',
     description: 'Owner management or public profile information.',
-    defaultOrder: 5,
+    defaultOrder: 6,
     defaultSpan: 4,
     allowedSpans: [4, 6, 8, 12],
     defaultVariant: 'card',
@@ -78,7 +88,7 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
     sectionId: 'shows',
     label: 'Upcoming shows',
     description: 'Confirmed upcoming appearances for this artist.',
-    defaultOrder: 6,
+    defaultOrder: 7,
     defaultSpan: 8,
     allowedSpans: [6, 8, 12],
     defaultVariant: 'list',
@@ -119,6 +129,7 @@ export type ArtistPageEditableContent = {
   facebook_url: string
   twitter_url: string
   genre_ids: string[]
+  members: string[]
   lyrics: { id?: string; title: string; body: string }[]
 }
 

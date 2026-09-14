@@ -93,6 +93,9 @@ function normalizeContent(content: ArtistPageEditableContent | undefined) {
         ...links,
       },
       genreIds,
+      members: Array.isArray(content.members)
+        ? content.members.filter((member): member is string => typeof member === 'string').map((member) => member.trim().slice(0, 120)).filter(Boolean).slice(0, 30)
+        : [],
       lyrics,
     },
   } as const
@@ -115,7 +118,7 @@ export async function saveArtistPageCustomization(
 
   const { data: band, error: bandError } = await supabase
     .from('bands')
-    .select('user_id, slug, profile_theme')
+    .select('user_id, slug, name, profile_theme')
     .eq('id', bandId)
     .single()
 
@@ -174,7 +177,7 @@ export async function saveArtistPageCustomization(
 
   const { error } = await supabase
     .from('bands')
-    .update({ profile_theme: nextTheme as unknown as Json, ...imageUpdates, ...normalizedContent.value.band })
+    .update({ profile_theme: nextTheme as unknown as Json, members: normalizedContent.value.members, ...imageUpdates, ...normalizedContent.value.band, name: band.name })
     .eq('id', bandId)
     .eq('user_id', user.id)
 

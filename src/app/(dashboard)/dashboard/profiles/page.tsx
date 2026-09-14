@@ -49,14 +49,14 @@ function ProfileRow({
           <p className="truncate text-base font-bold text-[#252525]">{title}</p>
           <p className="mt-0.5 text-sm text-[#777777]">{detail}</p>
           <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#D95525] opacity-80 transition-opacity group-hover:opacity-100">
-            Open Artist Studio <ArrowRight className="h-3.5 w-3.5" />
+            Edit public page <ArrowRight className="h-3.5 w-3.5" />
           </span>
         </div>
       </Link>
       <div className="flex shrink-0 items-center sm:pr-1">
         <Link href={publicPageHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#E8D4C9] bg-[#FFF9F6] px-3.5 py-2 text-sm font-semibold text-[#6A3928] transition-colors hover:border-[#F49A73] hover:bg-[#FFF0E9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2">
           <Eye className="h-4 w-4" />
-          View Artists Public Page
+          View public page
         </Link>
       </div>
     </div>
@@ -104,10 +104,10 @@ export default async function ManageProfilesPage() {
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="max-w-2xl">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.13em] text-[#FFD4C1]">
-                  <Sparkles className="h-3.5 w-3.5" /> Artist Studio
+                  <Sparkles className="h-3.5 w-3.5" /> Public page editor
                 </span>
                 <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Make every first impression count.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#D9D0CC] sm:text-base">Click on the artist to fine tune your public page in Artist Studio!</p>
+                <p className="mt-2 text-sm leading-6 text-[#D9D0CC] sm:text-base">Edit content, imagery, layout, and custom blocks directly on the page your audience sees.</p>
               </div>
               <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
                 <span className="text-3xl font-bold text-[#FF895D]">{artists.length}</span>
@@ -120,7 +120,7 @@ export default async function ManageProfilesPage() {
             <div className="mb-4 flex items-center justify-between gap-3 px-1">
               <div>
                 <h2 className="font-bold text-[#252525]">Your Artist Lineup</h2>
-                <p className="mt-1 text-sm text-[#777777]">Select an artist to enter their studio.</p>
+                <p className="mt-1 text-sm text-[#777777]">Select an artist to edit their public page.</p>
               </div>
               <Badge tone="brand">{artists.length} {artists.length === 1 ? 'artist' : 'artists'}</Badge>
             </div>
@@ -131,7 +131,7 @@ export default async function ManageProfilesPage() {
                   profilePhotoUrl={artist.profile_photo_url ? `${artist.profile_photo_url}${artist.profile_photo_url.includes('?') ? '&' : '?'}v=${encodeURIComponent(artist.updated_at)}` : null}
                   title={artist.name}
                   detail={locationLabel(artist.location_city, artist.location_state)}
-                  studioHref={`/dashboard/bands/${artist.id}/edit`}
+                  studioHref={`/bands/${artist.slug}?edit=1`}
                   publicPageHref={`/bands/${artist.slug}`}
                 />
               ))}

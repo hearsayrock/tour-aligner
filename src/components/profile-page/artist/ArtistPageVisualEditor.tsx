@@ -65,6 +65,7 @@ const CONTENT_SECTIONS: { id: ArtistContentSection; label: string; icon: typeof 
   { id: 'music', label: 'Music', icon: Music2 },
   { id: 'links', label: 'Links', icon: Link2 },
   { id: 'lyrics', label: 'Lyrics', icon: Music2 },
+  { id: 'members', label: 'Members', icon: SlidersHorizontal },
 ]
 
 const LINK_FIELDS: { key: keyof ArtistPageEditableContent; label: string; placeholder: string }[] = [
@@ -102,6 +103,7 @@ function createEditableContent(band: Band, genreIds: string[], lyrics: ArtistPag
     facebook_url: band.facebook_url ?? '',
     twitter_url: band.twitter_url ?? '',
     genre_ids: genreIds,
+    members: band.members ?? [],
     lyrics: lyrics.map(({ id, title, body }) => ({ id, title, body })),
   }
 }
@@ -133,6 +135,7 @@ function previewBand(band: Band, content: ArtistPageEditableContent): Band {
     soundcloud_url: nullable(content.soundcloud_url),
     facebook_url: nullable(content.facebook_url),
     twitter_url: nullable(content.twitter_url),
+    members: content.members.map((member) => member.trim()).filter(Boolean),
   }
 }
 
@@ -252,7 +255,6 @@ function ContentInspector({
   dirty,
   onReset,
   onClose,
-  advancedHref,
 }: {
   content: ArtistPageEditableContent
   setContent: React.Dispatch<React.SetStateAction<ArtistPageEditableContent>>
@@ -262,7 +264,6 @@ function ContentInspector({
   dirty: boolean
   onReset: () => void
   onClose: () => void
-  advancedHref: string
 }) {
   const fieldClass = 'mt-2 min-h-11 w-full rounded-xl border border-[#DDD5CE] bg-white px-3 text-sm text-[#333333] outline-none transition focus:border-[#FD6A2F] focus:ring-2 focus:ring-[#FD6A2F]/15'
   const labelClass = 'block text-sm font-semibold text-[#444444]'
@@ -300,7 +301,8 @@ function ContentInspector({
       <div className="mt-7 space-y-5">
         {activeSection === 'identity' && (
           <>
-            <label className={labelClass}>Artist name <span className="text-[#C2410C]">*</span><input value={content.name} maxLength={120} onChange={(event) => update('name', event.target.value)} className={fieldClass} /></label>
+            <label className={labelClass}>Artist name<input value={content.name} disabled className={`${fieldClass} cursor-not-allowed bg-[#F3F1EF] text-[#69635F]`} /></label>
+            <p className="-mt-3 text-xs leading-5 text-[#777777]">Names are protected after creation. <a href="mailto:support@touraligner.com" className="font-semibold text-[#A24A22] hover:underline">Contact support</a> to request a change.</p>
             <label className={labelClass}>Tagline<input value={content.tagline} maxLength={180} onChange={(event) => update('tagline', event.target.value)} placeholder="One line that captures the vibe" className={fieldClass} /></label>
             <label className={labelClass}>Bio<textarea value={content.description} maxLength={5000} rows={8} onChange={(event) => update('description', event.target.value)} placeholder="Tell fans and venues what makes this artist unforgettable." className={`${fieldClass} py-3 leading-6`} /></label>
           </>
@@ -351,11 +353,22 @@ function ContentInspector({
             <button type="button" onClick={() => update('lyrics', [...content.lyrics, { title: '', body: '' }])} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#CFC5BD] text-xs font-semibold text-[#655B54] hover:border-[#FD6A2F] hover:text-[#A84216]"><Plus className="h-4 w-4" /> Add lyrics</button>
           </>
         )}
+        {activeSection === 'members' && (
+          <>
+            <p className="text-sm leading-6 text-[#777777]">List the people fans and venues should recognize as part of this artist.</p>
+            {content.members.map((member, index) => (
+              <div key={`member-${index}`} className="flex gap-2">
+                <input value={member} maxLength={120} onChange={(event) => update('members', content.members.map((item, memberIndex) => memberIndex === index ? event.target.value : item))} placeholder="Member name" className={fieldClass} />
+                <button type="button" onClick={() => update('members', content.members.filter((_, memberIndex) => memberIndex !== index))} className="mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E7CBC4] text-[#9B3D2C]" aria-label={`Remove member ${index + 1}`}><Trash2 className="h-4 w-4" /></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => update('members', [...content.members, ''])} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#CFC5BD] text-xs font-semibold text-[#655B54] hover:border-[#FD6A2F] hover:text-[#A84216]"><Plus className="h-4 w-4" /> Add member</button>
+          </>
+        )}
       </div>
 
       <div className="mt-8 space-y-2 border-t border-[#EAE3DD] pt-6">
         <button type="button" onClick={onReset} disabled={!dirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">Revert content changes</button>
-        <a href={advancedHref} className="flex min-h-10 items-center justify-center text-xs font-semibold text-[#777777] hover:text-[#252525]">Open advanced Artist Studio</a>
       </div>
     </div>
   )
@@ -773,7 +786,6 @@ export function ArtistPageVisualEditor({
       dirty={contentDirty}
       onReset={resetContent}
       onClose={() => setInspectorOpen(false)}
-      advancedHref={editDetailsHref}
     />
   )
 
@@ -830,7 +842,7 @@ export function ArtistPageVisualEditor({
       onOpenInspector={() => inspectorMode === 'appearance' ? openContent() : openAppearance()}
       inspectorLabel={inspectorMode === 'appearance' ? 'Content' : 'Appearance'}
       toolbarActions={<button type="button" onClick={() => openBlocks(null)} className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10"><Layers3 className="h-4 w-4" /> <span className="hidden sm:inline">Add block</span></button>}
-      editableSectionIds={['overview', 'featured-track', 'lyrics', 'streaming-links', 'social-links', 'profile-management', ...blocks.map((block) => blockSectionId(block.id))]}
+      editableSectionIds={['overview', 'featured-track', 'lyrics', 'members', 'streaming-links', 'social-links', 'profile-management', ...blocks.map((block) => blockSectionId(block.id))]}
       onEditSection={(sectionId) => {
         const blockId = blockIdFromSection(sectionId)
         if (blockId) {
@@ -841,6 +853,7 @@ export function ArtistPageVisualEditor({
           overview: 'details',
           'featured-track': 'music',
           lyrics: 'lyrics',
+          members: 'members',
           'streaming-links': 'links',
           'social-links': 'links',
           'profile-management': 'identity',

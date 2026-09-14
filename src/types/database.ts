@@ -321,6 +321,10 @@ export interface Database {
           instagram_url: string | null
           phone: string | null
           booking_email: string | null
+          profile_photo_url: string | null
+          cover_photo_url: string | null
+          profile_background_url: string | null
+          profile_theme: Json
           claimed_by_user_id: string | null
           default_bill_cap: number
           age_requirement: 'all_ages' | '18_plus' | '21_plus' | null
@@ -343,6 +347,10 @@ export interface Database {
           instagram_url?: string | null
           phone?: string | null
           booking_email?: string | null
+          profile_photo_url?: string | null
+          cover_photo_url?: string | null
+          profile_background_url?: string | null
+          profile_theme?: Json
           claimed_by_user_id?: string | null
           default_bill_cap?: number
           age_requirement?: 'all_ages' | '18_plus' | '21_plus' | null
@@ -364,6 +372,10 @@ export interface Database {
           instagram_url?: string | null
           phone?: string | null
           booking_email?: string | null
+          profile_photo_url?: string | null
+          cover_photo_url?: string | null
+          profile_background_url?: string | null
+          profile_theme?: Json
           claimed_by_user_id?: string | null
           default_bill_cap?: number
           age_requirement?: 'all_ages' | '18_plus' | '21_plus' | null
