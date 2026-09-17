@@ -60,7 +60,7 @@ const BUTTON_RADIUS: Record<ArtistProfileAppearance['buttonStyle'], string> = {
 }
 
 const CONTENT_SECTIONS: { id: ArtistContentSection; label: string; icon: typeof Type }[] = [
-  { id: 'identity', label: 'Identity', icon: Type },
+  { id: 'identity', label: 'About', icon: Type },
   { id: 'details', label: 'Details', icon: SlidersHorizontal },
   { id: 'music', label: 'Music', icon: Music2 },
   { id: 'links', label: 'Links', icon: Link2 },
@@ -284,8 +284,8 @@ function ContentInspector({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]"><Type className="h-4 w-4" /> Page content</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">Tell the artist&apos;s story</h2>
-          <p className="mt-1 text-sm leading-6 text-[#777777]">Edits preview on the page immediately and publish with the main Save button.</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">Give them the real story</h2>
+          <p className="mt-1 text-sm leading-6 text-[#777777]">Try your edits here. Click Save to publish them to your artist page.</p>
         </div>
         <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9] hover:text-[#252525]" aria-label="Close content panel"><X className="h-4 w-4" /></button>
       </div>
@@ -304,7 +304,7 @@ function ContentInspector({
             <label className={labelClass}>Artist name<input value={content.name} disabled className={`${fieldClass} cursor-not-allowed bg-[#F3F1EF] text-[#69635F]`} /></label>
             <p className="-mt-3 text-xs leading-5 text-[#777777]">Names are protected after creation. <a href="mailto:support@touraligner.com" className="font-semibold text-[#A24A22] hover:underline">Contact support</a> to request a change.</p>
             <label className={labelClass}>Tagline<input value={content.tagline} maxLength={180} onChange={(event) => update('tagline', event.target.value)} placeholder="One line that captures the vibe" className={fieldClass} /></label>
-            <label className={labelClass}>Bio<textarea value={content.description} maxLength={5000} rows={8} onChange={(event) => update('description', event.target.value)} placeholder="Tell fans and venues what makes this artist unforgettable." className={`${fieldClass} py-3 leading-6`} /></label>
+            <label className={labelClass}>Bio<textarea value={content.description} maxLength={5000} rows={8} onChange={(event) => update('description', event.target.value)} placeholder="Who are you, what do you play, and what’s a show with you like?" className={`${fieldClass} py-3 leading-6`} /></label>
           </>
         )}
 
@@ -316,7 +316,7 @@ function ContentInspector({
             </div>
             <label className={labelClass}>Artist type<select value={content.artist_type} onChange={(event) => update('artist_type', event.target.value as ArtistPageEditableContent['artist_type'])} className={fieldClass}><option value="">Not listed</option><option value="solo">Solo artist</option><option value="band">Band</option></select></label>
             <label className={labelClass}>Touring radius<select value={content.touring_radius} onChange={(event) => update('touring_radius', event.target.value as ArtistPageEditableContent['touring_radius'])} className={fieldClass}><option value="">Not listed</option><option value="local">Local</option><option value="regional">Regional</option><option value="national">Nationwide</option><option value="international">Worldwide</option></select></label>
-            <label className={labelClass}>Typical set length<input value={content.set_length_min} inputMode="numeric" onChange={(event) => { if (/^\d{0,3}$/.test(event.target.value)) update('set_length_min', event.target.value) }} placeholder="Minutes" className={fieldClass} /></label>
+            <label className={labelClass}>Typical set length (minutes)<input value={content.set_length_min} inputMode="numeric" onChange={(event) => { if (/^\d{0,3}$/.test(event.target.value)) update('set_length_min', event.target.value) }} placeholder="e.g. 45" className={fieldClass} /></label>
           </>
         )}
 
@@ -332,7 +332,8 @@ function ContentInspector({
                 })}
               </div>
             </div>
-            <label className={labelClass}>Featured Spotify track, album, playlist, or artist<input type="url" value={content.featured_track_url} onChange={(event) => update('featured_track_url', event.target.value)} placeholder="https://open.spotify.com/track/..." className={fieldClass} /></label>
+            <label className={labelClass}>Featured Spotify link<input type="url" value={content.featured_track_url} onChange={(event) => update('featured_track_url', event.target.value)} placeholder="https://open.spotify.com/track/..." className={fieldClass} /></label>
+            <p className="-mt-3 text-xs leading-5 text-[#777777]">Paste a Spotify track, album, playlist, or artist link to add a player to your page.</p>
           </>
         )}
 
@@ -342,7 +343,7 @@ function ContentInspector({
 
         {activeSection === 'lyrics' && (
           <>
-            <p className="text-sm leading-6 text-[#777777]">Publish lyrics directly on the artist page. Incomplete entries are ignored when saving.</p>
+            <p className="text-sm leading-6 text-[#777777]">Add a song title and its lyrics. Entries missing either one won’t be saved.</p>
             {content.lyrics.map((lyric, index) => (
               <div key={lyric.id ?? `new-${index}`} className="rounded-2xl border border-[#E5DED8] bg-[#FAF8F5] p-4">
                 <div className="flex items-center justify-between gap-3"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#766B63]">Song {index + 1}</p><button type="button" onClick={() => update('lyrics', content.lyrics.filter((_, lyricIndex) => lyricIndex !== index))} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9B3D2C] hover:bg-red-50" aria-label={`Remove lyric ${index + 1}`}><Trash2 className="h-4 w-4" /></button></div>
@@ -355,7 +356,7 @@ function ContentInspector({
         )}
         {activeSection === 'members' && (
           <>
-            <p className="text-sm leading-6 text-[#777777]">List the people fans and venues should recognize as part of this artist.</p>
+            <p className="text-sm leading-6 text-[#777777]">Add the people who play with you.</p>
             {content.members.map((member, index) => (
               <div key={`member-${index}`} className="flex gap-2">
                 <input value={member} maxLength={120} onChange={(event) => update('members', content.members.map((item, memberIndex) => memberIndex === index ? event.target.value : item))} placeholder="Member name" className={fieldClass} />
@@ -368,7 +369,7 @@ function ContentInspector({
       </div>
 
       <div className="mt-8 space-y-2 border-t border-[#EAE3DD] pt-6">
-        <button type="button" onClick={onReset} disabled={!dirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">Revert content changes</button>
+        <button type="button" onClick={onReset} disabled={!dirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">Discard content edits</button>
       </div>
     </div>
   )
@@ -687,9 +688,9 @@ export function ArtistPageVisualEditor({
     <div className="space-y-7 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]"><Palette className="h-4 w-4" /> Visual identity</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">Shape the first impression</h2>
-          <p className="mt-1 text-sm leading-6 text-[#777777]">Every change previews live. Save when the page feels right.</p>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]"><Palette className="h-4 w-4" /> Page design</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">Make this page look like you</h2>
+          <p className="mt-1 text-sm leading-6 text-[#777777]">Try things out here. Click Save to make them public.</p>
         </div>
         <button type="button" onClick={() => setInspectorOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9] hover:text-[#252525]" aria-label="Close appearance panel">
           <X className="h-4 w-4" />
@@ -699,7 +700,7 @@ export function ArtistPageVisualEditor({
       <div className="space-y-6">
         <AppearanceImageField
           label="Cover photo"
-          description="The stage behind your artist identity."
+          description="The wide photo at the top of your page. Put a good show up there."
           value={coverImage}
           previewUrl={coverPreview}
           removed={coverRemoved}
@@ -710,7 +711,7 @@ export function ArtistPageVisualEditor({
         />
         <AppearanceImageField
           label="Profile photo"
-          description="The recognizable face or mark of the artist."
+          description="Your face, your band, or your logo."
           value={profileImage}
           previewUrl={profilePreview}
           removed={profileRemoved}
@@ -721,7 +722,7 @@ export function ArtistPageVisualEditor({
         />
         <AppearanceImageField
           label="Wallpaper"
-          description="A subtle texture behind the entire profile."
+          description="Go full Myspace. This image sits behind the page."
           value={wallpaperImage}
           previewUrl={backgroundPreview}
           removed={backgroundRemoved}
@@ -733,7 +734,7 @@ export function ArtistPageVisualEditor({
       </div>
 
       <div className="border-t border-[#EAE3DD] pt-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Atmosphere</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Color presets</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {APPEARANCE_PRESETS.map((preset) => (
             <button key={preset.name} type="button" onClick={() => setAppearance((current) => ({ ...current, accent: preset.accent, background: preset.background }))} className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-left text-xs font-semibold ${appearance.accent === preset.accent && appearance.background === preset.background ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E5DED8] bg-white text-[#555555] hover:border-[#BEB4AC]'}`}>
@@ -743,18 +744,18 @@ export function ArtistPageVisualEditor({
           ))}
         </div>
 
-        <label htmlFor="artist-accent" className="mt-5 block text-sm font-semibold text-[#444444]">Signature color</label>
+        <label htmlFor="artist-accent" className="mt-5 block text-sm font-semibold text-[#444444]">Accent color</label>
         <div className="mt-2 flex gap-2">
           <input id="artist-accent" type="color" value={appearance.accent} onChange={(event) => setAppearance((current) => ({ ...current, accent: event.target.value.toUpperCase() }))} className="h-11 w-12 cursor-pointer rounded-xl border border-[#DDD5CE] bg-white p-1" />
-          <input value={appearance.accent} onChange={(event) => { const value = event.target.value.toUpperCase(); if (/^#[0-9A-F]{0,6}$/.test(value)) setAppearance((current) => ({ ...current, accent: value })) }} maxLength={7} aria-label="Signature color hex value" className="min-w-0 flex-1 rounded-xl border border-[#DDD5CE] bg-white px-3 text-sm font-semibold text-[#444444]" />
+          <input value={appearance.accent} onChange={(event) => { const value = event.target.value.toUpperCase(); if (/^#[0-9A-F]{0,6}$/.test(value)) setAppearance((current) => ({ ...current, accent: value })) }} maxLength={7} aria-label="Accent color hex value" className="min-w-0 flex-1 rounded-xl border border-[#DDD5CE] bg-white px-3 text-sm font-semibold text-[#444444]" />
         </div>
 
         <label htmlFor="artist-wallpaper-opacity" className="mt-5 flex items-center justify-between gap-3 text-sm font-semibold text-[#444444]">
-          Wallpaper strength <output htmlFor="artist-wallpaper-opacity" className="text-xs text-[#A24A22]">{appearance.wallpaperOpacity}%</output>
+          Wallpaper visibility <output htmlFor="artist-wallpaper-opacity" className="text-xs text-[#A24A22]">{appearance.wallpaperOpacity}%</output>
         </label>
         <input id="artist-wallpaper-opacity" type="range" min="0" max="100" value={appearance.wallpaperOpacity} onChange={(event) => setAppearance((current) => ({ ...current, wallpaperOpacity: Number(event.target.value) }))} className="mt-3 w-full cursor-pointer" style={{ accentColor: appearance.accent }} />
 
-        <p className="mt-5 text-sm font-semibold text-[#444444]">Link shape</p>
+        <p className="mt-5 text-sm font-semibold text-[#444444]">Button shape</p>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {(['rounded', 'square', 'pill'] as const).map((style) => (
             <button key={style} type="button" onClick={() => setAppearance((current) => ({ ...current, buttonStyle: style }))} className={`min-h-10 border px-2 text-xs font-semibold capitalize ${style === 'pill' ? 'rounded-full' : style === 'square' ? 'rounded-md' : 'rounded-xl'} ${appearance.buttonStyle === style ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E5DED8] bg-white text-[#666666]'}`}>
@@ -765,12 +766,12 @@ export function ArtistPageVisualEditor({
       </div>
 
       <div className="rounded-2xl border border-[#E8E1DA] bg-[#F8F5F1] p-4">
-        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#6E625A]"><SlidersHorizontal className="h-3.5 w-3.5" /> Hero layout</p>
-        <p className="mt-2 text-xs leading-5 text-[#777777]">Height and alignment remain under Page settings in the main toolbar.</p>
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#6E625A]"><SlidersHorizontal className="h-3.5 w-3.5" /> Top section layout</p>
+        <p className="mt-2 text-xs leading-5 text-[#777777]">Set the top section’s height and alignment in Page settings.</p>
       </div>
 
       <button type="button" onClick={resetAppearance} disabled={!appearanceDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">
-        Revert appearance changes
+        Discard design edits
       </button>
       <button type="button" onClick={() => openContent()} className="min-h-10 w-full rounded-xl bg-[#252525] text-xs font-semibold text-white hover:bg-black">Edit page content</button>
     </div>
@@ -800,7 +801,7 @@ export function ArtistPageVisualEditor({
         onDelete={() => removeBlock(selectedBlock.id)}
         onClose={() => setInspectorOpen(false)}
       />
-      <div className="px-5 pb-6 sm:px-6"><button type="button" onClick={resetBlocks} disabled={!blocksDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] disabled:opacity-40">Revert all block changes</button></div>
+      <div className="px-5 pb-6 sm:px-6"><button type="button" onClick={resetBlocks} disabled={!blocksDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] disabled:opacity-40">Discard all block edits</button></div>
     </>
   ) : <ArtistPageBlockPicker onAdd={addBlock} onClose={() => setInspectorOpen(false)} />
   const inspector = inspectorMode === 'appearance' ? appearanceInspector : inspectorMode === 'content' ? contentInspector : blockInspector

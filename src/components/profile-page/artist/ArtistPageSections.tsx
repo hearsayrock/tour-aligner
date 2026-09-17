@@ -277,8 +277,8 @@ export function createArtistPageSections({
           <div className="mt-4">
             {isOwner ? (
               <div>
-                <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" />This profile manages the artist page</Badge>
-                <p className="mt-3 text-sm leading-6 text-[#666666]">Manage artist details, links, photos, and booking context from this page.</p>
+                <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" />You manage this artist page</Badge>
+                <p className="mt-3 text-sm leading-6 text-[#666666]">Keep your bio, music, photos, and booking details current here.</p>
                 {isEditing && onEditContent ? (
                   <button type="button" onClick={() => onEditContent('identity')} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#252525] px-4 text-sm font-semibold text-white hover:bg-black">
                     <PencilLine className="h-4 w-4" /> Edit artist content

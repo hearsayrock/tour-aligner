@@ -28,7 +28,7 @@ import {
   Undo2,
   X,
 } from 'lucide-react'
-import { buttonBaseClass, cx } from '@/components/ui/primitives'
+import { cx } from '@/components/ui/primitives'
 import {
   createDefaultProfilePageLayout,
   normalizeProfilePageLayout,
@@ -306,8 +306,8 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
       <div className="sticky top-0 z-50 border-b border-black/10 bg-[#1C1816]/95 px-2 py-3 text-white shadow-xl backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-[96rem] flex-wrap items-center gap-1 sm:gap-2 lg:flex-nowrap">
           <div className="mr-auto hidden min-w-[180px] 2xl:block">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#FFB99A]">Arrange artist page</p>
-            <p className="mt-0.5 text-xs text-white/60">Drag sections or grab a corner to resize.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#FFB99A]">Profile studio</p>
+            <p className="mt-0.5 text-xs text-white/60">Drag a section by its handle. Grab the bottom-right corner to resize.</p>
           </div>
 
           <div className="hidden rounded-xl border border-white/15 bg-white/5 p-1 sm:flex">
@@ -324,7 +324,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
               <span className="sm:hidden">Page</span><span className="hidden sm:inline">Page settings</span> <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
             </summary>
             <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-[#E5DDD7] bg-white p-4 text-[#252525] shadow-2xl">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Hero height</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Top section height</p>
               <div className="mt-2 grid grid-cols-3 gap-1.5">
                 {(['compact', 'standard', 'cinematic'] as const).map((height) => (
                   <button key={height} type="button" onClick={() => updateHero({ height })} className={cx('rounded-lg border px-2 py-2 text-[11px] font-semibold capitalize', layout.hero.height === height ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E8E3DE] hover:border-[#BDB4AD]')}>
@@ -332,7 +332,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                   </button>
                 ))}
               </div>
-              <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Hero alignment</p>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[#A24A22]">Top section alignment</p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {(['left', 'center'] as const).map((alignment) => (
                   <button key={alignment} type="button" onClick={() => updateHero({ alignment })} className={cx('rounded-lg border px-2 py-2 text-xs font-semibold capitalize', layout.hero.alignment === alignment ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E8E3DE] hover:border-[#BDB4AD]')}>
@@ -372,12 +372,12 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
           <button type="button" onClick={() => onEditDetails ? onEditDetails() : navigateAway(editDetailsHref)} className="hidden min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10 sm:flex">
             <PencilLine className="h-4 w-4" /> Edit content
           </button>
-          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit page editor" className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10">
+          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit profile studio" className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10">
             <X className="h-4 w-4" /> <span className="hidden sm:inline">Exit</span>
           </button>
-          <button type="button" onClick={save} disabled={saving || !isDirty} className={cx(buttonBaseClass('primary'), 'min-h-10')}>
-            {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : savedNotice ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-            {saving ? 'Saving' : savedNotice ? 'Saved' : <><span className="sm:hidden">Save</span><span className="hidden sm:inline">Save changes</span></>}
+          <button type="button" onClick={save} disabled={saving || !isDirty} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#FD6A2F] bg-[#FD6A2F] px-3 text-xs font-semibold text-white transition-colors hover:border-[#E55A22] hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            {saving ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" /> : savedNotice ? <Check className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
+            {saving ? 'Saving' : savedNotice ? 'Saved' : 'Save'}
           </button>
         </div>
         {saveError && <p className="mx-auto mt-2 max-w-7xl rounded-lg bg-red-400/15 px-3 py-2 text-xs text-red-100">{saveError}</p>}

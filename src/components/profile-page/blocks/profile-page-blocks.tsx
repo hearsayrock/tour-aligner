@@ -63,11 +63,11 @@ export type ProfilePageBlockRegistryEntry = {
 
 export const PROFILE_PAGE_BLOCK_REGISTRY: readonly ProfilePageBlockRegistryEntry[] = [
   { type: 'custom', label: 'Custom', description: 'Text, an image, and an optional link button.', icon: ImageIcon, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'card', variants: [{ value: 'card', label: 'Card' }, { value: 'split', label: 'Split' }, { value: 'spotlight', label: 'Spotlight' }] },
-  { type: 'gallery', label: 'Photo gallery', description: 'A collection of images that bring the profile to life.', icon: ImageIcon, defaultSpan: 12, allowedSpans: [8, 12], defaultVariant: 'grid', variants: [{ value: 'grid', label: 'Grid' }, { value: 'mosaic', label: 'Mosaic' }, { value: 'spotlight', label: 'Spotlight' }] },
-  { type: 'video', label: 'Video', description: 'A YouTube or Vimeo performance.', icon: Video, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'cinematic', variants: [{ value: 'cinematic', label: 'Cinematic' }, { value: 'card', label: 'Card' }] },
+  { type: 'gallery', label: 'Photo gallery', description: 'Show photos, promo shots, or a look around the room.', icon: ImageIcon, defaultSpan: 12, allowedSpans: [8, 12], defaultVariant: 'grid', variants: [{ value: 'grid', label: 'Grid' }, { value: 'mosaic', label: 'Mosaic' }, { value: 'spotlight', label: 'Spotlight' }] },
+  { type: 'video', label: 'Video', description: 'Add a live clip, music video, or venue tour from YouTube or Vimeo.', icon: Video, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'cinematic', variants: [{ value: 'cinematic', label: 'Cinematic' }, { value: 'card', label: 'Card' }] },
   { type: 'quote', label: 'Press quote', description: 'A review, testimonial, or memorable quote.', icon: MessageSquareQuote, defaultSpan: 6, allowedSpans: [4, 6, 8, 12], defaultVariant: 'editorial', variants: [{ value: 'editorial', label: 'Editorial' }, { value: 'bold', label: 'Bold' }, { value: 'minimal', label: 'Minimal' }] },
-  { type: 'booking_cta', label: 'Booking CTA', description: 'A direct path into TourAligner booking.', icon: Ticket, defaultSpan: 6, allowedSpans: [4, 6, 8, 12], defaultVariant: 'accent', variants: [{ value: 'accent', label: 'Accent' }, { value: 'dark', label: 'Dark' }, { value: 'minimal', label: 'Minimal' }] },
-  { type: 'divider', label: 'Divider', description: 'Add rhythm and separation between sections.', icon: Minus, defaultSpan: 12, allowedSpans: [6, 8, 12], defaultVariant: 'line', variants: [{ value: 'line', label: 'Line' }, { value: 'label', label: 'Label' }, { value: 'space', label: 'Space' }] },
+  { type: 'booking_cta', label: 'Booking button', description: 'Give visitors a button to start a booking conversation.', icon: Ticket, defaultSpan: 6, allowedSpans: [4, 6, 8, 12], defaultVariant: 'accent', variants: [{ value: 'accent', label: 'Accent' }, { value: 'dark', label: 'Dark' }, { value: 'minimal', label: 'Minimal' }] },
+  { type: 'divider', label: 'Divider', description: 'Put a line, label, or space between sections.', icon: Minus, defaultSpan: 12, allowedSpans: [6, 8, 12], defaultVariant: 'line', variants: [{ value: 'line', label: 'Line' }, { value: 'label', label: 'Label' }, { value: 'space', label: 'Space' }] },
 ] as const
 
 const REGISTRY_BY_TYPE = new Map(PROFILE_PAGE_BLOCK_REGISTRY.map((entry) => [entry.type, entry]))
@@ -268,7 +268,7 @@ export function ProfilePageBlockView({ block, bookingAction }: { block: ProfileP
     }
     case 'quote': {
       const content = block.content as QuoteBlockContent
-      return <BlockFrame className={`${block.settings.variant === 'bold' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><MessageSquareQuote className={`h-8 w-8 ${block.settings.variant === 'bold' ? 'text-white/65' : 'text-[var(--profile-accent)]'}`} /><blockquote className="mt-5 text-xl font-semibold leading-8">“{content.quote}”</blockquote>{(content.attribution || content.source) && <p className={`mt-5 text-sm ${block.settings.variant === 'bold' ? 'text-white/72' : 'text-[#77706A]'}`}>— {[content.attribution, content.source].filter(Boolean).join(', ')}</p>}</BlockFrame>
+      return <BlockFrame className={`${block.settings.variant === 'bold' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><MessageSquareQuote className={`h-8 w-8 ${block.settings.variant === 'bold' ? 'text-white/65' : 'text-[var(--profile-accent)]'}`} /><blockquote className="mt-5 text-xl font-semibold leading-8">“{content.quote}”</blockquote>{(content.attribution || content.source) && <p className={`mt-5 text-sm ${block.settings.variant === 'bold' ? 'text-white/72' : 'text-[#77706A]'}`}>{[content.attribution, content.source].filter(Boolean).join(', ')}</p>}</BlockFrame>
     }
     case 'booking_cta': {
       const content = block.content as BookingCtaBlockContent

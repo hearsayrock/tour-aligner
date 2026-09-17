@@ -2,6 +2,14 @@
 
 This file contains repo-specific instructions for automated coding agents working in `tour-aligner`.
 
+## Customer-facing content: required before writing
+
+- Before drafting, proposing, adding, or changing any customer-facing TourAligner text, read `.agents/skills/write-touraligner-content/SKILL.md` completely and follow it. This includes proposed copy in chat and incidental copy introduced during feature development, not just text saved to files.
+- This applies to marketing, product UI, onboarding, labels, buttons, placeholders, empty states, errors, notifications, emails, metadata, and public-facing announcements. It does not apply to code identifiers, internal technical documentation, or ordinary conversation with the developer.
+- All agents must use that same canonical file, including agents that do not automatically discover `.agents/skills`. Do not create or maintain agent-specific copies. `CLAUDE.md` imports this file, so Claude receives this requirement through the existing shared instructions.
+- Do not substitute a remembered summary for reading the skill. Small copy changes are not exempt. If the file cannot be read, stop before writing customer-facing copy and report the problem.
+- Read the relevant existing approved copy before drafting. Preserve human-authored wording outside the requested scope; the skill does not authorize a site-wide rewrite.
+
 ## Production branch safety
 
 - If the current branch is `main`, stop before making code, configuration, schema, or database changes. Warn the developer that they are on the production branch and continue only after explicit confirmation.

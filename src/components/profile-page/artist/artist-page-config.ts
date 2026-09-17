@@ -59,7 +59,7 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
   {
     sectionId: 'lyrics',
     label: 'Lyrics',
-    description: 'Published lyrics and the stories behind the songs.',
+    description: 'Song titles and lyrics.',
     defaultOrder: 4,
     defaultSpan: 8,
     allowedSpans: [6, 8, 12],
@@ -77,7 +77,7 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
   {
     sectionId: 'profile-management',
     label: 'Profile actions',
-    description: 'Owner management or public profile information.',
+    description: 'Page editing controls and profile information.',
     defaultOrder: 6,
     defaultSpan: 4,
     allowedSpans: [4, 6, 8, 12],

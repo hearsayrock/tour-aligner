@@ -21,10 +21,10 @@ export type VenuePageSectionId =
 export const VENUE_PAGE_SECTION_DEFINITIONS = [
   { sectionId: 'overview', label: 'Venue overview', description: 'Location, capacity, age policy, and bill size.', defaultOrder: 0, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'standard', required: true },
   { sectionId: 'booking-details', label: 'Booking details', description: 'Public booking email and phone number.', defaultOrder: 1, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'card' },
-  { sectionId: 'availability', label: 'Booking availability', description: 'Live dates and booking requests powered by TourAligner.', defaultOrder: 2, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'calendar', required: true },
-  { sectionId: 'private-chat', label: 'Private chat', description: 'A direct TourAligner conversation path.', defaultOrder: 3, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'card' },
-  { sectionId: 'links', label: 'Venue links', description: 'Website and social destinations.', defaultOrder: 4, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'stacked' },
-  { sectionId: 'profile-management', label: 'Profile actions', description: 'Owner management or public claim information.', defaultOrder: 5, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'card', required: true },
+  { sectionId: 'availability', label: 'Booking availability', description: 'Available dates and booking requests.', defaultOrder: 2, defaultSpan: 8, allowedSpans: [6, 8, 12], defaultVariant: 'calendar', required: true },
+  { sectionId: 'private-chat', label: 'Private chat', description: 'Private messages on TourAligner.', defaultOrder: 3, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'card' },
+  { sectionId: 'links', label: 'Venue links', description: 'Website and social links.', defaultOrder: 4, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'stacked' },
+  { sectionId: 'profile-management', label: 'Profile actions', description: 'Page editing controls and venue claim information.', defaultOrder: 5, defaultSpan: 4, allowedSpans: [4, 6, 8, 12], defaultVariant: 'card', required: true },
 ] as const satisfies readonly ProfilePageSectionDefinition<VenuePageSectionId>[]
 
 export type VenueProfileTheme = {
