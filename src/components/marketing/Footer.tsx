@@ -53,7 +53,7 @@ export function Footer() {
               </p>
               <div className="mt-4 flex flex-col items-start gap-3">
                 <Link href="/#audiences" className={footerLinkClass}>
-                  Artists and teams
+                  Artists and Venues
                 </Link>
               </div>
             </div>
