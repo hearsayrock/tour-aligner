@@ -36,6 +36,37 @@ export function resizeProfileBlock(source: ProfileBlockRect, edge: ProfileResize
 export type ProfileBlockRect = { sectionId: string; x: number; y: number; width: number; height: number }
 export type ProfileAlignmentGuide = { axis: 'x' | 'y'; position: number }
 
+export type ProfileDockDirection = 'left' | 'up' | 'down' | 'right'
+
+/** Close the gap in one direction without crossing a neighbor or resizing the block. */
+export function dockProfileBlock(source: ProfileBlockRect, others: readonly ProfileBlockRect[], direction: ProfileDockDirection, canvasWidth: number): ProfileBlockRect | null {
+  const epsilon = 0.5
+  const horizontal = direction === 'left' || direction === 'right'
+  const candidates = others.filter((other) => {
+    if (other.sectionId === source.sectionId) return false
+    const overlaps = horizontal
+      ? source.y < other.y + other.height + PROFILE_BLOCK_GAP - epsilon && source.y + source.height + PROFILE_BLOCK_GAP > other.y + epsilon
+      : source.x < other.x + other.width + PROFILE_BLOCK_GAP - epsilon && source.x + source.width + PROFILE_BLOCK_GAP > other.x + epsilon
+    if (!overlaps) return false
+    switch (direction) {
+      case 'left': return other.x + other.width + PROFILE_BLOCK_GAP <= source.x + epsilon
+      case 'up': return other.y + other.height + PROFILE_BLOCK_GAP <= source.y + epsilon
+      case 'down': return other.y >= source.y + source.height + PROFILE_BLOCK_GAP - epsilon
+      case 'right': return other.x >= source.x + source.width + PROFILE_BLOCK_GAP - epsilon
+    }
+  })
+  switch (direction) {
+    case 'left': return { ...source, x: Math.min(source.x, candidates.reduce((x, other) => Math.max(x, other.x + other.width + PROFILE_BLOCK_GAP), 0)) }
+    case 'up': return { ...source, y: Math.min(source.y, candidates.reduce((y, other) => Math.max(y, other.y + other.height + PROFILE_BLOCK_GAP), 0)) }
+    case 'down': return candidates.length ? { ...source, y: Math.max(source.y, Math.min(...candidates.map((other) => other.y - source.height - PROFILE_BLOCK_GAP))) } : null
+    case 'right': return { ...source, x: Math.max(source.x, candidates.reduce((x, other) => Math.min(x, other.x - source.width - PROFILE_BLOCK_GAP), Math.max(0, canvasWidth - source.width))) }
+  }
+}
+
+export function snapProfileBlockUp(source: ProfileBlockRect, others: readonly ProfileBlockRect[]): ProfileBlockRect {
+  return dockProfileBlock(source, others, 'up', source.x + source.width) ?? source
+}
+
 /** Fit content and fill the earliest available space; default priority breaks ties. */
 export function autoProfileBlocks(
   blocks: readonly { sectionId: string; priority: number; allowedSpans: readonly ProfilePageSpan[] }[],

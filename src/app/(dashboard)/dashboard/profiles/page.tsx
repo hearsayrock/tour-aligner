@@ -36,8 +36,8 @@ function ProfileRow({
   publicPageHref: string
 }) {
   return (
-    <div className="group flex flex-col gap-3 rounded-2xl border border-[#F0E5DF] bg-white p-3 shadow-[0_8px_24px_rgba(73,35,17,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#FFB795] hover:shadow-[0_18px_38px_rgba(234,95,36,0.12)] sm:flex-row sm:items-center">
-      <Link href={studioHref} className="flex min-h-20 min-w-0 flex-1 items-center gap-4 rounded-xl px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#F0E5DF] bg-white shadow-[0_8px_24px_rgba(73,35,17,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#FFB795] hover:shadow-[0_18px_38px_rgba(234,95,36,0.12)] sm:flex-row sm:items-stretch">
+      <Link href={studioHref} className="flex min-h-[104px] min-w-0 flex-1 items-center gap-4 px-5 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#FFD8C6] bg-gradient-to-br from-[#FFF6F1] to-[#FFE5D8] text-[#E95D2C] shadow-sm">
           {profilePhotoUrl ? (
             <Image src={profilePhotoUrl} alt={`${title} profile photo`} width={56} height={56} className="h-full w-full object-cover" unoptimized />
@@ -53,12 +53,10 @@ function ProfileRow({
           </span>
         </div>
       </Link>
-      <div className="flex shrink-0 items-center sm:pr-1">
-        <Link href={publicPageHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#E8D4C9] bg-[#FFF9F6] px-3.5 py-2 text-sm font-semibold text-[#6A3928] transition-colors hover:border-[#F49A73] hover:bg-[#FFF0E9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2">
+        <Link href={publicPageHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 border-t border-[#E8D4C9] bg-[#FFF9F6] px-6 py-3 text-sm font-semibold text-[#6A3928] transition-colors hover:bg-[#FFF0E9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F] sm:border-l sm:border-t-0">
           <Eye className="h-4 w-4" />
           View public page
         </Link>
-      </div>
     </div>
   )
 }

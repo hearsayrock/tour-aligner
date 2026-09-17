@@ -36,6 +36,7 @@ export function ArtistPageHero({
   profileImage,
   editAppearanceControl,
   editContentControl,
+  contentEditor,
 }: {
   band: Band
   genreNames: string[]
@@ -45,6 +46,7 @@ export function ArtistPageHero({
   coverImage: string
   profileImage: string | null
   editAppearanceControl?: React.ReactNode
+  contentEditor?: React.ReactNode
   editContentControl?: React.ReactNode
 }) {
   const location = formatLocation(band)
@@ -52,7 +54,8 @@ export function ArtistPageHero({
   const touringRadius = band.touring_radius ? TOURING_RADIUS_LABELS[band.touring_radius] : null
 
   return (
-    <section className="artist-page-hero relative overflow-hidden border-b border-[#1F1F1F] bg-[#111111] text-white">
+    <section className="artist-page-hero group/hero relative overflow-hidden border-b border-[#1F1F1F] bg-[#111111] text-white">
+      {contentEditor && <div className="absolute inset-y-4 left-4 right-4 z-40 overflow-y-auto rounded-2xl bg-white text-[#252525] shadow-xl sm:left-auto sm:w-[min(540px,calc(100%_-_32px))]" role="region" aria-label="Edit artist">{contentEditor}</div>}
       <Image
         src={coverImage}
         alt=""
@@ -72,7 +75,7 @@ export function ArtistPageHero({
             Tour Aligner
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {editContentControl}
+            <div className="text-white mix-blend-difference opacity-0 transition-opacity group-hover/hero:opacity-100 group-focus-within/hero:opacity-100">{editContentControl}</div>
             {editAppearanceControl}
             {isOwner && !isEditing && (
               <ButtonLink href={`/bands/${band.slug}?edit=1`} tone="secondary" className="border-white/20 bg-white/10 text-white hover:border-white/35 hover:bg-white/20">

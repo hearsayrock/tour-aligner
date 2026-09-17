@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
 // @ts-expect-error Node's TypeScript runner requires the explicit extension.
-import { autoProfileBlocks, profileBlockReadingOrder, smartProfileBlocks, profileBlocksCollide, resolveProfileBlocks, resizeProfileBlock, snapProfileBlock, snapProfileBlockWidth, type ProfileResizeEdge } from './profile-page-freeform.ts'
+import { autoProfileBlocks, profileBlockReadingOrder, smartProfileBlocks, profileBlocksCollide, resolveProfileBlocks, resizeProfileBlock, snapProfileBlockUp, dockProfileBlock, snapProfileBlock, snapProfileBlockWidth, type ProfileResizeEdge } from './profile-page-freeform.ts'
 // @ts-expect-error Node's TypeScript runner requires the explicit extension.
 import { normalizeProfilePageLayout, normalizeProfilePagePlacement, type ProfilePageSectionDefinition } from './profile-page-types.ts'
 
@@ -254,4 +254,58 @@ test('invalid or excessive placement values cannot create unsafe canvas dimensio
   assert.equal(normalizeProfilePagePlacement({ x: Infinity, y: 0, width: 0.4 }), undefined)
   assert.deepEqual(normalizeProfilePagePlacement({ x: 5, y: -40, width: 0.4 }), { x: 0.6, y: 0, width: 0.4 })
   assert.deepEqual(normalizeProfilePagePlacement({ x: -10, y: 200000, width: 20 }), { x: 0, y: 100000, width: 1 })
+})
+
+
+test('snap upward closes the gap beneath the lowest overlapping block without changing dimensions or neighbors', () => {
+  const source = { sectionId: 'wide', x: 0, y: 700, width: 900, height: 350 }
+  const others = [
+    { sectionId: 'left', x: 0, y: 100, width: 420, height: 200 },
+    { sectionId: 'right', x: 452, y: 100, width: 448, height: 300 },
+  ]
+  const original = structuredClone(others)
+  assert.deepEqual(snapProfileBlockUp(source, others), { ...source, y: 432 })
+  assert.deepEqual(others, original)
+})
+
+test('snap upward ignores other columns and lower blocks, and stops at the canvas top when unobstructed', () => {
+  const source = { sectionId: 'source', x: 0, y: 700, width: 300, height: 100 }
+  const others = [
+    { sectionId: 'adjacent', x: 332, y: 100, width: 300, height: 500 },
+    { sectionId: 'lower', x: 0, y: 900, width: 300, height: 100 },
+  ]
+  assert.equal(snapProfileBlockUp(source, others).y, 0)
+})
+
+test('snap upward is a no-op at the existing gap and never moves a block downward', () => {
+  const source = { sectionId: 'source', x: 0, y: 232, width: 300, height: 100 }
+  assert.deepEqual(snapProfileBlockUp(source, [{ sectionId: 'above', x: 0, y: 0, width: 300, height: 200 }]), source)
+  assert.deepEqual(snapProfileBlockUp({ ...source, y: 0 }, []), { ...source, y: 0 })
+})
+
+
+test('left and right docking use the nearest neighbor in the same vertical lane', () => {
+  const source = { sectionId: 'source', x: 500, y: 100, width: 200, height: 150 }
+  const others = [
+    { sectionId: 'left', x: 100, y: 100, width: 200, height: 150 },
+    { sectionId: 'right', x: 900, y: 100, width: 200, height: 150 },
+    { sectionId: 'another-row', x: 300, y: 500, width: 200, height: 150 },
+  ]
+  assert.deepEqual(dockProfileBlock(source, others, 'left', 1200), { ...source, x: 332 })
+  assert.deepEqual(dockProfileBlock(source, others, 'right', 1200), { ...source, x: 668 })
+  assert.deepEqual(dockProfileBlock(source, [], 'left', 1200), { ...source, x: 0 })
+  assert.deepEqual(dockProfileBlock(source, [], 'right', 1200), { ...source, x: 1000 })
+})
+
+test('down docking stops above the closest overlapping block and is unavailable without a target', () => {
+  const source = { sectionId: 'source', x: 0, y: 100, width: 600, height: 150 }
+  const others = [
+    { sectionId: 'near', x: 0, y: 500, width: 250, height: 100 },
+    { sectionId: 'far', x: 300, y: 700, width: 300, height: 100 },
+    { sectionId: 'other-column', x: 632, y: 350, width: 250, height: 100 },
+  ]
+  assert.deepEqual(dockProfileBlock(source, others, 'down', 1000), { ...source, y: 318 })
+  assert.equal(dockProfileBlock(source, [], 'down', 1000), null)
+  assert.equal(dockProfileBlock(source, [others[2]], 'down', 1000), null)
+  assert.deepEqual(dockProfileBlock({ ...source, y: 318 }, others, 'down', 1000), { ...source, y: 318 })
 })

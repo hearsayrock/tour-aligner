@@ -12,6 +12,10 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight,
   Check,
   Eye,
   EyeOff,
@@ -21,6 +25,7 @@ import {
   Monitor,
   MoveDiagonal2,
   PanelRight,
+  SlidersHorizontal,
   PencilLine,
   RotateCcw,
   Save,
@@ -32,8 +37,9 @@ import {
 import { cx } from '@/components/ui/primitives'
 import { nearestProfilePageDragSlot, profilePageDragSlots, type DragSlot } from './profile-page-drag'
 import { ProfilePageSurface, measureProfileSurface, measureProfileContent, type ProfileSurfaceGeometry } from './ProfilePageSurface'
+import { ProfilePageBlockActions } from './ProfilePageBlockActions'
 import { ProfilePageStudioMenu } from './ProfilePageStudioMenu'
-import { PROFILE_BLOCK_GAP, PROFILE_BLOCK_MIN_WIDTH, autoProfileBlocks, profileBlockReadingOrder, smartProfileBlocks, resolveProfileBlocks, resizeProfileBlock, snapProfileBlock, type ProfileResizeEdge, type ProfileBlockRect, type ProfileAlignmentGuide } from './profile-page-freeform'
+import { PROFILE_BLOCK_GAP, PROFILE_BLOCK_MIN_WIDTH, autoProfileBlocks, profileBlockReadingOrder, smartProfileBlocks, resolveProfileBlocks, resizeProfileBlock, dockProfileBlock, type ProfileDockDirection, snapProfileBlock, type ProfileResizeEdge, type ProfileBlockRect, type ProfileAlignmentGuide } from './profile-page-freeform'
 import {
   createDefaultProfilePageLayout,
   normalizeProfilePageLayout,
@@ -127,10 +133,9 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   className,
   style,
   exitHref,
-  editDetailsHref,
-  onEditDetails,
   saveAction,
   externalDirty = false,
+  saveDisabled = false,
   inspector,
   inspectorOpen = false,
   onOpenInspector,
@@ -150,6 +155,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   onEditDetails?: () => void
   saveAction: (layout: ProfilePageLayout<SectionId>) => Promise<SaveResult>
   externalDirty?: boolean
+  saveDisabled?: boolean
   inspector?: ReactNode
   inspectorOpen?: boolean
   onOpenInspector?: () => void
@@ -159,6 +165,16 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   toolbarActions?: ReactNode
 }) {
   const router = useRouter()
+  const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [headerHeight, setHeaderHeight] = useState(65)
+  const headerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const observer = new ResizeObserver(() => setHeaderHeight(header.getBoundingClientRect().height))
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [])
   const [layout, setLayout] = useState(initialLayout)
   const [savedLayout, setSavedLayout] = useState(initialLayout)
   const [history, setHistory] = useState<ProfilePageLayout<SectionId>[]>([])
@@ -171,6 +187,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   const layoutRef = useRef(layout)
   const dragRef = useRef<PlacementSession<SectionId> | null>(null)
   const geometryRef = useRef<ProfileSurfaceGeometry>({ width: 0, stacked: true, rects: [] })
+  const [dockGeometry, setDockGeometry] = useState<ProfileSurfaceGeometry>({ width: 0, stacked: true, rects: [] })
   const [guides, setGuides] = useState<ProfileAlignmentGuide[]>([])
   const [stacked, setStacked] = useState(true)
   const contentById = useMemo(
@@ -371,7 +388,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     }
   }, [])
 
-  function handlePlacementStart(event: ReactPointerEvent<HTMLButtonElement>, sectionId: SectionId, kind: 'move' | 'resize', edge?: ProfileResizeEdge) {
+  function handlePlacementStart(event: ReactPointerEvent<HTMLElement>, sectionId: SectionId, kind: 'move' | 'resize', edge?: ProfileResizeEdge) {
     const grid = gridRef.current
     const element = event.currentTarget.closest('article')
     if (!grid || !element || event.button !== 0 || dragRef.current) return
@@ -442,6 +459,18 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     window.addEventListener('beforeunload', warnBeforeUnload)
     return () => window.removeEventListener('beforeunload', warnBeforeUnload)
   }, [isDirty])
+
+  function dockSection(sectionId: SectionId, direction: ProfileDockDirection) {
+    if (saving || dragRef.current) return
+    const geometry = readGeometry()
+    if (geometry.stacked) return
+    const source = geometry.rects.find((rect) => rect.sectionId === sectionId)
+    if (!source) return
+    const snapped = dockProfileBlock(source, geometry.rects, direction, geometry.width)
+    if (!snapped || (Math.abs(snapped.y - source.y) < 0.5 && Math.abs(snapped.x - source.x) < 0.5)) return
+    const rects = geometry.rects.map((rect) => rect.sectionId === sectionId ? snapped : rect)
+    commitLayout(applyProfileGeometry(layoutRef.current, rects, geometry.width))
+  }
 
   function updateSection(sectionId: SectionId, updates: { span?: ProfilePageSpan; visible?: boolean }) {
     let next = layoutRef.current
@@ -543,19 +572,12 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div className="relative z-[60] min-h-screen bg-[#DED9D2]">
-      <div className="sticky top-0 z-50 border-b border-black/10 bg-[#1C1816]/95 px-2 py-3 text-white shadow-xl backdrop-blur sm:px-6">
-        <div className="mx-auto flex max-w-[96rem] items-center gap-2">
-          <div className="mr-auto hidden min-w-[180px] 2xl:block">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#FFB99A]">Profile studio</p>
-            <p className="mt-0.5 text-xs text-white/60">Drag by the handle to preview a spot. Release to place. Escape to cancel. Drag any edge or corner to resize.</p>
-          </div>
-
-          <div className="mr-auto flex min-w-0 items-center gap-3 2xl:hidden">
-            <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[#FFB99A] sm:text-xs">Profile studio</p>
-          </div>
-          <ProfilePageStudioMenu>
-            <div className="grid gap-5 sm:grid-cols-2">
+    <div className="relative z-[60] min-h-screen bg-[#DED9D2]" style={{ '--studio-header-height': `${headerHeight}px` } as CSSProperties}>
+      <div ref={headerRef} className="sticky top-0 z-50 border-b border-black/10 bg-[#1C1816]/95 px-2 py-3 text-white shadow-xl backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-[96rem] flex-wrap items-center gap-1">
+          {toolbarActions}
+          {inspector && onOpenInspector && <button type="button" onClick={onOpenInspector} aria-label={inspectorLabel} className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white"><PanelRight className="h-4 w-4" />{inspectorLabel}</button>}
+          <ProfilePageStudioMenu open={activeMenu === 'Arrange'} onOpenChange={(open) => setActiveMenu(open ? 'Arrange' : null)} label="Arrange" icon={LayoutGrid}>
               <div className="space-y-2">
                 <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB99A]">Arrange blocks</p>
                 <button type="button" onClick={() => arrangeLayout('auto')} disabled={stacked || saving || draggedSection !== null || visibleItems.length === 0}
@@ -574,22 +596,19 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                   <button type="button" onClick={reset} disabled={draggedSection !== null} aria-label="Reset page layout" className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-white/5 px-2 text-xs font-semibold hover:bg-white/10"><RotateCcw className="h-4 w-4" /> Reset layout</button>
                 </div>
                 <p className="px-1 text-xs leading-5 text-white/45">Undo restores your previous arrangement.</p>
-                <div className="border-t border-white/10 pt-3">
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB99A]">Edit page</p>
-                  <div className="flex flex-wrap gap-2">{toolbarActions}</div>
-                  {inspector && onOpenInspector && <button type="button" onClick={onOpenInspector} aria-label={inspectorLabel} aria-pressed={inspectorOpen} className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold hover:bg-white/5"><PanelRight className="h-4 w-4" />{inspectorLabel}</button>}
-                  <button type="button" onClick={() => onEditDetails ? onEditDetails() : navigateAway(editDetailsHref)} className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold hover:bg-white/5"><PencilLine className="h-4 w-4" /> Edit content</button>
-                  <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit profile studio" className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-semibold text-white/60 hover:bg-white/5"><X className="h-4 w-4" /> Exit</button>
-                </div>
               </div>
-              <div data-keep-menu-open className="space-y-4 border-t border-white/10 pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-                <div>
+          </ProfilePageStudioMenu>
+          <ProfilePageStudioMenu open={activeMenu === 'Preview'} onOpenChange={(open) => setActiveMenu(open ? 'Preview' : null)} label="Preview" icon={Monitor}>
+              <div data-keep-menu-open>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB99A]">Preview</p>
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/20 p-1">
                     <button type="button" onClick={() => setViewport('desktop')} aria-pressed={viewport === 'desktop'} className={cx('flex min-h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold', viewport === 'desktop' ? 'bg-white text-[#252525]' : 'text-white/60 hover:text-white')}><Monitor className="h-4 w-4" /> Desktop</button>
                     <button type="button" onClick={() => setViewport('mobile')} aria-pressed={viewport === 'mobile'} className={cx('flex min-h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold', viewport === 'mobile' ? 'bg-white text-[#252525]' : 'text-white/60 hover:text-white')}><Smartphone className="h-4 w-4" /> Mobile</button>
                   </div>
                 </div>
+          </ProfilePageStudioMenu>
+          <ProfilePageStudioMenu open={activeMenu === 'Page settings'} onOpenChange={(open) => setActiveMenu(open ? 'Page settings' : null)} label="Page settings" icon={SlidersHorizontal}>
+              <div data-keep-menu-open>
                 <div>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB99A]">Page settings</p>
                   <p className="text-xs text-white/60">Top section height</p>
@@ -606,9 +625,9 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                   {hiddenItems.map((item) => <button key={item.sectionId} type="button" onClick={() => updateSection(item.sectionId, { visible: true })} className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg px-2 text-left text-xs font-semibold hover:bg-white/5">{definitionById.get(item.sectionId)?.label ?? item.sectionId}<Eye className="h-3.5 w-3.5 shrink-0" /></button>)}
                 </div>}
               </div>
-            </div>
           </ProfilePageStudioMenu>
-          <button type="button" onClick={save} disabled={saving || !isDirty} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#FD6A2F] bg-[#FD6A2F] px-3 text-xs font-semibold text-white transition-colors hover:border-[#E55A22] hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit profile studio" className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+          <button type="button" onClick={save} disabled={saving || !isDirty || saveDisabled} title={saveDisabled ? 'Click OK or Discard to finish editing the block.' : undefined} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#FD6A2F] bg-[#FD6A2F] px-3 text-xs font-semibold text-white transition-colors hover:border-[#E55A22] hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
             {saving ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" /> : savedNotice ? <Check className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
             {saving ? 'Saving' : savedNotice ? 'Saved' : 'Save'}
           </button>
@@ -616,16 +635,16 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
         {saveError && <p className="mx-auto mt-2 max-w-7xl rounded-lg bg-red-400/15 px-3 py-2 text-xs text-red-100">{saveError}</p>}
       </div>
 
-      <div className={cx('transition-[max-width,margin,box-shadow] duration-300', inspectorOpen && viewport === 'desktop' && 'lg:mr-[390px]', viewport === 'mobile' && 'profile-page-editor-mobile mx-auto max-w-[430px] shadow-2xl')}>
+      <div className={cx('transition-[max-width,margin,box-shadow] duration-300', viewport === 'mobile' && 'profile-page-editor-mobile mx-auto max-w-[430px] shadow-2xl')}>
         <div
-          className={cx('profile-page-frame overflow-hidden', className)}
+          className={cx('profile-page-frame', className)}
           data-hero-height={layout.hero.height}
           data-hero-alignment={layout.hero.alignment}
           style={style}
         >
           {hero}
           <ProfilePageSurface items={visibleItems} mobile={viewport === 'mobile'} activeId={draggedSection} guides={guides}
-            surfaceRef={gridRef} onGeometry={(geometry) => { geometryRef.current = geometry; setStacked(geometry.stacked) }}
+            surfaceRef={gridRef} onGeometry={(geometry) => { geometryRef.current = geometry; setStacked(geometry.stacked); setDockGeometry((previous) => JSON.stringify(previous) === JSON.stringify(geometry) ? previous : geometry) }}
             renderItem={(item, placementClass, placementStyle) => {
               const definition = definitionById.get(item.sectionId)
               return (
@@ -639,33 +658,54 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                     draggedSection === item.sectionId ? 'duration-0 opacity-60 ring-[#FD6A2F] shadow-[0_0_0_6px_rgba(253,106,47,0.15)]' : 'duration-150 ring-transparent'
                   )}
                 >
-                  <div className="absolute left-3 right-3 top-3 z-30 flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-[#1C1816]/92 px-2 text-white opacity-0 shadow-lg backdrop-blur transition-opacity group-hover/profile-section:opacity-100 group-focus-within/profile-section:opacity-100">
+                  <div
+                    onPointerDown={(event) => {
+                      if ((event.target as HTMLElement).closest('button, [data-block-actions]')) return
+                      handlePlacementStart(event, item.sectionId, 'move')
+                    }}
+                    className="absolute left-3 right-3 top-3 z-30 flex min-h-9 touch-none cursor-grab select-none items-center gap-1 rounded-xl border border-transparent bg-transparent px-2 text-white mix-blend-difference opacity-0 transition-opacity active:cursor-grabbing group-hover/profile-section:opacity-100 group-focus-within/profile-section:opacity-100">
+
                     <button
                       type="button"
                       onPointerDown={(event) => handlePlacementStart(event, item.sectionId, 'move')}
                       onKeyDown={(event) => handlePlacementKey(event, item.sectionId)}
                       title="Drag to place. Use arrow keys to move."
-                      className="flex h-8 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white active:cursor-grabbing"
+                      className="flex h-8 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-white hover:bg-white/15 active:cursor-grabbing"
                       aria-label={`Move ${definition?.label ?? item.sectionId}`}
                     >
                       <GripVertical className="h-4 w-4" />
                     </button>
-                    <span className="min-w-0 flex-1 truncate text-xs font-bold">{definition?.label ?? item.sectionId}</span>
+                    {viewport === 'desktop' && !stacked && ([
+                      { direction: 'left', Icon: ArrowLeft },
+                      { direction: 'up', Icon: ArrowUp },
+                      { direction: 'down', Icon: ArrowDown },
+                      { direction: 'right', Icon: ArrowRight },
+                    ] as const).map(({ direction, Icon }) => {
+                      const source = dockGeometry.rects.find((rect) => rect.sectionId === item.sectionId)
+                      const target = source ? dockProfileBlock(source, dockGeometry.rects, direction, dockGeometry.width) : null
+                      const canMove = source && target && (Math.abs(target.x - source.x) >= 0.5 || Math.abs(target.y - source.y) >= 0.5)
+                      return <button key={direction} type="button" onClick={() => dockSection(item.sectionId, direction)} disabled={saving || draggedSection !== null || !canMove} aria-label={`Snap ${definition?.label ?? item.sectionId} ${direction}`} title={`Close the gap to the ${direction}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 disabled:cursor-default disabled:opacity-30">
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    })}
+                    <span className="min-w-0 flex-1" aria-hidden="true" />
+                    <ProfilePageBlockActions label={definition?.label ?? item.sectionId}>
                     {onEditSection && editableSectionIds?.includes(item.sectionId) && (
-                      <button type="button" onClick={() => onEditSection(item.sectionId)} className="flex min-h-7 items-center gap-1 rounded-md px-2 text-[10px] font-bold text-white/75 hover:bg-white/10 hover:text-white">
+                      <button type="button" onClick={() => onEditSection(item.sectionId)} className="flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#756B63] hover:bg-black/5 hover:text-[#252525]">
                         <PencilLine className="h-3 w-3" /> Edit
                       </button>
                     )}
                     {viewport === 'desktop' && definition?.allowedSpans.map((span) => (
-                      <button key={span} type="button" onClick={() => updateSection(item.sectionId, { span })} className={cx('hidden min-h-7 rounded-md px-2 text-[10px] font-bold sm:block', (!item.desktop && item.span === span) || (item.desktop && Math.abs(item.desktop.width - span / 12) < 0.005) ? 'bg-white text-[#252525]' : 'text-white/65 hover:bg-white/10 hover:text-white')} title={`Set width to ${SPAN_LABELS[span]}`}>
-                        {SPAN_LABELS[span]}
+                      <button key={span} type="button" onClick={() => updateSection(item.sectionId, { span })} className={cx('min-h-9 rounded-lg px-3 text-left text-xs font-semibold', (!item.desktop && item.span === span) || (item.desktop && Math.abs(item.desktop.width - span / 12) < 0.005) ? 'bg-black/7 text-[#252525]' : 'text-[#8A817A] hover:bg-black/5 hover:text-[#252525]')} title={`Set width to ${`Set width to ${SPAN_LABELS[span]}`}`}>
+                        {`Set width to ${SPAN_LABELS[span]}`}
                       </button>
                     ))}
                     {!definition?.required && (
-                      <button type="button" onClick={() => updateSection(item.sectionId, { visible: false })} className="flex h-8 w-8 items-center justify-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white" aria-label={`Hide ${definition?.label ?? item.sectionId}`}>
-                        <EyeOff className="h-4 w-4" />
+                      <button type="button" onClick={() => updateSection(item.sectionId, { visible: false })} className="flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#8A817A] hover:bg-black/5 hover:text-[#252525]" aria-label={`Hide ${definition?.label ?? item.sectionId}`}>
+                        <EyeOff className="h-4 w-4" /> Hide
                       </button>
                     )}
+                    </ProfilePageBlockActions>
                   </div>
 
                   {contentById.get(item.sectionId)}
@@ -690,7 +730,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
         </div>
       </div>
       {inspector && inspectorOpen && (
-        <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[82vh] overflow-y-auto rounded-t-[28px] border border-[#DDD4CC] bg-white shadow-[0_-20px_60px_rgba(26,20,16,0.24)] lg:inset-y-0 lg:left-auto lg:top-[65px] lg:w-[390px] lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-[-18px_0_50px_rgba(26,20,16,0.16)]">
+        <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[82vh] overflow-y-auto rounded-t-[28px] border border-[#DDD4CC] bg-white shadow-[0_-20px_60px_rgba(26,20,16,0.24)] lg:inset-y-0 lg:max-h-none lg:left-auto lg:top-[var(--studio-header-height)] lg:w-[390px] lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-[-18px_0_50px_rgba(26,20,16,0.16)]">
           {inspector}
         </aside>
       )}

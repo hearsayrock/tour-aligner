@@ -5,7 +5,6 @@ import {
   Globe,
   Instagram,
   MapPin,
-  PencilLine,
   Radio,
   Route,
   Users,
@@ -89,16 +88,7 @@ function DetailRow({
   )
 }
 
-function InlineEditButton({ label, onClick }: { label: string; onClick?: () => void }) {
-  if (!onClick) return null
-  return (
-    <button type="button" onClick={onClick} className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-[#DED7D0] bg-white px-3 text-xs font-semibold text-[#5D534C] shadow-sm transition-colors hover:border-[#BEB4AC] hover:text-[#252525]">
-      <PencilLine className="h-3.5 w-3.5" /> {label}
-    </button>
-  )
-}
-
-function SectionCard({ eyebrow, title, children, action }: { eyebrow: string; title: string; children: ReactNode; action?: ReactNode }) {
+function SectionCard({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
     <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -106,7 +96,6 @@ function SectionCard({ eyebrow, title, children, action }: { eyebrow: string; ti
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">{eyebrow}</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">{title}</h2>
         </div>
-        {action}
       </div>
       {children}
     </section>
@@ -122,7 +111,7 @@ export function createArtistPageSections({
   band: Band
   shows: ArtistPageShow[]
   lyrics: ArtistPageLyric[]
-  onEditContent?: (section: ArtistContentSection) => void
+  onEditContent?: (section: ArtistContentSection, pageSectionId?: 'streaming-links' | 'social-links') => void
 }): ProfilePageSectionContent<ArtistPageSectionId>[] {
   const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
   const streamingLinks = STREAMING.filter(({ key }) => !!band[key])
@@ -135,7 +124,7 @@ export function createArtistPageSections({
     {
       sectionId: 'overview',
       content: (
-        <SectionCard eyebrow="Overview" title="Artist profile" action={<InlineEditButton label="Edit details" onClick={onEditContent ? () => onEditContent('details') : undefined} />}>
+        <SectionCard eyebrow="Overview" title="Artist profile">
           <div className="grid gap-5 sm:grid-cols-2">
             {location && <DetailRow icon={MapPin} label="Home base" value={location} />}
             {touringRadius && <DetailRow icon={Route} label="Touring radius" value={touringRadius} />}
@@ -148,19 +137,19 @@ export function createArtistPageSections({
         </SectionCard>
       ),
     },
-    ...(embedUrl ? [{
+    ...(embedUrl || onEditContent ? [{
       sectionId: 'featured-track' as const,
       content: (
-        <SectionCard eyebrow="Listen" title="Featured track" action={<InlineEditButton label="Edit track" onClick={onEditContent ? () => onEditContent('music') : undefined} />}>
-          <iframe src={embedUrl} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-2xl border-0" />
+        <SectionCard eyebrow="Listen" title="Featured track">
+          {embedUrl ? <iframe src={embedUrl} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-2xl border-0" /> : <div className="min-h-32" />}
         </SectionCard>
       ),
     }] : []),
-    ...(lyrics.length > 0 ? [{
+    ...(lyrics.length > 0 || onEditContent ? [{
       sectionId: 'lyrics' as const,
       content: (
-        <SectionCard eyebrow="Words" title="Lyrics" action={<InlineEditButton label="Edit lyrics" onClick={onEditContent ? () => onEditContent('lyrics') : undefined} />}>
-          <div className="space-y-6">
+        <SectionCard eyebrow="Words" title="Lyrics">
+          <div className="space-y-6" style={onEditContent ? { minHeight: 128 } : undefined}>
             {lyrics.map((lyric) => (
               <article key={lyric.id}>
                 <h3 className="text-lg font-semibold text-[#252525]">{lyric.title}</h3>
@@ -171,11 +160,11 @@ export function createArtistPageSections({
         </SectionCard>
       ),
     }] : []),
-    ...((band.members ?? []).length > 0 ? [{
+    ...((band.members ?? []).length > 0 || onEditContent ? [{
       sectionId: 'members' as const,
       content: (
-        <SectionCard eyebrow="On stage" title="Members" action={<InlineEditButton label="Edit members" onClick={onEditContent ? () => onEditContent('members') : undefined} />}>
-          <div className="flex flex-wrap gap-2">
+        <SectionCard eyebrow="On stage" title="Members">
+          <div className="flex flex-wrap gap-2" style={onEditContent ? { minHeight: 80 } : undefined}>
             {(band.members ?? []).map((member) => <span key={member} className="rounded-full border border-[#E3DDD7] bg-[#FAF8F5] px-4 py-2 text-sm font-semibold text-[#4E4945]">{member}</span>)}
           </div>
         </SectionCard>
@@ -215,46 +204,20 @@ export function createArtistPageSections({
         </SectionCard>
       ),
     },
-    ...(streamingLinks.length > 0 ? [{
+    ...(streamingLinks.length > 0 || socialLinks.length > 0 || onEditContent ? [{
       sectionId: 'streaming-links' as const,
       content: (
         <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">Listen</p>
-            <InlineEditButton label="Edit" onClick={onEditContent ? () => onEditContent('links') : undefined} />
-          </div>
-          <div className="mt-4 space-y-2">
-            {streamingLinks.map(({ key, label, slug }) => (
-              <a key={key} href={band[key] as string} target="_blank" rel="noopener noreferrer" className="artist-page-link-button flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">Links</p>
+          <div className="mt-4 space-y-2" style={onEditContent ? { minHeight: 80 } : undefined}>
+            {[...streamingLinks, ...socialLinks].map((link) => (
+              <a key={link.key} href={band[link.key] as string} target="_blank" rel="noopener noreferrer" className="artist-page-link-button flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white">
                 <span className="flex min-w-0 items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`https://cdn.simpleicons.org/${slug}/FD6A2F`} alt="" width="16" height="16" className="shrink-0" />
-                  <span className="truncate">{label}</span>
-                </span>
-                <ExternalLink className="h-4 w-4 shrink-0 text-[#A0A0A0]" />
-              </a>
-            ))}
-          </div>
-        </section>
-      ),
-    }] : []),
-    ...(socialLinks.length > 0 ? [{
-      sectionId: 'social-links' as const,
-      content: (
-        <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">Connect</p>
-            <InlineEditButton label="Edit" onClick={onEditContent ? () => onEditContent('links') : undefined} />
-          </div>
-          <div className="mt-4 space-y-2">
-            {socialLinks.map((social) => (
-              <a key={social.key} href={band[social.key] as string} target="_blank" rel="noopener noreferrer" className="artist-page-link-button flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white">
-                <span className="flex min-w-0 items-center gap-3">
-                  {'icon' in social ? <social.icon className="h-4 w-4 shrink-0 text-[var(--profile-accent)]" /> : (
+                  {'icon' in link ? <link.icon className="h-4 w-4 shrink-0 text-[var(--profile-accent)]" /> : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`https://cdn.simpleicons.org/${social.slug}/FD6A2F`} alt="" width="16" height="16" className="shrink-0" />
+                    <img src={`https://cdn.simpleicons.org/${link.slug}/FD6A2F`} alt="" width="16" height="16" className="shrink-0" />
                   )}
-                  <span className="truncate">{social.label}</span>
+                  <span className="truncate">{link.label}</span>
                 </span>
                 <ExternalLink className="h-4 w-4 shrink-0 text-[#A0A0A0]" />
               </a>

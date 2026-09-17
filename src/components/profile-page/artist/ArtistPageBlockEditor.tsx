@@ -45,6 +45,7 @@ export function ArtistPageBlockInspector({
   onDuplicate,
   onDelete,
   onClose,
+  hideClose = false,
 }: {
   block: ProfilePageBlockDraft
   onChange: (block: ProfilePageBlockDraft) => void
@@ -52,6 +53,7 @@ export function ArtistPageBlockInspector({
   onDuplicate: () => void
   onDelete: () => void
   onClose: () => void
+  hideClose?: boolean
 }) {
   const imageInput = useRef<HTMLInputElement | null>(null)
   const registry = registryEntry(block.blockType)
@@ -66,7 +68,7 @@ export function ArtistPageBlockInspector({
     <div className="p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]">Edit block</p><h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">{registry.label}</h2><p className="mt-1 text-sm leading-6 text-[#777777]">{registry.description}</p></div>
-        <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9]" aria-label="Close block editor"><X className="h-4 w-4" /></button>
+        {!hideClose && <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9]" aria-label="Close block editor"><X className="h-4 w-4" /></button>}
       </div>
 
       <div className="mt-7 space-y-5">

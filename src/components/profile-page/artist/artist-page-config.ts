@@ -30,8 +30,8 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
   },
   {
     sectionId: 'streaming-links',
-    label: 'Streaming links',
-    description: 'Links to Spotify, Apple Music, YouTube, and more.',
+    label: 'Links',
+    description: 'Streaming, website, and social links.',
     defaultOrder: 1,
     defaultSpan: 4,
     allowedSpans: [4, 6, 8, 12],
@@ -45,15 +45,6 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
     defaultSpan: 8,
     allowedSpans: [6, 8, 12],
     defaultVariant: 'spotlight',
-  },
-  {
-    sectionId: 'social-links',
-    label: 'Social links',
-    description: 'The places fans and venues can follow the artist.',
-    defaultOrder: 3,
-    defaultSpan: 4,
-    allowedSpans: [4, 6, 8, 12],
-    defaultVariant: 'stacked',
   },
   {
     sectionId: 'lyrics',
@@ -185,6 +176,15 @@ export function parseArtistProfileTheme(
       })
     })
   }
+  // Retain the streaming block placement, or the social placement when it was the visible links block.
+  let mergedLayout: Json | undefined | null = value.layout
+  if (rawLayout && Array.isArray(rawLayout.sections)) {
+    const streaming = rawLayout.sections.find((section) => isJsonObject(section) && section.sectionId === 'streaming-links')
+    const social = rawLayout.sections.find((section) => isJsonObject(section) && section.sectionId === 'social-links')
+    const preferred = isJsonObject(streaming) && (streaming.visible !== false || !isJsonObject(social) || social.visible === false) ? streaming : social
+    mergedLayout = { ...rawLayout, sections: rawLayout.sections.filter((section) => !isJsonObject(section) || (section.sectionId !== 'social-links' && section.sectionId !== 'streaming-links')) }
+    if (isJsonObject(preferred) && isJsonObject(mergedLayout) && Array.isArray(mergedLayout.sections)) mergedLayout.sections.push({ ...preferred, sectionId: 'streaming-links' })
+  }
   const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...additionalDefinitions, ...inferredDefinitions]
 
   const accent = typeof value.accent === 'string' && /^#[0-9A-Fa-f]{6}$/.test(value.accent)
@@ -205,6 +205,6 @@ export function parseArtistProfileTheme(
     background,
     buttonStyle,
     wallpaperOpacity,
-    layout: normalizeProfilePageLayout(value.layout, definitions),
+    layout: normalizeProfilePageLayout(mergedLayout, definitions),
   }
 }

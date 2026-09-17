@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react'
-import { ImageIcon, Layers3, Link2, Music2, Palette, Plus, SlidersHorizontal, Trash2, Type, Upload, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { ImageIcon, Layers3, Link2, Music2, Palette, Plus, PencilLine, SlidersHorizontal, Trash2, Type, Upload, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
+import { ProfilePageBlockActions } from '@/components/profile-page/ProfilePageBlockActions'
 import { ProfilePageLayoutEditor } from '@/components/profile-page/ProfilePageLayoutEditor'
 import { ArtistPageHero } from '@/components/profile-page/artist/ArtistPageHero'
 import {
@@ -37,6 +39,8 @@ import {
   type ProfilePageBlockType,
 } from '@/components/profile-page/blocks/profile-page-blocks'
 import { ArtistPageBlockInspector, ArtistPageBlockPicker } from '@/components/profile-page/artist/ArtistPageBlockEditor'
+
+import { artistContentFields, mergeArtistContent } from './artist-page-edit-state'
 
 type SaveResult = { success?: true; error?: string }
 type ArtistImageType = 'profile' | 'cover' | 'background'
@@ -246,22 +250,40 @@ function AppearanceImageField({
   )
 }
 
+function DiscardEditDialog({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  useEffect(() => {
+    const dialog = ref.current
+    dialog?.showModal()
+    return () => dialog?.close()
+  }, [])
+  return createPortal(
+    <dialog ref={ref} aria-labelledby="discard-edit-title" onCancel={(event) => { event.preventDefault(); onNo() }} onKeyDown={(event) => event.stopPropagation()} className="m-auto w-[min(360px,calc(100%_-_32px))] rounded-2xl border border-[#DDD5CE] bg-white p-6 text-[#252525] shadow-xl backdrop:bg-black/40">
+      <h2 id="discard-edit-title" className="text-lg font-semibold">Discard changes?</h2>
+      <div className="mt-5 flex gap-2">
+        <button type="button" onClick={onNo} autoFocus className="min-h-10 flex-1 rounded-xl border border-[#DCD3CC] text-sm font-semibold">No</button>
+        <button type="button" onClick={onYes} className="min-h-10 flex-1 rounded-xl bg-[#252525] text-sm font-semibold text-white">Yes</button>
+      </div>
+    </dialog>, document.body,
+  )
+}
+
 function ContentInspector({
   content,
   setContent,
   availableGenres,
   activeSection,
-  setActiveSection,
-  dirty,
   onReset,
   onClose,
+  onCancel,
+  fields,
 }: {
+  onCancel: () => void
+  fields: readonly (keyof ArtistPageEditableContent)[]
   content: ArtistPageEditableContent
   setContent: React.Dispatch<React.SetStateAction<ArtistPageEditableContent>>
   availableGenres: Pick<Genre, 'id' | 'name'>[]
   activeSection: ArtistContentSection
-  setActiveSection: (section: ArtistContentSection) => void
-  dirty: boolean
   onReset: () => void
   onClose: () => void
 }) {
@@ -280,22 +302,15 @@ function ContentInspector({
   }
 
   return (
-    <div className="p-5 sm:p-6">
+    <div data-artist-editor className="p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]"><Type className="h-4 w-4" /> Page content</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">Give them the real story</h2>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#171717]">{CONTENT_SECTIONS.find((section) => section.id === activeSection)?.label}</h2>
           <p className="mt-1 text-sm leading-6 text-[#777777]">Try your edits here. Click Save to publish them to your artist page.</p>
         </div>
-        <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9] hover:text-[#252525]" aria-label="Close content panel"><X className="h-4 w-4" /></button>
-      </div>
+        <button type="button" onClick={onCancel} aria-label="Cancel editing" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#777777] hover:bg-[#F2EEE9] hover:text-[#252525]"><X className="h-4 w-4" /></button>
 
-      <div className="mt-6 flex gap-1 overflow-x-auto rounded-2xl bg-[#F2EEE9] p-1">
-        {CONTENT_SECTIONS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" onClick={() => setActiveSection(id)} className={`flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-[11px] font-semibold ${activeSection === id ? 'bg-white text-[#252525] shadow-sm' : 'text-[#746961] hover:text-[#252525]'}`}>
-            <Icon className="h-3.5 w-3.5" /> {label}
-          </button>
-        ))}
       </div>
 
       <div className="mt-7 space-y-5">
@@ -337,7 +352,7 @@ function ContentInspector({
           </>
         )}
 
-        {activeSection === 'links' && LINK_FIELDS.map(({ key, label, placeholder }) => (
+        {activeSection === 'links' && LINK_FIELDS.filter(({ key }) => fields.includes(key)).map(({ key, label, placeholder }) => (
           <label key={key} className={labelClass}>{label}<input type="url" value={content[key] as string} onChange={(event) => update(key, event.target.value)} placeholder={placeholder} className={fieldClass} /></label>
         ))}
 
@@ -368,8 +383,9 @@ function ContentInspector({
         )}
       </div>
 
-      <div className="mt-8 space-y-2 border-t border-[#EAE3DD] pt-6">
-        <button type="button" onClick={onReset} disabled={!dirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">Discard content edits</button>
+      <div className="sticky bottom-0 mt-8 flex gap-2 border-t border-[#EAE3DD] bg-white py-4">
+        <button type="button" onClick={onReset} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6]">Discard</button>
+        <button type="button" onClick={onClose} className="min-h-10 w-full rounded-xl bg-[#252525] text-xs font-semibold text-white hover:bg-black">OK</button>
       </div>
     </div>
   )
@@ -408,12 +424,15 @@ export function ArtistPageVisualEditor({
   const [appearance, setAppearance] = useState(initialAppearance)
   const [savedAppearance, setSavedAppearance] = useState(initialAppearance)
   const [content, setContent] = useState(() => createEditableContent(band, selectedGenreIds, lyrics))
+  const [previewContent, setPreviewContent] = useState(() => createEditableContent(band, selectedGenreIds, lyrics))
+  const [previewBlocks, setPreviewBlocks] = useState(initialBlocks)
   const [savedContent, setSavedContent] = useState(() => createEditableContent(band, selectedGenreIds, lyrics))
   const [blocks, setBlocks] = useState(initialBlocks)
+  const [newBlockBaselines, setNewBlockBaselines] = useState<ProfilePageBlockDraft[]>([])
   const [savedBlocks, setSavedBlocks] = useState(initialBlocks)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [pendingBlockImages, setPendingBlockImages] = useState<PendingBlockImage[]>([])
-  const [inspectorOpen, setInspectorOpen] = useState(true)
+  const [inspectorOpen, setInspectorOpen] = useState(false)
   const [inspectorMode, setInspectorMode] = useState<'appearance' | 'content' | 'blocks'>('appearance')
   const [contentSection, setContentSection] = useState<ArtistContentSection>('identity')
 
@@ -461,24 +480,70 @@ export function ArtistPageVisualEditor({
     '--profile-accent': appearance.accent,
     '--profile-button-radius': BUTTON_RADIUS[appearance.buttonStyle],
   }
-  const draftBand = useMemo(() => previewBand(band, content), [band, content])
-  const draftGenreNames = useMemo(() => availableGenres.filter((genre) => content.genre_ids.includes(genre.id)).map((genre) => genre.name), [availableGenres, content.genre_ids])
-  const draftLyrics = useMemo(() => content.lyrics
+  const draftBand = useMemo(() => previewBand(band, previewContent), [band, previewContent])
+  const draftGenreNames = useMemo(() => availableGenres.filter((genre) => previewContent.genre_ids.includes(genre.id)).map((genre) => genre.name), [availableGenres, previewContent.genre_ids])
+  const draftLyrics = useMemo(() => previewContent.lyrics
     .filter((lyric) => lyric.title.trim() && lyric.body.trim())
-    .map((lyric, sort_order) => ({ id: lyric.id ?? `draft-${sort_order}`, title: lyric.title, body: lyric.body, sort_order })), [content.lyrics])
+    .map((lyric, sort_order) => ({ id: lyric.id ?? `draft-${sort_order}`, title: lyric.title, body: lyric.body, sort_order })), [previewContent.lyrics])
+
+  const [editingSectionId, setEditingSectionId] = useState<ArtistPageSectionId | null>(null)
+  const [editTrigger, setEditTrigger] = useState<HTMLElement | null>(null)
+  const cancelEditing = useCallback(() => {
+    if (inspectorMode === 'content') setContent((current) => mergeArtistContent(current, previewContent, artistContentFields(contentSection)))
+    if (inspectorMode === 'blocks' && selectedBlockId) {
+      setBlocks((current) => current.map((block) => block.id === selectedBlockId ? previewBlocks.find((preview) => preview.id === block.id) ?? block : block))
+    }
+    setInspectorOpen(false)
+    editTrigger?.focus({ preventScroll: true })
+  }, [editTrigger, inspectorMode, previewContent, contentSection, selectedBlockId, previewBlocks])
+
+  const [cancelPromptOpen, setCancelPromptOpen] = useState(false)
+  const requestCancel = useCallback(() => {
+    const fields = artistContentFields(contentSection)
+    const contentChanged = inspectorMode === 'content' && fields.some((field) => JSON.stringify(content[field]) !== JSON.stringify(previewContent[field]))
+    const blockChanged = inspectorMode === 'blocks' && selectedBlockId && JSON.stringify(blocks.find((block) => block.id === selectedBlockId)) !== JSON.stringify(previewBlocks.find((block) => block.id === selectedBlockId))
+    if (contentChanged || blockChanged) setCancelPromptOpen(true)
+    else cancelEditing()
+  }, [inspectorMode, contentSection, content, previewContent, selectedBlockId, blocks, previewBlocks, cancelEditing])
+
+  useEffect(() => {
+    if (!inspectorOpen) return
+    const editor = document.querySelector<HTMLElement>('[data-artist-editor]')
+    const field = editor?.querySelector<HTMLElement>('input:not(:disabled), textarea, select') ?? editor?.querySelector<HTMLElement>('button')
+    field?.focus({ preventScroll: true })
+  }, [inspectorOpen, inspectorMode, contentSection, selectedBlockId])
+
+  useEffect(() => {
+    if (!inspectorOpen || cancelPromptOpen) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      event.preventDefault()
+      requestCancel()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [inspectorOpen, cancelPromptOpen, requestCancel])
 
   function openAppearance() {
+    if (inspectorOpen) cancelEditing()
+    setEditTrigger(document.activeElement as HTMLElement)
     setInspectorMode('appearance')
     setInspectorOpen(true)
   }
 
-  function openContent(section: ArtistContentSection = 'identity') {
+  function openContent(section: ArtistContentSection = 'identity', pageSectionId?: ArtistPageSectionId) {
+    if (inspectorOpen) cancelEditing()
+    setEditTrigger(document.activeElement as HTMLElement)
+    const sectionIds: Record<ArtistContentSection, ArtistPageSectionId | null> = { identity: null, details: 'overview', music: 'featured-track', links: 'streaming-links', lyrics: 'lyrics', members: 'members' }
+    setEditingSectionId(pageSectionId ?? sectionIds[section])
     setContentSection(section)
     setInspectorMode('content')
     setInspectorOpen(true)
   }
 
   function openBlocks(blockId: string | null = null) {
+    if (inspectorOpen) cancelEditing()
+    setEditTrigger(document.activeElement as HTMLElement)
     setSelectedBlockId(blockId)
     setInspectorMode('blocks')
     setInspectorOpen(true)
@@ -487,6 +552,8 @@ export function ArtistPageVisualEditor({
   function addBlock(type: ProfilePageBlockType) {
     const block = createProfilePageBlock(type)
     setBlocks((current) => [...current, block])
+    setPreviewBlocks((current) => [...current, block])
+    setNewBlockBaselines((current) => [...current, structuredClone(block)])
     openBlocks(block.id)
   }
 
@@ -526,6 +593,8 @@ export function ArtistPageVisualEditor({
     }
     if (copiedPendingImages.length > 0) setPendingBlockImages((current) => [...current, ...copiedPendingImages])
     setBlocks((current) => [...current, copy])
+    setPreviewBlocks((current) => [...current, copy])
+    setNewBlockBaselines((current) => [...current, structuredClone(copy)])
     openBlocks(copy.id)
   }
 
@@ -536,6 +605,7 @@ export function ArtistPageVisualEditor({
       return current.filter((image) => image.blockId !== blockId)
     })
     setBlocks((current) => current.filter((block) => block.id !== blockId))
+    setPreviewBlocks((current) => current.filter((block) => block.id !== blockId))
     openBlocks(null)
   }
 
@@ -559,11 +629,11 @@ export function ArtistPageVisualEditor({
     }))
   }
 
-  const blockDefinitions = blocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
+  const blockDefinitions = previewBlocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
   const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...blockDefinitions]
   const sections = [
     ...createArtistPageSections({ band: draftBand, shows, lyrics: draftLyrics, onEditContent: openContent }),
-    ...blocks.map((block) => ({ sectionId: blockSectionId(block.id), content: <ProfilePageBlockView block={block} /> })),
+    ...previewBlocks.map((block) => ({ sectionId: blockSectionId(block.id), content: <ProfilePageBlockView block={block} /> })),
   ]
 
   function resetAppearance() {
@@ -579,15 +649,37 @@ export function ArtistPageVisualEditor({
     setBackgroundRemoved(false)
   }
 
-  function resetContent() {
-    setContent(savedContent)
+  const editingFields = artistContentFields(contentSection)
+
+  function finishEditing() {
+    if (inspectorMode === 'content') setPreviewContent((current) => mergeArtistContent(current, content, editingFields))
+    if (inspectorMode === 'blocks' && selectedBlockId) {
+      setPreviewBlocks((current) => current.map((block) => block.id === selectedBlockId ? blocks.find((draft) => draft.id === block.id) ?? block : block))
+    }
+    setInspectorOpen(false)
   }
 
-  function resetBlocks() {
-    pendingBlockImages.forEach((image) => URL.revokeObjectURL(image.previewUrl))
-    setPendingBlockImages([])
-    setBlocks(savedBlocks)
-    setSelectedBlockId(null)
+  function resetContent() {
+    setContent((current) => mergeArtistContent(current, savedContent, editingFields))
+    setPreviewContent((current) => mergeArtistContent(current, savedContent, editingFields))
+    setInspectorOpen(false)
+  }
+
+  function resetSelectedBlock() {
+    const saved = savedBlocks.find((block) => block.id === selectedBlockId)
+    const fallback = newBlockBaselines.find((block) => block.id === selectedBlockId)
+    const restored = saved ?? fallback
+    if (!restored) return
+    setBlocks((current) => current.map((block) => block.id === selectedBlockId ? structuredClone(restored) : block))
+    setPreviewBlocks((current) => current.map((block) => block.id === selectedBlockId ? structuredClone(restored) : block))
+    setPendingBlockImages((current) => current.filter((image) => {
+      if (image.blockId !== selectedBlockId) return true
+      // New unsaved blocks can still reference their initial image previews.
+      if (!saved) return true
+      URL.revokeObjectURL(image.previewUrl)
+      return false
+    }))
+    setInspectorOpen(false)
   }
 
   async function saveCustomization(layout: ProfilePageLayout<ArtistPageSectionId>): Promise<SaveResult> {
@@ -665,10 +757,12 @@ export function ArtistPageVisualEditor({
 
       setSavedAppearance(appearance)
       setSavedContent(content)
+      setPreviewContent(content)
       pendingBlockImages.forEach((image) => URL.revokeObjectURL(image.previewUrl))
       setPendingBlockImages([])
       setBlocks(blocksToSave)
       setSavedBlocks(blocksToSave)
+      setPreviewBlocks(blocksToSave)
       setProfileFile(null)
       setCoverFile(null)
       setBackgroundFile(null)
@@ -685,7 +779,7 @@ export function ArtistPageVisualEditor({
   }
 
   const appearanceInspector = (
-    <div className="space-y-7 p-5 sm:p-6">
+    <div data-artist-editor className="space-y-7 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#A24A22]"><Palette className="h-4 w-4" /> Page design</p>
@@ -773,7 +867,6 @@ export function ArtistPageVisualEditor({
       <button type="button" onClick={resetAppearance} disabled={!appearanceDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] hover:border-[#B9AEA6] disabled:cursor-not-allowed disabled:opacity-40">
         Discard design edits
       </button>
-      <button type="button" onClick={() => openContent()} className="min-h-10 w-full rounded-xl bg-[#252525] text-xs font-semibold text-white hover:bg-black">Edit page content</button>
     </div>
   )
 
@@ -783,10 +876,10 @@ export function ArtistPageVisualEditor({
       setContent={setContent}
       availableGenres={availableGenres}
       activeSection={contentSection}
-      setActiveSection={setContentSection}
-      dirty={contentDirty}
+      fields={editingFields}
       onReset={resetContent}
-      onClose={() => setInspectorOpen(false)}
+      onClose={finishEditing}
+      onCancel={requestCancel}
     />
   )
 
@@ -799,18 +892,28 @@ export function ArtistPageVisualEditor({
         onChooseImages={(files, target) => chooseBlockImages(selectedBlock.id, files, target)}
         onDuplicate={() => duplicateBlock(selectedBlock.id)}
         onDelete={() => removeBlock(selectedBlock.id)}
-        onClose={() => setInspectorOpen(false)}
+        onClose={requestCancel}
       />
-      <div className="px-5 pb-6 sm:px-6"><button type="button" onClick={resetBlocks} disabled={!blocksDirty} className="min-h-10 w-full rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54] disabled:opacity-40">Discard all block edits</button></div>
+      <div className="sticky bottom-0 flex gap-2 border-t border-[#EAE3DD] bg-white px-5 py-4 sm:px-6">
+        <button type="button" onClick={resetSelectedBlock} className="min-h-10 flex-1 rounded-xl border border-[#DCD3CC] text-xs font-semibold text-[#655B54]">Discard</button>
+        <button type="button" onClick={finishEditing} className="min-h-10 flex-1 rounded-xl bg-[#252525] text-xs font-semibold text-white hover:bg-black">OK</button>
+      </div>
     </>
   ) : <ArtistPageBlockPicker onAdd={addBlock} onClose={() => setInspectorOpen(false)} />
   const inspector = inspectorMode === 'appearance' ? appearanceInspector : inspectorMode === 'content' ? contentInspector : blockInspector
 
   return (
+    <>
+    {cancelPromptOpen && <DiscardEditDialog onNo={() => setCancelPromptOpen(false)} onYes={() => { setCancelPromptOpen(false); cancelEditing() }} />}
     <ProfilePageLayoutEditor
       initialLayout={initialTheme.layout}
       definitions={definitions}
-      sections={sections}
+      sections={sections.map((section) => {
+        const blockId = blockIdFromSection(section.sectionId)
+        const editingContent = inspectorOpen && inspectorMode === 'content' && editingSectionId === section.sectionId
+        const editingBlock = inspectorOpen && inspectorMode === 'blocks' && blockId && blockId === selectedBlockId
+        return { ...section, content: <div className="relative h-full">{section.content}{(editingContent || editingBlock) && <div className="absolute left-0 right-0 top-0 z-40 max-h-[70dvh] min-h-[300px] overflow-y-auto rounded-[30px] bg-white text-[#252525] shadow-xl" tabIndex={-1} data-artist-editor role="region" aria-label="Edit block">{editingContent ? contentInspector : blockInspector}</div>}</div> }
+      })}
       hero={(
         <ArtistPageHero
           band={draftBand}
@@ -821,15 +924,13 @@ export function ArtistPageVisualEditor({
           coverImage={displayCoverImage}
           profileImage={displayProfileImage}
           editContentControl={(
-            <button type="button" onClick={() => openContent()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-black/30 px-4 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-black/45">
-              <Type className="h-4 w-4" /> Edit content
-            </button>
+            <ProfilePageBlockActions label={draftBand.name}>
+              <button type="button" onClick={() => openContent()} className="flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#756B63] hover:bg-black/5 hover:text-[#252525]">
+                <PencilLine className="h-3.5 w-3.5" /> Edit content
+              </button>
+            </ProfilePageBlockActions>
           )}
-          editAppearanceControl={(
-            <button type="button" onClick={openAppearance} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 bg-black/30 px-4 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-black/45">
-              <Palette className="h-4 w-4" /> Edit appearance
-            </button>
-          )}
+          contentEditor={inspectorMode === 'content' && inspectorOpen && contentSection === 'identity' ? contentInspector : undefined}
         />
       )}
       style={frameStyle}
@@ -837,13 +938,14 @@ export function ArtistPageVisualEditor({
       editDetailsHref={editDetailsHref}
       onEditDetails={() => openContent()}
       saveAction={saveCustomization}
+      saveDisabled={inspectorOpen && (inspectorMode === 'content' || (inspectorMode === 'blocks' && !!selectedBlockId))}
       externalDirty={appearanceDirty || contentDirty || blocksDirty}
       inspector={inspector}
-      inspectorOpen={inspectorOpen}
-      onOpenInspector={() => inspectorMode === 'appearance' ? openContent() : openAppearance()}
-      inspectorLabel={inspectorMode === 'appearance' ? 'Content' : 'Appearance'}
-      toolbarActions={<button type="button" onClick={() => openBlocks(null)} className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10"><Layers3 className="h-4 w-4" /> <span className="hidden sm:inline">Add block</span></button>}
-      editableSectionIds={['overview', 'featured-track', 'lyrics', 'members', 'streaming-links', 'social-links', ...blocks.map((block) => blockSectionId(block.id))]}
+      inspectorOpen={inspectorOpen && (inspectorMode === 'appearance' || (inspectorMode === 'blocks' && !selectedBlockId))}
+      onOpenInspector={openAppearance}
+      inspectorLabel="Appearance"
+      toolbarActions={<button type="button" onClick={() => openBlocks(null)} className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-white/70 hover:bg-white/10"><Layers3 className="h-4 w-4" /> <span>Add block</span></button>}
+      editableSectionIds={['overview', 'featured-track', 'lyrics', 'members', 'streaming-links', ...blocks.map((block) => blockSectionId(block.id))]}
       onEditSection={(sectionId) => {
         const blockId = blockIdFromSection(sectionId)
         if (blockId) {
@@ -856,10 +958,11 @@ export function ArtistPageVisualEditor({
           lyrics: 'lyrics',
           members: 'members',
           'streaming-links': 'links',
-          'social-links': 'links',
         }
         openContent(contentSectionByPageSection[sectionId] ?? 'identity')
+        setEditingSectionId(sectionId)
       }}
     />
+    </>
   )
 }

@@ -33,7 +33,9 @@ export function MarketingRouteShell({
 
   return (
     <div className={cx(useAppShell && 'app-shell-layout')}>
-      <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
+      {!isPublicArtistProfile && (
+        <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
+      )}
       <div className={useAppShell ? undefined : 'hidden'}>{appNav}</div>
       <main className={cx(useAppShell && 'app-shell-main min-h-screen pb-24 lg:pb-0')}>
         {children}
