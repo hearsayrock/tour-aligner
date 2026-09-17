@@ -122,9 +122,23 @@ textarea {
   border-radius: var(--profile-button-radius, 1rem);
 }
 
+.profile-page-surface[data-stacked='true'] .profile-resize-handle { display: none; }
+
 .artist-page-grid {
   grid-auto-flow: row dense;
-  align-items: stretch;
+  /* Keep short cards at their content height beside taller blocks. */
+  align-items: start;
+}
+
+.profile-page-surface[data-freeform='true'] {
+  display: block;
+  overflow-anchor: none;
+}
+
+.profile-page-surface[data-stacked='true'] {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .profile-page-frame[data-hero-height='compact'] .artist-page-hero-inner {
@@ -184,9 +198,12 @@ textarea {
   font-size: 3rem;
 }
 
+.profile-page-editor-mobile .profile-page-surface-shell {
+  padding: 2rem 1rem;
+}
+
 .profile-page-editor-mobile .artist-page-grid {
   grid-template-columns: minmax(0, 1fr);
-  padding: 2rem 1rem;
   gap: 1.25rem;
 }
 

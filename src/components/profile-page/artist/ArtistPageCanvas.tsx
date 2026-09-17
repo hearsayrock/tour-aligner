@@ -92,7 +92,7 @@ export function ArtistPageCanvas({
     />
   )
   const sections = [
-    ...createArtistPageSections({ band, shows, lyrics, isOwner, isEditing }),
+    ...createArtistPageSections({ band, shows, lyrics }),
     ...blocks.map((block) => {
       const buttonLabel = block.blockType === 'booking_cta' ? (block.content as BookingCtaBlockContent).buttonLabel : ''
       const bookingAction = block.blockType !== 'booking_cta' ? undefined

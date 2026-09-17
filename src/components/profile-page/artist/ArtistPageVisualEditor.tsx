@@ -562,7 +562,7 @@ export function ArtistPageVisualEditor({
   const blockDefinitions = blocks.map((block, index) => createBlockDefinition(block, ARTIST_PAGE_SECTION_DEFINITIONS.length + index))
   const definitions = [...ARTIST_PAGE_SECTION_DEFINITIONS, ...blockDefinitions]
   const sections = [
-    ...createArtistPageSections({ band: draftBand, shows, lyrics: draftLyrics, isOwner: true, isEditing: true, onEditContent: openContent }),
+    ...createArtistPageSections({ band: draftBand, shows, lyrics: draftLyrics, onEditContent: openContent }),
     ...blocks.map((block) => ({ sectionId: blockSectionId(block.id), content: <ProfilePageBlockView block={block} /> })),
   ]
 
@@ -843,7 +843,7 @@ export function ArtistPageVisualEditor({
       onOpenInspector={() => inspectorMode === 'appearance' ? openContent() : openAppearance()}
       inspectorLabel={inspectorMode === 'appearance' ? 'Content' : 'Appearance'}
       toolbarActions={<button type="button" onClick={() => openBlocks(null)} className="flex min-h-10 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/80 hover:bg-white/10"><Layers3 className="h-4 w-4" /> <span className="hidden sm:inline">Add block</span></button>}
-      editableSectionIds={['overview', 'featured-track', 'lyrics', 'members', 'streaming-links', 'social-links', 'profile-management', ...blocks.map((block) => blockSectionId(block.id))]}
+      editableSectionIds={['overview', 'featured-track', 'lyrics', 'members', 'streaming-links', 'social-links', ...blocks.map((block) => blockSectionId(block.id))]}
       onEditSection={(sectionId) => {
         const blockId = blockIdFromSection(sectionId)
         if (blockId) {
@@ -857,7 +857,6 @@ export function ArtistPageVisualEditor({
           members: 'members',
           'streaming-links': 'links',
           'social-links': 'links',
-          'profile-management': 'identity',
         }
         openContent(contentSectionByPageSection[sectionId] ?? 'identity')
       }}

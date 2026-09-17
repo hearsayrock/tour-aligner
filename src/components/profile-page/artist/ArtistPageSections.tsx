@@ -1,7 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
 import {
   CalendarDays,
-  CheckCircle2,
   ExternalLink,
   Globe,
   Instagram,
@@ -11,7 +10,6 @@ import {
   Route,
   Users,
 } from 'lucide-react'
-import { Badge, ButtonLink } from '@/components/ui/primitives'
 import type { ProfilePageSectionContent } from '@/components/profile-page/profile-page-types'
 import type { ArtistPageSectionId } from '@/components/profile-page/artist/artist-page-config'
 import type { Band } from '@/types/database'
@@ -119,15 +117,11 @@ export function createArtistPageSections({
   band,
   shows,
   lyrics,
-  isOwner,
-  isEditing,
   onEditContent,
 }: {
   band: Band
   shows: ArtistPageShow[]
   lyrics: ArtistPageLyric[]
-  isOwner: boolean
-  isEditing: boolean
   onEditContent?: (section: ArtistContentSection) => void
 }): ProfilePageSectionContent<ArtistPageSectionId>[] {
   const embedUrl = band.featured_track_url ? toSpotifyEmbed(band.featured_track_url) : null
@@ -269,30 +263,5 @@ export function createArtistPageSections({
         </section>
       ),
     }] : []),
-    {
-      sectionId: 'profile-management',
-      content: (
-        <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">Connect</p>
-          <div className="mt-4">
-            {isOwner ? (
-              <div>
-                <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" />You manage this artist page</Badge>
-                <p className="mt-3 text-sm leading-6 text-[#666666]">Keep your bio, music, photos, and booking details current here.</p>
-                {isEditing && onEditContent ? (
-                  <button type="button" onClick={() => onEditContent('identity')} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#252525] px-4 text-sm font-semibold text-white hover:bg-black">
-                    <PencilLine className="h-4 w-4" /> Edit artist content
-                  </button>
-                ) : (
-                  <ButtonLink href={`/bands/${band.slug}?edit=1`} tone="dark" className="mt-5 w-full"><PencilLine className="h-4 w-4" />Edit artist page</ButtonLink>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-[#777777]">This is a public, read-only artist profile. Follow the artist&apos;s links to listen, connect, and stay up to date.</p>
-            )}
-          </div>
-        </section>
-      ),
-    },
   ]
 }

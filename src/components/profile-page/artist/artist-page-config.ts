@@ -15,7 +15,6 @@ export type ArtistPageSectionId =
   | 'shows'
   | 'streaming-links'
   | 'social-links'
-  | 'profile-management'
   | ProfilePageBlockSectionId
 
 export const ARTIST_PAGE_SECTION_DEFINITIONS = [
@@ -75,20 +74,10 @@ export const ARTIST_PAGE_SECTION_DEFINITIONS = [
     defaultVariant: 'card',
   },
   {
-    sectionId: 'profile-management',
-    label: 'Profile actions',
-    description: 'Page editing controls and profile information.',
-    defaultOrder: 6,
-    defaultSpan: 4,
-    allowedSpans: [4, 6, 8, 12],
-    defaultVariant: 'card',
-    required: true,
-  },
-  {
     sectionId: 'shows',
     label: 'Upcoming shows',
     description: 'Confirmed upcoming appearances for this artist.',
-    defaultOrder: 7,
+    defaultOrder: 6,
     defaultSpan: 8,
     allowedSpans: [6, 8, 12],
     defaultVariant: 'list',

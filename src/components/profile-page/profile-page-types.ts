@@ -9,14 +9,26 @@ export type ProfilePageHeroConfig = {
 
 export type ProfilePageLayoutItem<SectionId extends string = string> = {
   sectionId: SectionId
+  /** Reading and mobile stacking order, independent of desktop placement. */
   order: number
   span: ProfilePageSpan
   visible: boolean
   variant: string
+  desktop?: ProfilePagePlacement
+}
+
+export type ProfilePagePlacement = {
+  /** Optional desktop height; content can grow beyond it. Mobile remains automatic. */
+  height?: number
+  /** Fractions of canvas width plus one gutter; width includes that gutter. */
+  x: number
+  width: number
+  /** Preferred vertical position in CSS pixels; content collisions reflow below it. */
+  y: number
 }
 
 export type ProfilePageLayout<SectionId extends string = string> = {
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   hero: ProfilePageHeroConfig
   sections: ProfilePageLayoutItem<SectionId>[]
 }
@@ -60,7 +72,7 @@ export function createDefaultProfilePageLayout<SectionId extends string>(
   definitions: readonly ProfilePageSectionDefinition<SectionId>[]
 ): ProfilePageLayout<SectionId> {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     hero: { ...DEFAULT_HERO },
     sections: definitions
       .map((definition) => ({
@@ -104,6 +116,7 @@ export function normalizeProfilePageLayout<SectionId extends string>(
       ? raw.order
       : definition.defaultOrder
 
+    const desktop = normalizeProfilePagePlacement(raw?.desktop)
     return {
       sectionId: definition.sectionId,
       order,
@@ -112,6 +125,7 @@ export function normalizeProfilePageLayout<SectionId extends string>(
       variant: raw && typeof raw.variant === 'string' && raw.variant.trim()
         ? raw.variant
         : definition.defaultVariant,
+      ...(desktop ? { desktop } : {}),
     }
   })
 
@@ -121,9 +135,20 @@ export function normalizeProfilePageLayout<SectionId extends string>(
   ))
 
   return {
-    schemaVersion: 1,
+    schemaVersion: value.schemaVersion === 2 || sections.some((section) => section.desktop) ? 2 : 1,
     hero,
     sections: sections.map((section, order) => ({ ...section, order })),
+  }
+}
+
+export function normalizeProfilePagePlacement(value: unknown): ProfilePagePlacement | undefined {
+  if (!isRecord(value) || ![value.x, value.y, value.width].every((number) => typeof number === 'number' && Number.isFinite(number))) return
+  const width = Math.min(1, Math.max(0.1, value.width as number))
+  return {
+    x: Math.min(1 - width, Math.max(0, value.x as number)),
+    y: Math.min(100000, Math.max(0, value.y as number)),
+    width,
+    ...(typeof value.height === 'number' && Number.isFinite(value.height) ? { height: Math.min(100000, Math.max(80, value.height)) } : {}),
   }
 }
 
