@@ -663,14 +663,14 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                       if ((event.target as HTMLElement).closest('button, [data-block-actions]')) return
                       handlePlacementStart(event, item.sectionId, 'move')
                     }}
-                    className="absolute left-3 right-3 top-3 z-30 flex min-h-9 touch-none cursor-grab select-none items-center gap-1 rounded-xl border border-transparent bg-transparent px-2 text-white mix-blend-difference opacity-0 transition-opacity active:cursor-grabbing group-hover/profile-section:opacity-100 group-focus-within/profile-section:opacity-100">
+                    className="absolute left-5 right-5 top-0.5 z-30 flex h-5 touch-none cursor-grab select-none items-center gap-1 rounded-lg bg-transparent text-white mix-blend-difference opacity-0 transition-opacity active:cursor-grabbing group-hover/profile-section:opacity-100 group-focus-within/profile-section:opacity-100">
 
                     <button
                       type="button"
                       onPointerDown={(event) => handlePlacementStart(event, item.sectionId, 'move')}
                       onKeyDown={(event) => handlePlacementKey(event, item.sectionId)}
                       title="Drag to place. Use arrow keys to move."
-                      className="flex h-8 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-white hover:bg-white/15 active:cursor-grabbing"
+                      className="flex h-5 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-white hover:bg-white/15 active:cursor-grabbing"
                       aria-label={`Move ${definition?.label ?? item.sectionId}`}
                     >
                       <GripVertical className="h-4 w-4" />
@@ -684,12 +684,12 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                       const source = dockGeometry.rects.find((rect) => rect.sectionId === item.sectionId)
                       const target = source ? dockProfileBlock(source, dockGeometry.rects, direction, dockGeometry.width) : null
                       const canMove = source && target && (Math.abs(target.x - source.x) >= 0.5 || Math.abs(target.y - source.y) >= 0.5)
-                      return <button key={direction} type="button" onClick={() => dockSection(item.sectionId, direction)} disabled={saving || draggedSection !== null || !canMove} aria-label={`Snap ${definition?.label ?? item.sectionId} ${direction}`} title={`Close the gap to the ${direction}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 disabled:cursor-default disabled:opacity-30">
+                      return <button key={direction} type="button" onClick={() => dockSection(item.sectionId, direction)} disabled={saving || draggedSection !== null || !canMove} aria-label={`Snap ${definition?.label ?? item.sectionId} ${direction}`} title={`Close the gap to the ${direction}`} className="flex h-5 w-8 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 disabled:cursor-default disabled:opacity-30">
                         <Icon className="h-4 w-4" />
                       </button>
                     })}
                     <span className="min-w-0 flex-1" aria-hidden="true" />
-                    <ProfilePageBlockActions label={definition?.label ?? item.sectionId}>
+                    <ProfilePageBlockActions label={definition?.label ?? item.sectionId} compact>
                     {onEditSection && editableSectionIds?.includes(item.sectionId) && (
                       <button type="button" onClick={() => onEditSection(item.sectionId)} className="flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#756B63] hover:bg-black/5 hover:text-[#252525]">
                         <PencilLine className="h-3 w-3" /> Edit

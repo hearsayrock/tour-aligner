@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { EllipsisVertical } from 'lucide-react'
 
-export function ProfilePageBlockActions({ children, label }: { children: ReactNode; label: string }) {
+export function ProfilePageBlockActions({ children, label, compact = false }: { children: ReactNode; label: string; compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState({ top: 0, right: 0 })
   const menu = useRef<HTMLDivElement>(null)
@@ -48,7 +48,7 @@ export function ProfilePageBlockActions({ children, label }: { children: ReactNo
         if (rect) setPosition({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) })
         setOpen((current) => !current)
       }}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]">
+      className={`flex ${compact ? 'h-5' : 'h-8'} w-8 items-center justify-center rounded-lg text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]`}>
       <EllipsisVertical className="h-4 w-4" />
     </button>
     {open && createPortal(<div ref={menu} style={position} onBlur={(event) => {
