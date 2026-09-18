@@ -915,7 +915,7 @@ export interface Database {
       bookings: {
         Row: {
           id: string
-          thread_id: string
+          thread_id: string | null
           band_id: string
           venue_id: string
           show_date: string
@@ -931,7 +931,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          thread_id: string
+          thread_id?: string | null
           band_id: string
           venue_id: string
           show_date: string
@@ -946,7 +946,7 @@ export interface Database {
           updated_at?: string
         }
         Update: {
-          thread_id?: string
+          thread_id?: string | null
           band_id?: string
           venue_id?: string
           show_date?: string
@@ -1244,6 +1244,15 @@ export interface Database {
           p_membership_id: string
         }
         Returns: Json
+      }
+      get_public_event_lineup: {
+        Args: { p_event_id: string }
+        Returns: Array<{
+          membership_id: string
+          band_id: string
+          artist_name: string
+          artist_slug: string
+        }>
       }
       request_event_removal: {
         Args: {

@@ -8,7 +8,7 @@ import {
   type ArtistPageLyric,
   type ArtistPageShow,
 } from '@/components/profile-page/artist/ArtistPageCanvas'
-import type { Band, Genre } from '@/types/database'
+import type { Band, Event, Genre } from '@/types/database'
 import type { ProfilePageBlock } from '@/types/database'
 import { parseProfilePageBlock } from '@/components/profile-page/blocks/profile-page-blocks'
 import {
@@ -109,12 +109,11 @@ export default async function BandProfilePage({
     supabase.from('band_genres').select('genre_id, genres(name)').eq('band_id', band.id),
     supabase
       .from('bookings')
-      .select('id, show_date, venues(name, location_city, location_state)')
+      .select('id, show_date, event_id, venues(name, location_city, location_state), events(is_public, lineup_published, status)')
       .eq('band_id', band.id)
       .in('status', ['confirmed', 'cancellation_requested'])
       .gte('show_date', today)
-      .order('show_date')
-      .limit(8),
+      .order('show_date'),
     supabase
       .from('band_lyrics')
       .select('id, title, body, sort_order')
@@ -166,7 +165,12 @@ export default async function BandProfilePage({
       blocks={blocks}
       contactIdentity={contactIdentity}
       contactNeedsIdentitySelection={contactNeedsIdentitySelection}
-      shows={structuredClone(rawShows ?? []) as unknown as ArtistPageShow[]}
+      shows={structuredClone(rawShows ?? []).filter((show) => {
+        // Owners and visitors see the same public schedule. Legacy bookings without
+        // an event retain their existing visibility.
+        const event = show.events as unknown as Pick<Event, 'is_public' | 'lineup_published' | 'status'> | null
+        return !show.event_id || (event?.is_public && event.lineup_published && ['draft', 'active'].includes(event.status))
+      }).slice(0, 8) as unknown as ArtistPageShow[]}
       lyrics={structuredClone(rawLyrics ?? []) as ArtistPageLyric[]}
       isOwner={isOwner}
       isEditing={isOwner && edit === '1'}

@@ -1,5 +1,34 @@
 # Booking Lifecycle: Contact → Booking → Event
 
+## Implemented synchronization (September 2026)
+
+Migration `20260918040239_synchronize_event_memberships_and_bookings.sql` connects
+the two confirmation paths atomically. Accepted event memberships create or link
+confirmed bookings, without creating a contact conversation. Inbox confirmation
+inserts the booking first and creates the accepted membership through its trigger.
+`bookings.thread_id` is consequently nullable. Deleting a conversation preserves
+its bookings by clearing the thread link.
+
+Membership removal requests map to pending booking cancellations and remain on
+the lineup until resolved. Venue removal cancels the booking. Inbox cancellation
+updates the corresponding membership in the other direction. Event date or venue
+changes move active bookings to the destination calendar date, subject to its
+availability and cap. Event cancellation or deletion cancels active bookings.
+Cancelled booking rows remain as history; reacceptance creates a new commitment.
+
+The migration reconciles existing accepted memberships, preserves pending Inbox
+cancellation requests, and refuses conflicting event/date associations or capacity
+violations rather than silently merging events. The rollback disables synchronization
+but retains booking history and nullable thread links, which cannot safely be undone.
+
+Public artist schedules include event-linked bookings only when the event is public
+and its lineup is published, with Draft and Active matching existing event visibility.
+Legacy bookings without an event retain their prior visibility. Public event lineups
+use `get_public_event_lineup`, which exposes only artist identifiers, names, and slugs;
+private applications and membership notes stay private. The public venue booking
+calendar continues using the booking ledger for availability independently of lineup
+publication. The sections below describe the original lifecycle proposal.
+
 Linear: **Booking becomes calendar truth** → *Define canonical lifecycle from contact to booking to event*
 
 This doc defines the intended end-to-end lifecycle from first contact through a

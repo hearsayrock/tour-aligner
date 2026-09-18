@@ -27,6 +27,13 @@ function isRpcPayload(value: Json | null): value is RpcPayload {
 function revalidateInbox(threadId?: string) {
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/inbox')
+  revalidatePath('/bands/[slug]', 'page')
+  revalidatePath('/venues/[slug]', 'page')
+  revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard/venues')
+  revalidatePath('/dashboard/backstage')
+  revalidatePath('/dashboard/backstage/[eventId]', 'page')
+  revalidatePath('/events/[slug]', 'page')
 
   if (threadId) {
     revalidatePath(`/dashboard/inbox/${threadId}`)

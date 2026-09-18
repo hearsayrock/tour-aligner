@@ -27,6 +27,10 @@ function eventPaths(eventId?: string, slug?: string) {
   revalidatePath('/dashboard/backstage')
   revalidatePath('/dashboard/calendar')
   revalidatePath('/events')
+  revalidatePath('/bands/[slug]', 'page')
+  revalidatePath('/venues/[slug]', 'page')
+  revalidatePath('/dashboard/venues')
+  revalidatePath('/dashboard/inbox')
   if (eventId) revalidatePath(`/dashboard/backstage/${eventId}`)
   if (slug) revalidatePath(`/events/${slug}`)
 }

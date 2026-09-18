@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ApplyEventForm } from '@/components/events/ApplyEventForm'
-import { formatEventDateLong, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import { formatEventDateLong, getAcceptedMemberships } from '@/lib/events'
 import {
   ACTIVE_IDENTITY_COOKIE,
   activeIdentityLabel,
@@ -67,10 +67,18 @@ export default async function EventDetailPage({
   const acceptedMemberships = getAcceptedMemberships(memberships) as Array<
     EventArtistMembership & { bands: { id: string; name: string; slug: string; user_id: string } | null }
   >
-  const acceptedCount = acceptedMemberships.length
-  const openNeed = getOpenArtistNeed(event, memberships)
   const genres = (event.event_genres ?? []).map((entry) => entry.genres).filter(Boolean) as Array<{ id: string; name: string }>
-  const publicLineup = event.lineup_published ? acceptedMemberships.filter((membership) => membership.bands) : []
+  const { data: publishedArtists } = event.is_public && event.lineup_published
+    ? await supabase.rpc('get_public_event_lineup', { p_event_id: event.id })
+    : { data: null }
+  const publicLineup = event.is_public
+    ? (publishedArtists ?? []).map((artist) => ({
+      id: artist.membership_id,
+      bands: { name: artist.artist_name, slug: artist.artist_slug },
+    }))
+    : event.lineup_published ? acceptedMemberships.filter((membership) => membership.bands) : []
+  const acceptedCount = Math.max(acceptedMemberships.length, publicLineup.length)
+  const openNeed = Math.max(0, event.needed_artist_count - acceptedCount)
 
   let userBands: Array<{ id: string; name: string }> = []
   let applyBands: Array<{ id: string; name: string }> = []
