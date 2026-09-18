@@ -10,6 +10,14 @@ const definitions: ProfilePageSectionDefinition[] = ['a', 'b', 'c'].map((section
   allowedSpans: [4, 6, 8, 12], defaultVariant: 'card', required: sectionId === 'a',
 }))
 
+test('scrollable lyrics can shrink vertically while retaining their content width', () => {
+  const source = { sectionId: 'lyrics', x: 0, y: 0, width: 700, height: 1800 }
+  const { rect } = resizeProfileBlock(source, 'se', -600, -1700, 1200, 280, [], false, 560)
+  assert.equal(rect.width, 560)
+  assert.equal(rect.height, 280)
+  assert.equal(resizeProfileBlock(source, 'e', -600, 0, 400, 280, [], false, 560).rect.width, 400)
+})
+
 test('Auto Arrange fits content instead of old dimensions and backfills higher gaps ahead of later wide cards', () => {
   const blocks = [
     { sectionId: 'wide', priority: 1, allowedSpans: [8, 12] as const },

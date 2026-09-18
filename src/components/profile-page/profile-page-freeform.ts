@@ -7,10 +7,10 @@ export type ProfileResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw
 
 /** Resize only the grabbed edges, keeping their opposite edges anchored. */
 export function resizeProfileBlock(source: ProfileBlockRect, edge: ProfileResizeEdge, dx: number, dy: number,
-  canvasWidth: number, contentHeight: number, others: readonly ProfileBlockRect[] = [], snapToGuides = true) {
+  canvasWidth: number, contentHeight: number, others: readonly ProfileBlockRect[] = [], snapToGuides = true, contentWidth = PROFILE_BLOCK_MIN_WIDTH) {
   const right = source.x + source.width
   const bottom = source.y + source.height
-  const minWidth = Math.min(PROFILE_BLOCK_MIN_WIDTH, canvasWidth)
+  const minWidth = Math.min(Math.max(PROFILE_BLOCK_MIN_WIDTH, contentWidth), canvasWidth)
   const minHeight = Math.max(PROFILE_BLOCK_MIN_HEIGHT, contentHeight)
   const rect = { ...source }
   const guides: ProfileAlignmentGuide[] = []

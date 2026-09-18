@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react'
+import { ArtistLyrics } from './ArtistLyrics'
 import {
   CalendarDays,
   ExternalLink,
@@ -148,16 +149,7 @@ export function createArtistPageSections({
     ...(lyrics.length > 0 || onEditContent ? [{
       sectionId: 'lyrics' as const,
       content: (
-        <SectionCard eyebrow="Words" title="Lyrics">
-          <div className="space-y-6" style={onEditContent ? { minHeight: 128 } : undefined}>
-            {lyrics.map((lyric) => (
-              <article key={lyric.id}>
-                <h3 className="text-lg font-semibold text-[#252525]">{lyric.title}</h3>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#555555]">{lyric.body}</p>
-              </article>
-            ))}
-          </div>
-        </SectionCard>
+        <ArtistLyrics lyrics={lyrics} />
       ),
     }] : []),
     ...((band.members ?? []).length > 0 || onEditContent ? [{

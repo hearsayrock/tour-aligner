@@ -224,3 +224,9 @@ textarea {
 .profile-page-editor-mobile .artist-page-facts {
   max-width: 100%;
 }
+ .profile-lyrics-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c9c1b8 transparent;
+ }
+ .profile-lyrics-scroll::-webkit-scrollbar { width: 6px; }
+ .profile-lyrics-scroll::-webkit-scrollbar-thumb { background: #c9c1b8; border-radius: 999px; }

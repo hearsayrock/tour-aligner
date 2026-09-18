@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 import { cx } from '@/components/ui/primitives'
 import { nearestProfilePageDragSlot, profilePageDragSlots, type DragSlot } from './profile-page-drag'
-import { ProfilePageSurface, measureProfileSurface, measureProfileContent, type ProfileSurfaceGeometry } from './ProfilePageSurface'
+import { ProfilePageSurface, measureProfileSurface, measureProfileContent, measureProfileMinWidth, type ProfileSurfaceGeometry } from './ProfilePageSurface'
 import { ProfilePageBlockActions } from './ProfilePageBlockActions'
 import { ProfilePageStudioMenu } from './ProfilePageStudioMenu'
 import { PROFILE_BLOCK_GAP, PROFILE_BLOCK_MIN_WIDTH, autoProfileBlocks, profileBlockReadingOrder, smartProfileBlocks, resolveProfileBlocks, resizeProfileBlock, dockProfileBlock, type ProfileDockDirection, snapProfileBlock, type ProfileResizeEdge, type ProfileBlockRect, type ProfileAlignmentGuide } from './profile-page-freeform'
@@ -232,6 +232,8 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     const grid = gridRef.current
     const element = grid?.querySelector<HTMLElement>(`[data-section-id="${CSS.escape(source.sectionId)}"]`)
     if (!grid || !element) return
+    source.width = Math.max(source.width, measureProfileMinWidth(element, canvasWidth))
+    source.x = Math.max(0, Math.min(canvasWidth - source.width, source.x))
     // Width buttons and keyboard resizing need the new content height before pushing neighbors.
     source.height = Math.max(measureProfileContent(element, source.width), layoutRef.current.sections.find((item) => item.sectionId === source.sectionId)?.desktop?.height ?? 0)
   }
@@ -307,13 +309,14 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
           const others = rects.filter((rect) => rect.sectionId !== session.sectionId)
           const dx = session.x - session.startX
           const dy = session.y - session.startY
-          const proposed = resizeProfileBlock(session.source, session.edge!, dx, dy, session.geometry.width, 0, others)
           const element = grid.querySelector<HTMLElement>(`[data-section-id="${CSS.escape(session.sectionId)}"]`)!
+          const minWidth = measureProfileMinWidth(element, session.geometry.width)
+          const proposed = resizeProfileBlock(session.source, session.edge!, dx, dy, session.geometry.width, 0, others, true, minWidth)
           if (session.contentWidth !== proposed.rect.width) {
             session.contentWidth = proposed.rect.width
             session.contentHeight = measureProfileContent(element, proposed.rect.width)
           }
-          const result = resizeProfileBlock(session.source, session.edge!, dx, dy, session.geometry.width, session.contentHeight!, others)
+          const result = resizeProfileBlock(session.source, session.edge!, dx, dy, session.geometry.width, session.contentHeight!, others, true, minWidth)
           if (!session.edge!.includes('n') && !session.edge!.includes('s')) {
             result.rect.height = Math.max(session.contentHeight!, session.startLayout.sections.find((item) => item.sectionId === session.sectionId)?.desktop?.height ?? 0)
           }
@@ -437,10 +440,11 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
       if (edge) {
         const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
         const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
-        const proposed = resizeProfileBlock(source, edge, dx, dy, geometry.width, 0, [], false)
         const element = gridRef.current!.querySelector<HTMLElement>(`[data-section-id="${CSS.escape(sectionId)}"]`)!
+        const minWidth = measureProfileMinWidth(element, geometry.width)
+        const proposed = resizeProfileBlock(source, edge, dx, dy, geometry.width, 0, [], false, minWidth)
         const contentHeight = measureProfileContent(element, proposed.rect.width)
-        Object.assign(source, resizeProfileBlock(source, edge, dx, dy, geometry.width, contentHeight, [], false).rect)
+        Object.assign(source, resizeProfileBlock(source, edge, dx, dy, geometry.width, contentHeight, [], false, minWidth).rect)
         if (!edge.includes('n') && !edge.includes('s')) source.height = Math.max(contentHeight, layoutRef.current.sections.find((item) => item.sectionId === sectionId)?.desktop?.height ?? 0)
       }
       else {

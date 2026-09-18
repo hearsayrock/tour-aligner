@@ -14,10 +14,26 @@ export function measureProfileContent(element: HTMLElement, width = element.offs
   clone.inert = true
   clone.setAttribute('aria-hidden', 'true')
   Object.assign(clone.style, { position: 'absolute', width: `${width}px`, height: 'auto', minHeight: '0', visibility: 'hidden', pointerEvents: 'none', transition: 'none' })
+  // Scrollable cards need room for their controls and a reading viewport, not every line.
+  const viewport = clone.querySelector<HTMLElement>('[data-profile-scroll-viewport]')
+  if (viewport) Object.assign(viewport.style, { height: '96px', flex: 'none', overflow: 'hidden' })
   element.parentElement?.appendChild(clone)
   const height = clone.offsetHeight
   clone.remove()
   return height
+}
+
+export function measureProfileMinWidth(element: HTMLElement, canvasWidth: number) {
+  const content = element.querySelector<HTMLElement>('[data-profile-width-content]')
+  if (!content) return Math.min(240, canvasWidth)
+  const clone = content.cloneNode(true) as HTMLElement
+  Object.assign(clone.style, { display: 'block', position: 'absolute', width: 'max-content', visibility: 'hidden' })
+  content.parentElement?.appendChild(clone)
+  const card = content.parentElement!
+  const style = getComputedStyle(card)
+  const width = clone.offsetWidth + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + 16
+  clone.remove()
+  return Math.min(canvasWidth, Math.max(240, width))
 }
 
 export function measureProfileSurface(surface: HTMLDivElement): ProfileSurfaceGeometry {
@@ -110,7 +126,7 @@ export function ProfilePageSurface<SectionId extends string>({ items, mobile = f
         return renderItem(item, `min-w-0 ${SPAN_CLASSES[item.span]}`, freeform && rect ? {
           position: 'absolute', left: rect.x, top: rect.y, width: rect.width,
           ...(item.desktop?.height !== undefined ? { height: rect.height } : {}),
-        } : undefined)
+        } : item.sectionId === 'lyrics' && item.desktop?.height !== undefined ? { height: Math.max(item.desktop.height, heights[item.sectionId] ?? 0) } : undefined)
       })}
       {freeform && guides.map((guide, index) => <div key={`${guide.axis}:${index}`} aria-hidden="true"
         className="pointer-events-none absolute z-40 bg-[#FD6A2F]"
