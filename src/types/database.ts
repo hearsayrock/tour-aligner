@@ -237,6 +237,19 @@ export interface Database {
           updated_at?: string
         }
       }
+      artist_follows: {
+        Row: {
+          follower_band_id: string
+          followed_band_id: string
+          created_at: string
+        }
+        Insert: {
+          follower_band_id: string
+          followed_band_id: string
+          created_at?: string
+        }
+        Update: never
+      }
       band_genres: {
         Row: {
           band_id: string
@@ -1080,6 +1093,17 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      search_artist_directory: {
+        Args: {
+          p_artist_id?: string | null
+          p_view?: string
+          p_query?: string
+          p_genre_id?: string | null
+          p_radius?: string
+          p_artist_type?: string
+        }
+        Returns: Array<{ band_id: string; shared_genre_count: number }>
+      }
       record_legal_document_acceptance: {
         Args: {
           p_document_key: string

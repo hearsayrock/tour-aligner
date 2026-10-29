@@ -20,6 +20,7 @@ import {
 import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { ButtonLink } from '@/components/ui/primitives'
 import type { ManagedIdentity } from '@/lib/managed-identity'
+import { ArtistConnectionActions } from '@/components/bands/ArtistConnectionActions'
 
 export type { ArtistPageLyric, ArtistPageShow } from '@/components/profile-page/artist/ArtistPageSections'
 
@@ -31,6 +32,9 @@ export type ArtistPageCanvasProps = {
   blocks: ProfilePageBlockDraft[]
   contactIdentity: ManagedIdentity | null
   contactNeedsIdentitySelection: boolean
+  following?: boolean
+  followsYou?: boolean
+  followAvailable?: boolean
   shows: ArtistPageShow[]
   lyrics: ArtistPageLyric[]
   isOwner: boolean
@@ -57,6 +61,9 @@ export function ArtistPageCanvas({
   blocks,
   contactIdentity,
   contactNeedsIdentitySelection,
+  following = false,
+  followsYou = false,
+  followAvailable = true,
   shows,
   lyrics,
   isOwner,
@@ -89,6 +96,12 @@ export function ArtistPageCanvas({
       appearance={getArtistProfileAppearance(theme)}
       coverImage={heroImage}
       profileImage={profileImage}
+      connectionActions={!isOwner && (
+        contactIdentity ? <ArtistConnectionActions key={`${contactIdentity.kind}:${contactIdentity.id}:${band.id}`} identity={contactIdentity} targetId={band.id} targetName={band.name} following={following} followsYou={followsYou} followAvailable={followAvailable} />
+          : contactNeedsIdentitySelection ? <ButtonLink href="/dashboard/profiles">Choose a profile to connect</ButtonLink>
+            : hasViewer ? <ButtonLink href="/dashboard/profiles">Create a profile to connect</ButtonLink>
+              : <ButtonLink href={`/login?next=${encodeURIComponent(`/bands/${band.slug}`)}`}>Sign in to connect</ButtonLink>
+      )}
     />
   )
   const sections = [

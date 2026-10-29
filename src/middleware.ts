@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { TERMS_DOCUMENT_KEY, TERMS_DOCUMENT_VERSION } from '@/lib/legal'
 import { logServerTiming } from '@/lib/performance'
+import { isArtistWorkspacePath } from '@/lib/artist-workspace-access'
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -15,18 +16,6 @@ const PUBLIC_PATHS = new Set([
 function isPublicArtistProfile(pathname: string) {
   const parts = pathname.split('/').filter(Boolean)
   return parts.length === 2 && parts[0] === 'bands'
-}
-
-function isArtistProfilePath(pathname: string) {
-  if (pathname === '/dashboard' || pathname === '/dashboard/profile' || pathname === '/dashboard/profile/edit') {
-    return true
-  }
-
-  if (pathname === '/dashboard/account' || pathname === '/dashboard/settings' || pathname === '/dashboard/profiles') {
-    return true
-  }
-
-  return pathname === '/dashboard/bands/new' || /^\/dashboard\/bands\/[^/]+\/edit$/.test(pathname)
 }
 
 function redirectWithSession(request: NextRequest, response: NextResponse, pathname: string) {
@@ -157,8 +146,8 @@ export async function middleware(request: NextRequest) {
     return redirectWithSession(request, response, '/dashboard/profiles')
   }
 
-  if (isArtistProfilePath(pathname)) {
-    log('artist-profile', accessMs)
+  if (isArtistWorkspacePath(pathname)) {
+    log('artist-workspace', accessMs)
     return pathname === '/dashboard'
       ? redirectWithSession(request, response, '/dashboard/profiles')
       : response

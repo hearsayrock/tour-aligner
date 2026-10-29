@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 interface DashboardBandFiltersProps {
   genres: { id: string; name: string }[]
@@ -50,9 +50,18 @@ export function DashboardBandFilters({ genres }: DashboardBandFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const query = searchParams.get('q') ?? ''
+  useEffect(() => {
+    if (searchInputRef.current) searchInputRef.current.value = query
+  }, [query])
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+  }, [searchParams])
 
   const pushParams = useCallback(
     (updates: Record<string, string>) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
       const params = new URLSearchParams(searchParams.toString())
       for (const [key, value] of Object.entries(updates)) {
         if (value) params.set(key, value)
@@ -85,6 +94,8 @@ export function DashboardBandFilters({ genres }: DashboardBandFiltersProps) {
         </span>
         <input
           type="text"
+          ref={searchInputRef}
+          aria-label="Search artists by name or city"
           placeholder="Search bands and artists…"
           defaultValue={searchParams.get('q') ?? ''}
           onChange={(e) => handleSearch(e.target.value)}

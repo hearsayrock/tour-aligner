@@ -37,6 +37,7 @@ export function ArtistPageHero({
   editAppearanceControl,
   editContentControl,
   contentEditor,
+  connectionActions,
 }: {
   band: Band
   genreNames: string[]
@@ -48,6 +49,7 @@ export function ArtistPageHero({
   editAppearanceControl?: React.ReactNode
   contentEditor?: React.ReactNode
   editContentControl?: React.ReactNode
+  connectionActions?: React.ReactNode
 }) {
   const location = formatLocation(band)
   const artistType = band.artist_type ? ARTIST_TYPE_LABELS[band.artist_type] : null
@@ -137,6 +139,7 @@ export function ArtistPageHero({
                 ))}
               </div>
             )}
+            {connectionActions && <div className="mt-6 rounded-2xl bg-white p-4 text-[#252525]">{connectionActions}</div>}
           </div>
 
           <div className="artist-page-facts rounded-[28px] border border-white/12 bg-black/36 p-5 text-left shadow-[0_22px_54px_rgba(0,0,0,0.24)] backdrop-blur-md">

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { loadArtistFollowState } from '@/lib/artist-network-data'
 import {
   ArtistPageCanvas,
   type ArtistPageLyric,
@@ -141,7 +142,7 @@ export default async function BandProfilePage({
   })
   let contactIdentity: ManagedIdentity | null = null
   let contactNeedsIdentitySelection = false
-  if (user && blocks.some((block) => block.blockType === 'booking_cta')) {
+  if (user) {
     const [{ data: ownedBands }, { data: ownedVenues }] = await Promise.all([
       supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true),
       supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true),
@@ -156,6 +157,10 @@ export default async function BandProfilePage({
     contactNeedsIdentitySelection = identities.length > 0 && activeIdentity.kind === 'all'
   }
 
+  const connections = contactIdentity?.kind === 'band' && !isOwner
+    ? await loadArtistFollowState(supabase, contactIdentity.id, [band.id])
+    : { following: new Set<string>(), followers: new Set<string>(), available: true }
+
   return (
     <ArtistPageCanvas
       band={displayBand}
@@ -165,6 +170,9 @@ export default async function BandProfilePage({
       blocks={blocks}
       contactIdentity={contactIdentity}
       contactNeedsIdentitySelection={contactNeedsIdentitySelection}
+      following={connections.following.has(band.id)}
+      followsYou={connections.followers.has(band.id)}
+      followAvailable={connections.available}
       shows={structuredClone(rawShows ?? []).filter((show) => {
         // Owners and visitors see the same public schedule. Legacy bookings without
         // an event retain their existing visibility.

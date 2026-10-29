@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { Inbox, MessageSquare, MessagesSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getManagedUserData } from '@/lib/managed-user-data'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
 import { InboxRealtime } from '@/components/contact/InboxRealtime'
 import { InboxViewSelect } from '@/components/contact/InboxViewSelect'
@@ -224,6 +225,8 @@ export default async function InboxPage({
   } = await supabase.auth.getUser()
 
   if (!user) return redirect('/login')
+  const { profile } = await getManagedUserData(user.id)
+  const showBookingThreads = profile?.is_admin ?? false
 
   const [{ data: bands }, { data: venues }] = await Promise.all([
     supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true).order('name'),
@@ -254,11 +257,11 @@ export default async function InboxPage({
         <PageHeader
           eyebrow="Inbox"
           title="Choose a profile"
-          description="Private chats and booking conversations are filtered by one artist or venue profile."
+          description={showBookingThreads ? 'Private chats and booking conversations are filtered by one artist or venue profile.' : 'Private chats are filtered by the selected profile.'}
         />
         <ProfileSelectionModal
           title="Select a profile to view the inbox"
-          body="Choose the artist or venue profile you want to use for private chats and booking threads."
+          body="Choose the profile you want to use for private chats."
           identities={identities}
         />
       </div>
@@ -279,7 +282,7 @@ export default async function InboxPage({
 
   const [privateThreads, rawBookingThreadsResult] = await Promise.all([
     loadPrivateChatThreads(supabase, activeIdentity),
-    activeIdentity.kind === 'band'
+    !showBookingThreads ? Promise.resolve({ data: [] }) : activeIdentity.kind === 'band'
       ? supabase
           .from('contact_threads')
           .select(`
@@ -329,7 +332,7 @@ export default async function InboxPage({
       <PageHeader
         eyebrow="Inbox"
         title={`${activeIdentity.name} inbox`}
-        description="Private chats and booking conversations for the selected profile."
+        description={showBookingThreads ? 'Private chats and booking conversations for the selected profile.' : 'Private chats for the selected profile.'}
         actions={<InboxViewSelect value={view} />}
       />
 
@@ -338,15 +341,15 @@ export default async function InboxPage({
           title={view === 'archived' ? 'No archived conversations' : 'No inbox conversations yet'}
           description={
             view === 'archived'
-              ? 'Archived private chats and booking threads will appear here.'
-              : 'Start a private chat from a profile page or request booking contact to open your inbox.'
+              ? showBookingThreads ? 'Archived private chats and booking threads will appear here.' : 'Archived private chats will appear here.'
+              : showBookingThreads ? 'Start a private chat from a profile page or request booking contact to open your inbox.' : 'Find an artist and send a private chat request to start a conversation.'
           }
           action={
             <Link
-              href="/events"
+              href={showBookingThreads ? '/events' : '/dashboard/bands'}
               className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#E2E2E2] bg-white px-4 py-2 text-sm font-semibold text-[#252525] transition-colors hover:border-[#CFCFCF] hover:bg-[#F6F6F6]"
             >
-              Browse events
+              {showBookingThreads ? 'Browse events' : 'Browse artists'}
             </Link>
           }
         />
@@ -379,7 +382,7 @@ export default async function InboxPage({
             )}
           </section>
 
-          <section>
+          {showBookingThreads && <section>
             <SectionHeading
               title="Booking Threads"
               description="Booking-specific conversations that still drive contact and scheduling."
@@ -404,7 +407,7 @@ export default async function InboxPage({
                 ))}
               </div>
             )}
-          </section>
+          </section>}
         </div>
       )}
 

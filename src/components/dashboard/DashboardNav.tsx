@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
 import {
   CalendarDays,
@@ -99,7 +99,6 @@ export function DashboardNav({
   const pathname = usePathname()
   const sidebarCollapsed = useSyncExternalStore(subscribeToSidebarState, getSidebarState, getServerSidebarState)
   const [resolvedNotifications, setResolvedNotifications] = useState(notifications ?? EMPTY_NOTIFICATIONS)
-  const notificationLoadRef = useRef<{ key: string; promise: Promise<Notifications> } | null>(null)
   const isPhaseOneArtist = phaseOne && !isAdmin
   const links = NAV_LINKS
   const allowAllIdentities = !isPhaseOneArtist && pathname === '/dashboard'
@@ -119,7 +118,6 @@ export function DashboardNav({
 
     let cancelled = false
     const scope = notificationScope
-    const scopeKey = `${isAdmin}:${scope.userId}:${scope.bandIds.join(',')}:${scope.venueIds.join(',')}`
 
     async function loadNotifications(): Promise<Notifications> {
       const startedAt = performance.now()
@@ -237,7 +235,7 @@ export function DashboardNav({
       })
 
       const resolved = {
-        inbox: hasBandBookingAttention || hasVenueBookingAttention || hasPrivateInboxAttention,
+        inbox: (!isPhaseOneArtist && (hasBandBookingAttention || hasVenueBookingAttention)) || hasPrivateInboxAttention,
         backstage: (invitedMembershipCount ?? 0) > 0 || (venueApplicationCount ?? 0) > 0,
         pendingClaims: (pendingClaimsCount ?? 0) > 0,
         adminClaims: (adminClaimsCount ?? 0) > 0,
@@ -250,18 +248,16 @@ export function DashboardNav({
       return resolved
     }
 
-    if (notificationLoadRef.current?.key !== scopeKey) {
-      notificationLoadRef.current = { key: scopeKey, promise: loadNotifications() }
-    }
-
-    void notificationLoadRef.current.promise.then((nextNotifications) => {
+    // InboxRealtime refreshes the server props when messages/read state change.
+    // Reusing a settled promise here left the badge stuck at its initial state.
+    void loadNotifications().then((nextNotifications) => {
       if (!cancelled) setResolvedNotifications(nextNotifications)
     })
 
     return () => {
       cancelled = true
     }
-  }, [isAdmin, notificationScope])
+  }, [isAdmin, isPhaseOneArtist, notificationScope])
 
   function toggleSidebar() {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!sidebarCollapsed))
@@ -362,14 +358,14 @@ export function DashboardNav({
       )}
 
       <header className={cx('sticky top-0 z-30 border-b border-[#E3E1DC] bg-[#FBFBFA]/95 px-4 py-3 backdrop-blur', !isPhaseOneArtist && 'lg:hidden')}>
-        <div className={cx('flex items-center justify-between gap-3', isPhaseOneArtist && 'mx-auto max-w-7xl')}>
+        <div className={cx('flex flex-wrap items-center justify-between gap-3', isPhaseOneArtist && 'mx-auto max-w-7xl')}>
           <Link href={isPhaseOneArtist ? '/dashboard/profiles' : '/dashboard'} className="flex min-h-10 items-center gap-2">
             <Image src="/logo-v2.png" alt="TourAligner" width={isPhaseOneArtist ? 142 : 126} height={isPhaseOneArtist ? 37 : 33} priority />
             {showStagingBadge && <EnvironmentBadge />}
           </Link>
           <div className="flex items-center gap-2">
-            {!isPhaseOneArtist && activeIdentity && (
-              <div className="lg:hidden">
+            {activeIdentity && identities.length > 0 && (
+              <div className={isPhaseOneArtist ? '' : 'lg:hidden'}>
                 <IdentitySwitcher
                   activeIdentity={activeIdentity}
                   identities={identities}
@@ -393,6 +389,17 @@ export function DashboardNav({
             )}
           </div>
         </div>
+        {isPhaseOneArtist && identities.length > 0 && (
+          <nav aria-label="Artist workspace" className="mx-auto mt-3 flex max-w-7xl gap-2 border-t border-[#E8E6E0] pt-3">
+            {NAV_LINKS.filter(({ href }) => href === '/dashboard/bands' || href === '/dashboard/inbox').map(({ href, label, icon: Icon }) => (
+              <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={cx('inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold', isActive(href) ? 'bg-[#252525] text-white' : 'text-[#5F5F5F] hover:bg-white')}>
+                <Icon className="h-4 w-4" />
+                {label}
+                {dotForLink(href) && <Dot className={isActive(href) ? 'ring-[#252525]' : ''} />}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
     </>
