@@ -133,6 +133,8 @@ function GoogleSignInButton({ next }: OAuthButtonsProps) {
           // Keep the sign-in overlay visible until this page unmounts so the root
           // route-loading boundary does not create a second, visibly separate spinner.
           router.push(destination)
+          // Re-render shared layouts with the new session so the chat dock mounts.
+          router.refresh()
         },
       })
 

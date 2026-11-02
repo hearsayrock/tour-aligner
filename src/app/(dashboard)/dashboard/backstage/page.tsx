@@ -14,6 +14,7 @@ import {
 } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
+import { loadBackstageAttention } from '@/lib/backstage-attention'
 
 export const metadata = { title: 'Backstages' }
 
@@ -184,7 +185,7 @@ export default async function BackstageListPage({
     .in('band_id', bandIds)
     .neq('status', 'removed')
 
-  const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
+  const [{ data: venueEvents }, { data: artistMemberships }, attentionItems] = await Promise.all([
     venueIds.length
       ? (past ? venueQuery.lt('event_date', todayIso) : venueQuery.gte('event_date', todayIso))
           .order('event_date', { ascending: !past })
@@ -193,6 +194,7 @@ export default async function BackstageListPage({
     bandIds.length
       ? (past ? artistQuery.lt('events.event_date', todayIso) : artistQuery.gte('events.event_date', todayIso))
       : Promise.resolve({ data: [] }),
+    loadBackstageAttention(supabase, activeIdentity, todayIso),
   ])
 
   const venueEventRows = (venueEvents ?? []) as unknown as EventCardRecord[]
@@ -235,6 +237,37 @@ export default async function BackstageListPage({
           </div>
         }
       />
+
+      {attentionItems.length > 0 && (
+        <section className="mb-8 rounded-2xl border border-[#FFD5C4] bg-[#FFF3EE] p-5">
+          <SectionHeading
+            title="Needs attention"
+            description={activeIdentity?.kind === 'band'
+              ? 'Invitations waiting for your reply.'
+              : 'Artist applications waiting for your review.'}
+          />
+          <ul className="space-y-3">
+            {attentionItems.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E6E6E6] bg-white p-4">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-[#252525]">{item.title}</h3>
+                  <p className="mt-1 text-sm text-[#666666]">{formatEventDate(item)}</p>
+                  <div className="mt-2">
+                    <Badge tone="brand">
+                      {activeIdentity?.kind === 'band'
+                        ? 'Invitation pending'
+                        : `${item.pendingCount} pending application${item.pendingCount === 1 ? '' : 's'}`}
+                    </Badge>
+                  </div>
+                </div>
+                <ButtonLink href={`/dashboard/backstage/${item.id}`} tone="secondary">
+                  {activeIdentity?.kind === 'band' ? 'Review invitation' : 'Review applications'}
+                </ButtonLink>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <nav
         aria-label="Backstage dates"

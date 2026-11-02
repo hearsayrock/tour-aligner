@@ -197,6 +197,7 @@ async function DashboardActivity({
   venues,
   bandIds,
   venueIds,
+  canCreateEvent,
   showProfileTags,
 }: {
   userId: string
@@ -204,6 +205,7 @@ async function DashboardActivity({
   venues: Array<{ id: string; name: string }>
   bandIds: string[]
   venueIds: string[]
+  canCreateEvent: boolean
   showProfileTags: boolean
 }) {
   const startedAt = getServerTimingStart()
@@ -281,7 +283,6 @@ async function DashboardActivity({
   const allVenueIds = venues.map((venue) => venue.id)
   const hasMultipleProfiles = allBandIds.length + allVenueIds.length > 1
   const hasAnyEvents = venueEventRows.length > 0 || artistEvents.length > 0
-  const canCreateEvent = venueIds.length > 0
   const bandNameById = new Map(bands.map((band) => [band.id, band.name]))
   const venueNameById = new Map(venues.map((venue) => [venue.id, venue.name]))
   const backstageDescription = hasMultipleProfiles
@@ -458,7 +459,7 @@ export default async function DashboardPage() {
       ? [activeIdentity.id]
       : []
   const name = profile?.full_name?.split(' ')[0] ?? 'there'
-  const canCreateEvent = venueIds.length > 0
+  const canCreateEvent = activeIdentity.kind === 'venue'
   const headerDescription = hasMultipleProfiles
     ? 'Your dashboard highlights booking work that needs attention, plus the next Backstages for the selected profile.'
     : 'Your dashboard highlights booking work that needs attention, plus your next Backstages.'
@@ -498,6 +499,7 @@ export default async function DashboardPage() {
           venues={venues}
           bandIds={bandIds}
           venueIds={venueIds}
+          canCreateEvent={canCreateEvent}
           showProfileTags={hasMultipleProfiles && activeIdentity.kind === 'all'}
         />
       </Suspense>

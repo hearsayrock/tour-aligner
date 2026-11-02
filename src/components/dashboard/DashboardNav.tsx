@@ -21,6 +21,7 @@ import { NavAccountMenu } from '@/components/ui/NavAccountMenu'
 import { Badge, cx } from '@/components/ui/primitives'
 import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 import { createClient } from '@/lib/supabase/client'
+import { loadBackstageAttention } from '@/lib/backstage-attention'
 
 interface Notifications {
   backstage: boolean
@@ -51,8 +52,7 @@ function subscribeToSidebarState(callback: () => void) {
 
 interface NotificationScope {
   userId: string
-  bandIds: string[]
-  venueIds: string[]
+  identity: ManagedIdentity | null
 }
 
 const EMPTY_NOTIFICATIONS: Notifications = {
@@ -79,7 +79,6 @@ export function DashboardNav({
   phaseOne = false,
   notifications,
   notificationScope,
-  hasVenues = false,
   activeIdentity,
   identities = [],
 }: {
@@ -88,13 +87,22 @@ export function DashboardNav({
   phaseOne?: boolean
   notifications?: Notifications
   notificationScope?: NotificationScope
-  hasVenues?: boolean
   activeIdentity?: ActiveIdentity
   identities?: ManagedIdentity[]
 }) {
   const pathname = usePathname()
   const sidebarCollapsed = useSyncExternalStore(subscribeToSidebarState, getSidebarState, getServerSidebarState)
-  const [resolvedNotifications, setResolvedNotifications] = useState(notifications ?? EMPTY_NOTIFICATIONS)
+  const notificationKey = notificationScope
+    ? `${notificationScope.userId}:${notificationScope.identity?.kind ?? 'none'}:${notificationScope.identity?.id ?? ''}:${isAdmin}`
+    : ''
+  const [notificationState, setNotificationState] = useState({
+    key: notificationKey,
+    value: notifications ?? EMPTY_NOTIFICATIONS,
+  })
+  // Never display the previous profile's dot while the next profile is loading.
+  const resolvedNotifications = notificationState.key === notificationKey
+    ? notificationState.value
+    : EMPTY_NOTIFICATIONS
   const isPhaseOneArtist = phaseOne && !isAdmin
   const links = NAV_LINKS
   const allowAllIdentities = !isPhaseOneArtist && pathname === '/dashboard'
@@ -113,49 +121,27 @@ export function DashboardNav({
     if (!notificationScope) return
 
     let cancelled = false
+    let requestId = 0
     const scope = notificationScope
 
     async function loadNotifications(): Promise<Notifications> {
       const startedAt = performance.now()
       const supabase = createClient()
-      const { userId, bandIds, venueIds } = scope
+      const { userId, identity } = scope
       const [
         { count: pendingClaimsCount },
-        { count: invitedMembershipCount },
-        { data: venueEventIds },
+        backstageAttention,
         { count: adminClaimsCount },
       ] = await Promise.all([
         supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending'),
-        bandIds.length
-          ? supabase
-              .from('event_artist_memberships')
-              .select('id', { count: 'exact', head: true })
-              .in('band_id', bandIds)
-              .eq('status', 'invited')
-          : Promise.resolve({ count: 0 }),
-        venueIds.length
-          ? supabase
-              .from('events')
-              .select('id')
-              .in('venue_id', venueIds)
-              .in('status', ['draft', 'active'])
-          : Promise.resolve({ data: [] }),
+        loadBackstageAttention(supabase, identity),
         isAdmin
           ? supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending')
           : Promise.resolve({ count: 0 }),
       ])
 
-      const eventIds = (venueEventIds ?? []).map((event) => event.id)
-      const { count: venueApplicationCount } = eventIds.length
-        ? await supabase
-            .from('event_artist_memberships')
-            .select('id', { count: 'exact', head: true })
-            .in('event_id', eventIds)
-            .eq('status', 'applied')
-        : { count: 0 }
-
       const resolved = {
-        backstage: (invitedMembershipCount ?? 0) > 0 || (venueApplicationCount ?? 0) > 0,
+        backstage: backstageAttention.length > 0,
         pendingClaims: (pendingClaimsCount ?? 0) > 0,
         adminClaims: (adminClaimsCount ?? 0) > 0,
       }
@@ -169,7 +155,14 @@ export function DashboardNav({
 
     function refreshNotifications() {
       if (document.visibilityState !== 'visible') return
-      void loadNotifications().then((next) => { if (!cancelled) setResolvedNotifications(next) })
+      const currentRequest = ++requestId
+      void loadNotifications()
+        .then((next) => {
+          if (!cancelled && currentRequest === requestId) {
+            setNotificationState({ key: notificationKey, value: next })
+          }
+        })
+        .catch((error: unknown) => console.error('Failed to load navigation notifications', error))
     }
     let timer: ReturnType<typeof setTimeout> | undefined
     const supabase = createClient()
@@ -191,7 +184,7 @@ export function DashboardNav({
       window.removeEventListener('focus', refreshNotifications)
       void supabase.removeChannel(channel)
     }
-  }, [isAdmin, notificationScope])
+  }, [isAdmin, notificationScope, notificationKey])
 
   function toggleSidebar() {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!sidebarCollapsed))
@@ -258,14 +251,17 @@ export function DashboardNav({
                     <Icon className={cx('h-4.5 w-4.5', active ? 'text-white' : 'text-[#8B8B8B] group-hover:text-[#FD6A2F]')} />
                     <span className={sidebarCollapsed ? 'sr-only' : undefined}>{label}</span>
                   </span>
-                  {hasDot && <Dot className={cx(active ? 'ring-[#252525]' : '', sidebarCollapsed && 'absolute right-2 top-2')} />}
+                  {hasDot && <>
+                    <Dot className={cx(active ? 'ring-[#252525]' : '', sidebarCollapsed && 'absolute right-2 top-2')} />
+                    <span className="sr-only">Needs attention</span>
+                  </>}
                 </Link>
               )
             })}
           </nav>
 
           <div className="border-t border-[#E8E6E0] px-3 py-4">
-            {hasVenues && (
+            {activeIdentity?.kind === 'venue' && (
               <Link
                 href="/dashboard/events/new"
                 title={sidebarCollapsed ? 'Create event' : undefined}
@@ -328,7 +324,10 @@ export function DashboardNav({
               <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={cx('inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold', isActive(href) ? 'bg-[#252525] text-white' : 'text-[#5F5F5F] hover:bg-white')}>
                 <Icon className="h-4 w-4" />
                 {label}
-                {dotForLink(href) && <Dot className={isActive(href) ? 'ring-[#252525]' : ''} />}
+                {dotForLink(href) && <>
+                  <Dot className={isActive(href) ? 'ring-[#252525]' : ''} />
+                  <span className="sr-only">Needs attention</span>
+                </>}
               </Link>
             ))}
           </nav>

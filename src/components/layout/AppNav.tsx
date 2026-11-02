@@ -22,8 +22,6 @@ export async function AppNav({ userId }: { userId: string | null }) {
   ])
 
   const { profile, bands, venues } = managedUserDataQuery.value
-  const bandIds = bands.map((b) => b.id)
-  const venueIds = venues.map((v) => v.id)
   const identities: ManagedIdentity[] = [
     ...bands.map((band) => ({
       kind: 'band' as const,
@@ -53,8 +51,7 @@ export async function AppNav({ userId }: { userId: string | null }) {
         showStagingBadge={showStagingBadge}
         isAdmin={profile?.is_admin ?? false}
         phaseOne
-        notificationScope={{ userId, bandIds, venueIds }}
-        hasVenues={venueIds.length > 0}
+        notificationScope={{ userId, identity: activeIdentity.kind === 'all' ? null : activeIdentity }}
         activeIdentity={activeIdentity}
         identities={identities}
       />
