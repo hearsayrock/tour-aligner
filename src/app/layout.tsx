@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { Inter, Barlow_Condensed } from 'next/font/google'
 import './globals.css'
 import { NavigationProcessingOverlay } from '@/components/ui/NavigationProcessingOverlay'
+import { ChatDockHost } from '@/components/chat-dock/ChatDockHost'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -40,6 +41,9 @@ export default function RootLayout({
           <NavigationProcessingOverlay />
         </Suspense>
         {children}
+        <Suspense fallback={null}>
+          <ChatDockHost />
+        </Suspense>
       </body>
     </html>
   )

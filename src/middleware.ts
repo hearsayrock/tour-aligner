@@ -38,12 +38,19 @@ function redirectToTermsAcceptance(request: NextRequest, response: NextResponse)
   return redirect
 }
 
+function chatReadError(response: NextResponse, error: string, status: number) {
+  const result = NextResponse.json({ error, accessChanged: true }, { status, headers: { 'Cache-Control': 'private, no-store' } })
+  response.cookies.getAll().forEach((cookie) => result.cookies.set(cookie))
+  return result
+}
+
 export async function middleware(request: NextRequest) {
   const startedAt = performance.now()
   const sessionStartedAt = performance.now()
   const { response, supabase, user } = await updateSession(request)
   const sessionMs = performance.now() - sessionStartedAt
   const { pathname } = request.nextUrl
+  const isChatRead = pathname === '/api/chat-dock/conversation'
   const log = (outcome: string, accessMs = 0) => {
     const totalMs = performance.now() - startedAt
     logServerTiming(`middleware ${pathname} (${outcome})`, {
@@ -65,6 +72,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
+    if (isChatRead) return chatReadError(response, 'Sign in to use chats.', 401)
     if (pathname === '/terms/accept') {
       log('terms-login-redirect')
       return redirectWithSession(request, response, '/login')
@@ -111,6 +119,7 @@ export async function middleware(request: NextRequest) {
   const hasAcceptedCurrentTerms = Boolean(access?.legal_document_acceptances?.length)
 
   if (!hasAcceptedCurrentTerms) {
+    if (isChatRead) return chatReadError(response, 'Accept the current terms to use chats.', 403)
     log('terms-redirect', accessMs)
     return redirectToTermsAcceptance(request, response)
   }
@@ -133,6 +142,7 @@ export async function middleware(request: NextRequest) {
   // A role selection alone is not onboarding completion. The account must own an artist
   // profile or manage a claimed venue before it can access the product workspace.
   if (!hasManagedProfile) {
+    if (isChatRead) return chatReadError(response, 'Select a profile to use chats.', 403)
     // Account information remains available during setup so users can update their details
     // or sign out, but profile-management screens stay behind onboarding.
     log('onboarding', accessMs)
@@ -144,6 +154,11 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/onboarding') {
     log('profile-redirect', accessMs)
     return redirectWithSession(request, response, '/dashboard/profiles')
+  }
+
+  if (isChatRead) {
+    log('chat-read', accessMs)
+    return response
   }
 
   if (isArtistWorkspacePath(pathname)) {

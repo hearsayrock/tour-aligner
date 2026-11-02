@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 type LiveMessage = { id: string; created_at: string; body: string }
@@ -9,6 +9,10 @@ interface UseLiveMessagesArgs<TMessage extends LiveMessage> {
   /** Table to subscribe to, e.g. 'contact_messages' or 'private_chat_messages'. */
   table: string
   threadId: string
+  foreignKey?: 'thread_id' | 'event_id'
+  pollIntervalMs?: number
+  enabled?: boolean
+  catchUpLimit?: number
   initialMessages: TMessage[]
   /** Whether a message (already mapped) was sent by the viewer, used to reconcile optimistic sends. */
   isOwnMessage: (message: TMessage) => boolean
@@ -19,7 +23,7 @@ interface UseLiveMessagesArgs<TMessage extends LiveMessage> {
 function mergeById<TMessage extends LiveMessage>(current: TMessage[], incoming: TMessage[]) {
   const byId = new Map(current.map((message) => [message.id, message]))
   for (const message of incoming) byId.set(message.id, message)
-  return Array.from(byId.values()).sort((a, b) => a.created_at.localeCompare(b.created_at))
+  return Array.from(byId.values()).sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
 }
 
 /**
@@ -33,10 +37,15 @@ function mergeById<TMessage extends LiveMessage>(current: TMessage[], incoming: 
 export function useLiveMessages<TMessage extends LiveMessage>({
   table,
   threadId,
+  foreignKey = 'thread_id',
+  pollIntervalMs,
+  enabled = true,
+  catchUpLimit = 1000,
   initialMessages,
   isOwnMessage,
   mapIncoming,
 }: UseLiveMessagesArgs<TMessage>) {
+  const instanceId = useId()
   // Reset to a fresh initial state when the caller mounts this hook with `key={threadId}`
   // on the component using it (see LiveConversation / LivePrivateConversation) — that's
   // the React-recommended way to reset state on identity change, rather than an effect.
@@ -45,12 +54,14 @@ export function useLiveMessages<TMessage extends LiveMessage>({
 
   const mapIncomingRef = useRef(mapIncoming)
   const isOwnMessageRef = useRef(isOwnMessage)
+  const refreshRef = useRef<() => Promise<void>>(async () => {})
   useEffect(() => {
     mapIncomingRef.current = mapIncoming
     isOwnMessageRef.current = isOwnMessage
   })
 
   useEffect(() => {
+    if (!enabled) return
     const supabase = createClient()
     let cancelled = false
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -77,21 +88,26 @@ export function useLiveMessages<TMessage extends LiveMessage>({
       const { data } = await supabase
         .from(table)
         .select('*')
-        .eq('thread_id', threadId)
-        .order('created_at', { ascending: true })
+        .eq(foreignKey, threadId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(catchUpLimit)
       if (cancelled || !data) return
       setMessages((current) => mergeById(current, (data as Record<string, unknown>[]).map(mapRow)))
     }
+    refreshRef.current = catchUp
 
     function connect() {
       channel = supabase
-        .channel(`live-${table}-${threadId}`)
+        .channel(`live-${table}-${threadId}-${instanceId}`)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table, filter: `thread_id=eq.${threadId}` },
+          { event: 'INSERT', schema: 'public', table, filter: `${foreignKey}=eq.${threadId}` },
           (payload) => handleInsert(payload.new as Record<string, unknown>)
         )
-        .subscribe()
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') void catchUp()
+        })
     }
 
     function reconnect() {
@@ -105,16 +121,24 @@ export function useLiveMessages<TMessage extends LiveMessage>({
     }
 
     connect()
+    // Backstage tables may not be in the Realtime publication yet. Polling also
+    // covers the initial subscription gap and temporary websocket outages.
+    void catchUp()
+    const poll = pollIntervalMs ? window.setInterval(() => {
+      if (document.visibilityState === 'visible') void catchUp()
+    }, pollIntervalMs) : null
     window.addEventListener('online', reconnect)
     document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       cancelled = true
+      refreshRef.current = async () => {}
+      if (poll) window.clearInterval(poll)
       window.removeEventListener('online', reconnect)
       document.removeEventListener('visibilitychange', handleVisibility)
       if (channel) supabase.removeChannel(channel)
     }
-  }, [table, threadId])
+  }, [table, threadId, foreignKey, pollIntervalMs, enabled, instanceId, catchUpLimit])
 
   const addOptimistic = useCallback((partial: Omit<TMessage, 'id' | 'created_at'>) => {
     const tempId = `temp-${crypto.randomUUID()}`
@@ -127,5 +151,8 @@ export function useLiveMessages<TMessage extends LiveMessage>({
     setPending((current) => current.filter((message) => message.id !== tempId))
   }, [])
 
-  return { messages: mergeById(messages, pending), addOptimistic, removeOptimistic }
+  const refresh = useCallback(() => refreshRef.current(), [])
+
+  const combinedMessages = useMemo(() => mergeById(mergeById(initialMessages, messages), pending), [initialMessages, messages, pending])
+  return { messages: combinedMessages, addOptimistic, removeOptimistic, refresh }
 }
