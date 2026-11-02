@@ -27,6 +27,12 @@ body {
   color: #252525;
 }
 
+/* The quiet dashboard owns event creation when its starting card is visible.
+   Keep navigation available while loading or if the dashboard fails to load. */
+.app-shell-layout:has([data-dashboard-create-event]) [data-nav-create-event] {
+  display: none;
+}
+
 button,
 a,
 input,

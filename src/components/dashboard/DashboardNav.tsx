@@ -106,6 +106,9 @@ export function DashboardNav({
   const isPhaseOneArtist = phaseOne && !isAdmin
   const links = NAV_LINKS
   const allowAllIdentities = !isPhaseOneArtist && pathname === '/dashboard'
+  const canCreateEvent = activeIdentity?.kind === 'venue' || (
+    activeIdentity?.kind === 'all' && identities.some((identity) => identity.kind === 'venue')
+  )
 
   useEffect(() => {
     const navigationStartedAt = window.sessionStorage.getItem('ta_login_navigation_started_at')
@@ -260,19 +263,19 @@ export function DashboardNav({
             })}
           </nav>
 
-          <div className="border-t border-[#E8E6E0] px-3 py-4">
-            {activeIdentity?.kind === 'venue' && (
+          {canCreateEvent && (
+            <div data-nav-create-event className="border-t border-[#E8E6E0] px-3 py-4">
               <Link
                 href="/dashboard/events/new"
-                title={sidebarCollapsed ? 'Create event' : undefined}
-                aria-label={sidebarCollapsed ? 'Create event' : undefined}
-                className={cx('mb-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#FD6A2F] text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]', sidebarCollapsed ? 'px-0' : 'gap-2 px-3')}
+                title={sidebarCollapsed ? 'Create Event' : undefined}
+                aria-label={sidebarCollapsed ? 'Create Event' : undefined}
+                className={cx('inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[#FD6A2F] text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2', sidebarCollapsed ? 'px-0' : 'gap-2 px-3')}
               >
-                <Plus className="h-4 w-4" />
-                {!sidebarCollapsed && 'Event'}
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {!sidebarCollapsed && 'Create Event'}
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </aside>
       )}
@@ -318,6 +321,13 @@ export function DashboardNav({
             )}
           </div>
         </div>
+        {!isPhaseOneArtist && canCreateEvent && (
+          <div data-nav-create-event className="mt-3 border-t border-[#E8E6E0] pt-3 lg:hidden">
+            <Link href="/dashboard/events/new" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-4 text-sm font-semibold text-white hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2">
+              <Plus className="h-4 w-4" aria-hidden="true" />Create Event
+            </Link>
+          </div>
+        )}
         {isPhaseOneArtist && identities.length > 0 && (
           <nav aria-label="Artist workspace" className="mx-auto mt-3 flex max-w-7xl gap-2 border-t border-[#E8E6E0] pt-3">
             {NAV_LINKS.filter(({ href }) => href === '/dashboard/bands' || href === '/dashboard/backstage').map(({ href, label, icon: Icon }) => (
