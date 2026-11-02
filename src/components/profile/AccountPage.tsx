@@ -464,7 +464,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
       <Section title="Notifications">
         <SettingRow
           label="New contact request"
-          description="Get notified when an artist or venue reaches out in your inbox"
+          description="Get notified when an artist or venue sends a chat request"
         >
           <Toggle
             checked={notifNewInquiry}
@@ -472,7 +472,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
           />
         </SettingRow>
         <SettingRow
-          label="Inbox activity"
+          label="Chat activity"
           description="Get notified when a request is accepted or a new message arrives"
         >
           <Toggle

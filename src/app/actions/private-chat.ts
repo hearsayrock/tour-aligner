@@ -37,13 +37,8 @@ function isRpcPayload(value: Json | null): value is RpcPayload {
   )
 }
 
-function revalidateInbox(threadId?: string) {
+function revalidateChats() {
   revalidatePath('/dashboard')
-  revalidatePath('/dashboard/inbox')
-
-  if (threadId) {
-    revalidatePath(`/dashboard/inbox/private/${threadId}`)
-  }
 }
 
 async function getUserAndActiveIdentity() {
@@ -134,7 +129,7 @@ export async function requestPrivateChat(input: {
     return { error: 'Unexpected response while creating the private chat.' }
   }
 
-  revalidateInbox(data.thread_id)
+  revalidateChats()
 
   return {
     success: true as const,
@@ -176,7 +171,7 @@ export async function respondToPrivateChatRequest(
     return { error: 'Unexpected response while updating the private chat request.' }
   }
 
-  revalidateInbox(data.thread_id)
+  revalidateChats()
 
   return {
     success: true as const,
@@ -216,7 +211,7 @@ export async function sendPrivateChatMessage(
     return { error: 'Unexpected response while sending your private message.' }
   }
 
-  revalidateInbox(data.thread_id)
+  revalidateChats()
 
   return {
     success: true as const,
@@ -250,7 +245,7 @@ export async function markPrivateChatRead(
     return { error: error.message }
   }
 
-  revalidateInbox(threadId)
+  revalidateChats()
 
   return { success: true as const }
 }
@@ -281,7 +276,7 @@ async function runThreadMutation(
     return { error: 'Unexpected response while updating the private chat.' }
   }
 
-  revalidateInbox(data.thread_id)
+  revalidateChats()
 
   return {
     success: true as const,

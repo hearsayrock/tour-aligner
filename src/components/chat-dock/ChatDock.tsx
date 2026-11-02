@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import {
   ChevronDown,
   ChevronUp,
@@ -11,6 +12,7 @@ import {
   SquarePen,
   PanelsTopLeft,
   X,
+  ExternalLink,
 } from 'lucide-react'
 import { getDockInbox } from '@/app/actions/chat-dock'
 import { setActiveIdentity } from '@/app/actions/profile'
@@ -25,7 +27,7 @@ import {
 import { createDockConversationCache } from '@/lib/chat-dock-cache'
 import { fetchDockConversation } from '@/lib/chat-dock-fetch'
 import { createClient } from '@/lib/supabase/client'
-import { subscribeChatDock } from '@/lib/chat-dock-events'
+import { subscribeChatDock, subscribeChatDockLocation } from '@/lib/chat-dock-events'
 import { DockNewChat } from './DockNewChat'
 import { DockThread } from './DockThread'
 import { DockWindow } from './DockWindow'
@@ -69,6 +71,7 @@ export function ChatDock({
   isAdmin: boolean
 }) {
   const pathname = usePathname()
+  const locationQuery = useSearchParams().toString()
   const router = useRouter()
   const [sessionValid, setSessionValid] = useState(true)
   const hidden = chatDockHidden(pathname) || !sessionValid
@@ -178,7 +181,9 @@ export function ChatDock({
   useEffect(() => {
     if (!expanded || hidden || (mobile && activeWindow)) return
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    if (!rootRef.current?.contains(document.activeElement)) rootRef.current?.focus()
+    // Desktop pop-outs share the page with the inbox. Activating one must leave
+    // focus in its search field or composer; only the mobile inbox is modal.
+    if (mobile && !rootRef.current?.contains(document.activeElement)) rootRef.current?.focus()
     const previousOverflow = document.body.style.overflow
     const element = rootRef.current
     function resizeViewport() {
@@ -231,7 +236,7 @@ export function ChatDock({
           element.style.top = ''
         }
       }
-      previousFocus?.focus()
+      if (mobile && element?.contains(document.activeElement)) previousFocus?.focus()
     }
   }, [expanded, hidden, mobile, activeWindow])
 
@@ -248,6 +253,20 @@ export function ChatDock({
       openConversation({ kind: 'private', id })
     },
     [openConversation]
+  )
+
+  useEffect(
+    () => subscribeChatDockLocation((request) => {
+      if (request.threadId) {
+        if (!scope) {
+          setExpanded(true)
+          return false
+        }
+        openPrivate(request.threadId)
+      } else setExpanded(true)
+      return true
+    }),
+    [scope, openPrivate, locationQuery]
   )
 
   function focusWindow(id: string) {
@@ -333,6 +352,13 @@ export function ChatDock({
     setTarget(profile)
     setWindows((current) => openChatWindow(current, 'new', null, 'New chat'))
     setActiveWindow('new')
+    setPicker(false)
+  }
+
+  function showBackstagePage() {
+    if (!mobile) return
+    setActiveWindow(null)
+    setExpanded(false)
     setPicker(false)
   }
 
@@ -448,6 +474,7 @@ export function ChatDock({
               seed={seed}
               controls={controls}
               fallbackHeader={header}
+              onOpenBackstage={showBackstagePage}
             />
           ) : (
             <>
@@ -730,42 +757,52 @@ export function ChatDock({
                   )
                 ) : rooms.length ? (
                   rooms.map((room) => (
-                    <button
-                      type="button"
-                      key={room.id}
-                      onPointerEnter={() => prefetch({ kind: 'backstage', id: room.id })}
-                      onFocus={() => prefetch({ kind: 'backstage', id: room.id })}
-                      onClick={() => {
-                        openConversation({ kind: 'backstage', id: room.id }, room.title)
-                      }}
-                      className="flex w-full shrink-0 items-center gap-3 border-b border-[#F3F1ED] px-4 py-3 text-left transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
-                    >
-                      <DockAvatar name={room.title} photo={room.photo} room />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[13px] font-semibold">{room.title}</span>
-                          <span className="shrink-0 text-[9px] text-[#A0978B]">
-                            {shortDate(room.lastMessageAt ?? `${room.date}T12:00:00`)}
+                    <div key={room.id} className="relative shrink-0 border-b border-[#F3F1ED]">
+                      <button
+                        type="button"
+                        onPointerEnter={() => prefetch({ kind: 'backstage', id: room.id })}
+                        onFocus={() => prefetch({ kind: 'backstage', id: room.id })}
+                        onClick={() => {
+                          openConversation({ kind: 'backstage', id: room.id }, room.title)
+                        }}
+                        className="flex w-full items-center gap-3 px-4 pb-9 pt-3 text-left transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+                      >
+                        <DockAvatar name={room.title} photo={room.photo} room />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[13px] font-semibold">{room.title}</span>
+                            <span className="shrink-0 text-[9px] text-[#A0978B]">
+                              {shortDate(room.lastMessageAt ?? `${room.date}T12:00:00`)}
+                            </span>
+                          </span>
+                          <span className="mt-0.5 block truncate text-[10px] text-[#A0978B]">
+                            {room.venueName}
+                          </span>
+                          <span className="mt-1 flex items-center gap-2">
+                            <span className="flex-1 truncate text-[11px] text-[#817668]">
+                              {room.membershipStatus === 'invited'
+                                ? 'You’re invited. Accept to join the chat.'
+                                : room.preview || 'Open Backstage chat'}
+                            </span>
+                            {room.unread && (
+                              <span
+                                aria-label="Unread"
+                                className="size-1.5 shrink-0 rounded-full bg-[#FD6A2F]"
+                              />
+                            )}
                           </span>
                         </span>
-                        <span className="mt-0.5 block truncate text-[10px] text-[#A0978B]">
-                          {room.venueName}
-                        </span>
-                        <span className="mt-1 flex items-center gap-2">
-                          <span className="flex-1 truncate text-[11px] text-[#817668]">
-                            {room.membershipStatus === 'invited'
-                              ? 'You’re invited. Accept to join the chat.'
-                              : room.preview || 'Open Backstage chat'}
-                          </span>
-                          {room.unread && (
-                            <span
-                              aria-label="Unread"
-                              className="size-1.5 shrink-0 rounded-full bg-[#FD6A2F]"
-                            />
-                          )}
-                        </span>
-                      </span>
-                    </button>
+                      </button>
+                      <Link
+                        href={`/dashboard/backstage/${room.id}`}
+                        onClick={showBackstagePage}
+                        aria-label={`Open backstage for ${room.title}`}
+                        className="absolute bottom-2.5 right-4 inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+                      >
+                        Open backstage
+                        <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
                   ))
                 ) : (
                   <DockEmpty title={query ? 'No matching Backstages' : 'No Backstage chats yet'}>

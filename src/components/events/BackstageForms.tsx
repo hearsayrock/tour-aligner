@@ -6,7 +6,6 @@ import type { ReactNode } from 'react'
 import { buttonBaseClass, inputClass, labelClass } from '@/components/ui/primitives'
 import {
   inviteArtistToEvent,
-  sendBackstageMessage,
   updateEventLogistics,
   updateEventSettings,
   updateMembershipStatus,
@@ -16,61 +15,6 @@ import type { Event, EventArtistMembership, Genre } from '@/types/database'
 type BandOption = {
   id: string
   name: string
-}
-
-export function BackstageComposer({
-  eventId,
-  bandId,
-  replyingAs,
-}: {
-  eventId: string
-  bandId?: string | null
-  replyingAs: string
-}) {
-  const router = useRouter()
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-
-    startTransition(async () => {
-      const result = await sendBackstageMessage({ eventId, bandId, body: message })
-      if (result.error) {
-        setError(result.error)
-        return
-      }
-      setMessage('')
-      router.refresh()
-    })
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-2">
-      <div className="rounded-2xl border border-[#E8E8E8] bg-white p-3 shadow-[0_12px_28px_rgba(20,20,20,0.035)]">
-        <p className="mb-2 px-1 text-xs font-medium text-[#888888]">Posting as {replyingAs}</p>
-        <textarea
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          rows={3}
-          placeholder="Message Backstage..."
-          className="w-full resize-none border-0 bg-transparent px-1 py-1 text-sm placeholder-[#AAAAAA] focus:outline-none"
-        />
-        <div className="mt-2 flex justify-end">
-          <button
-            type="submit"
-            disabled={isPending || !message.trim()}
-            className={`${buttonBaseClass('primary')} min-h-9 rounded-full px-4 py-1.5`}
-          >
-            {isPending ? 'Sending...' : 'Send'}
-          </button>
-        </div>
-      </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
-    </form>
-  )
 }
 
 export function BackstageSettingsForm({

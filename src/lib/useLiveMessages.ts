@@ -47,7 +47,7 @@ export function useLiveMessages<TMessage extends LiveMessage>({
 }: UseLiveMessagesArgs<TMessage>) {
   const instanceId = useId()
   // Reset to a fresh initial state when the caller mounts this hook with `key={threadId}`
-  // on the component using it (see LiveConversation / LivePrivateConversation) — that's
+  // on the component using it (see DockThread) — that's
   // the React-recommended way to reset state on identity change, rather than an effect.
   const [messages, setMessages] = useState<TMessage[]>(initialMessages)
   const [pending, setPending] = useState<TMessage[]>([])

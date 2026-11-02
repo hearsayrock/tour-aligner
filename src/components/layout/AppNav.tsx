@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers'
 import { ActivityHeartbeat } from '@/components/auth/ActivityHeartbeat'
-import { InboxRealtime } from '@/components/contact/InboxRealtime'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { Navbar } from '@/components/marketing/Navbar'
 import { isStagingEnvironment } from '@/lib/deployment-environment'
@@ -50,7 +49,6 @@ export async function AppNav({ userId }: { userId: string | null }) {
   return (
     <>
       <ActivityHeartbeat />
-      <InboxRealtime />
       <DashboardNav
         showStagingBadge={showStagingBadge}
         isAdmin={profile?.is_admin ?? false}

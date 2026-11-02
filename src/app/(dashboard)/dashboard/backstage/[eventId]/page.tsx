@@ -8,7 +8,6 @@ import { LinkifiedText } from '@/components/contact/LinkifiedText'
 import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { Badge, Card, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
 import {
-  BackstageComposer,
   BackstageLogisticsForm,
   BackstageSettingsForm,
   InviteArtistForm,
@@ -20,7 +19,6 @@ import {
   formatEventDateLong,
   getAcceptedMemberships,
   getOpenArtistNeed,
-  type BackstageMessageSummary,
   type EventMembershipSummary,
   type EventWithVenue,
 } from '@/lib/events'
@@ -77,72 +75,6 @@ function LogisticsDisplay({ event }: { event: EventWithVenue }) {
   )
 }
 
-function MessageList({
-  activeIdentity,
-  messages,
-}: {
-  activeIdentity: ManagedIdentity
-  messages: BackstageMessageSummary[]
-}) {
-  if (messages.length === 0) {
-    return (
-      <EmptyState
-        title="No Backstage messages yet"
-        description="Accepted artists and the venue can coordinate here once the conversation starts."
-        className="border-dashed"
-      />
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      {messages.map((message) => {
-        const isSystem = message.sender_kind === 'system'
-        const isOwnMessage =
-          activeIdentity.kind === 'venue'
-            ? message.sender_kind === 'venue'
-            : message.sender_kind === 'artist' && message.sender_band_id === activeIdentity.id
-        const sender =
-          message.sender_kind === 'venue'
-            ? 'Venue'
-            : message.sender_kind === 'artist'
-              ? message.bands?.name ?? 'Artist'
-              : 'System'
-        const formattedCreatedAt = new Date(message.created_at).toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        })
-
-        return (
-          <div key={message.id} className={isSystem ? 'flex justify-center' : `flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-            {isSystem ? (
-              <div className="max-w-xl rounded-full border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2 text-center text-xs text-[#666666]">
-                <LinkifiedText text={message.body} className="whitespace-pre-wrap break-words leading-relaxed" />
-              </div>
-            ) : (
-              <div className={`flex max-w-[82%] flex-col ${isOwnMessage ? 'items-end' : 'items-start'} sm:max-w-[68%]`}>
-                <div className={`mb-1 flex max-w-full flex-wrap items-center gap-2 px-1 text-xs ${isOwnMessage ? 'justify-end text-right' : 'justify-start'}`}>
-                  <p className="font-semibold uppercase tracking-[0.16em] text-[#888888]">{sender}</p>
-                  <p className="text-[#AAAAAA]">{formattedCreatedAt}</p>
-                </div>
-                <div className={`rounded-2xl px-4 py-3 shadow-sm ${isOwnMessage ? 'rounded-br-md bg-[#252525]' : 'rounded-bl-md bg-[#FD6A2F]'}`}>
-                  <LinkifiedText
-                    text={message.body}
-                    className="whitespace-pre-wrap break-words text-sm leading-relaxed text-white"
-                    linkClassName="break-all font-medium text-white underline decoration-white/60 underline-offset-2"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 export default async function BackstageDetailPage({
   params,
 }: {
@@ -160,7 +92,6 @@ export default async function BackstageDetailPage({
     { data: rawEvent },
     { data: rawGenres },
     { data: rawMemberships },
-    { data: rawMessages },
     { data: rawUserBands },
     { data: rawUserVenues },
   ] = await Promise.all([
@@ -175,11 +106,6 @@ export default async function BackstageDetailPage({
       .select('*, bands(id, name, slug, user_id)')
       .eq('event_id', eventId)
       .order('updated_at', { ascending: false }),
-    supabase
-      .from('backstage_messages')
-      .select('*, profiles(full_name), bands:sender_band_id(name)')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: true }),
     supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true).order('name'),
     supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true).order('name'),
   ])
@@ -269,7 +195,6 @@ export default async function BackstageDetailPage({
   const eventGenres = (rawGenres ?? []) as unknown as Array<EventGenre & { genres: Genre | null }>
   const selectedGenreIds = eventGenres.map((entry) => entry.genre_id)
   const genreNames = eventGenres.map((entry) => entry.genres?.name).filter(Boolean) as string[]
-  const messages = (rawMessages ?? []) as unknown as BackstageMessageSummary[]
   const confirmedMemberships = getAcceptedMemberships(memberships)
   const acceptedCount = confirmedMemberships.length
   const openNeed = getOpenArtistNeed(event, memberships)
@@ -307,9 +232,6 @@ export default async function BackstageDetailPage({
   const availableInviteBands = ((inviteBands ?? []) as Array<{ id: string; name: string }>).filter(
     (band) => !existingBandIds.has(band.id)
   )
-  const postingBand = viewerMembership?.status === 'accepted' || viewerMembership?.status === 'removal_requested'
-    ? viewerMembership.bands
-    : null
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -376,18 +298,6 @@ export default async function BackstageDetailPage({
               <SectionHeading title="Pinned Logistics" description="Shared show details everyone can refer back to." />
               <LogisticsDisplay event={event} />
             </Card>
-
-            <section>
-              <SectionHeading title="Backstage Chat" description="Keep artist and venue coordination in one room." />
-              <MessageList activeIdentity={activeIdentity} messages={messages} />
-              <div className="mt-5">
-                <BackstageComposer
-                  eventId={event.id}
-                  bandId={isVenueLeader ? null : postingBand?.id}
-                  replyingAs={isVenueLeader ? event.venues?.name ?? 'Venue' : postingBand?.name ?? 'Artist'}
-                />
-              </div>
-            </section>
           </main>
 
           <aside className="space-y-6 xl:sticky xl:top-8 xl:self-start">

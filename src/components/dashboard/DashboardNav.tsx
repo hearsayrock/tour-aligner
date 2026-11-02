@@ -7,7 +7,6 @@ import { usePathname } from 'next/navigation'
 import {
   CalendarDays,
   CalendarRange,
-  Inbox,
   LayoutDashboard,
   MapPin,
   Mic2,
@@ -24,7 +23,6 @@ import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
 import { createClient } from '@/lib/supabase/client'
 
 interface Notifications {
-  inbox: boolean
   backstage: boolean
   pendingClaims: boolean
   adminClaims: boolean
@@ -32,7 +30,6 @@ interface Notifications {
 
 const NAV_LINKS = [
   { label: 'Dashboard', shortLabel: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Inbox', shortLabel: 'Inbox', href: '/dashboard/inbox', icon: Inbox },
   { label: 'Backstages', shortLabel: 'Backstage', href: '/dashboard/backstage', icon: CalendarRange },
   { label: 'Calendar', shortLabel: 'Calendar', href: '/dashboard/calendar', icon: CalendarDays },
   { label: 'Available Events', shortLabel: 'Events', href: '/events', icon: Search },
@@ -59,7 +56,6 @@ interface NotificationScope {
 }
 
 const EMPTY_NOTIFICATIONS: Notifications = {
-  inbox: false,
   backstage: false,
   pendingClaims: false,
   adminClaims: false,
@@ -123,28 +119,10 @@ export function DashboardNav({
       const startedAt = performance.now()
       const supabase = createClient()
       const { userId, bandIds, venueIds } = scope
-      const privateThreadFilters = [
-        ...(bandIds.length
-          ? [
-              `and(participant_one_kind.eq.band,participant_one_id.in.(${bandIds.join(',')}))`,
-              `and(participant_two_kind.eq.band,participant_two_id.in.(${bandIds.join(',')}))`,
-            ]
-          : []),
-        ...(venueIds.length
-          ? [
-              `and(participant_one_kind.eq.venue,participant_one_id.in.(${venueIds.join(',')}))`,
-              `and(participant_two_kind.eq.venue,participant_two_id.in.(${venueIds.join(',')}))`,
-            ]
-          : []),
-      ]
-
       const [
         { count: pendingClaimsCount },
         { count: invitedMembershipCount },
         { data: venueEventIds },
-        { data: bandBookingThreads },
-        { data: venueBookingThreads },
-        { data: privateThreads },
         { count: adminClaimsCount },
       ] = await Promise.all([
         supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'pending'),
@@ -162,35 +140,6 @@ export function DashboardNav({
               .in('venue_id', venueIds)
               .in('status', ['draft', 'active'])
           : Promise.resolve({ data: [] }),
-        bandIds.length
-          ? supabase
-              .from('contact_threads')
-              .select('status, requested_by_side, last_message_at, band_last_read_at')
-              .in('band_id', bandIds)
-          : Promise.resolve({ data: [] }),
-        venueIds.length
-          ? supabase
-              .from('contact_threads')
-              .select('status, requested_by_side, last_message_at, venue_last_read_at')
-              .in('venue_id', venueIds)
-          : Promise.resolve({ data: [] }),
-        privateThreadFilters.length
-          ? supabase
-              .from('private_chat_threads')
-              .select(`
-                participant_one_kind,
-                participant_one_id,
-                participant_two_kind,
-                participant_two_id,
-                status,
-                requested_by_kind,
-                requested_by_id,
-                last_message_at,
-                participant_one_last_read_at,
-                participant_two_last_read_at
-              `)
-              .or(privateThreadFilters.join(','))
-          : Promise.resolve({ data: [] }),
         isAdmin
           ? supabase.from('venue_claims').select('id', { count: 'exact', head: true }).eq('status', 'pending')
           : Promise.resolve({ count: 0 }),
@@ -205,37 +154,7 @@ export function DashboardNav({
             .eq('status', 'applied')
         : { count: 0 }
 
-      const hasBandBookingAttention = (bandBookingThreads ?? []).some((thread) =>
-        (thread.status === 'pending' && thread.requested_by_side !== 'band') ||
-        (!!thread.last_message_at && (!thread.band_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.band_last_read_at).getTime()))
-      )
-      const hasVenueBookingAttention = (venueBookingThreads ?? []).some((thread) =>
-        (thread.status === 'pending' && thread.requested_by_side !== 'venue') ||
-        (!!thread.last_message_at && (!thread.venue_last_read_at || new Date(thread.last_message_at).getTime() > new Date(thread.venue_last_read_at).getTime()))
-      )
-      const hasPrivateInboxAttention = (privateThreads ?? []).some((thread) => {
-        const participantOneNeedsAttention =
-          ((thread.participant_one_kind === 'band' && bandIds.includes(thread.participant_one_id)) ||
-            (thread.participant_one_kind === 'venue' && venueIds.includes(thread.participant_one_id))) &&
-          ((thread.status === 'pending' &&
-            !(thread.requested_by_kind === thread.participant_one_kind && thread.requested_by_id === thread.participant_one_id)) ||
-            (!!thread.last_message_at &&
-              (!thread.participant_one_last_read_at ||
-                new Date(thread.last_message_at).getTime() > new Date(thread.participant_one_last_read_at).getTime())))
-        const participantTwoNeedsAttention =
-          ((thread.participant_two_kind === 'band' && bandIds.includes(thread.participant_two_id)) ||
-            (thread.participant_two_kind === 'venue' && venueIds.includes(thread.participant_two_id))) &&
-          ((thread.status === 'pending' &&
-            !(thread.requested_by_kind === thread.participant_two_kind && thread.requested_by_id === thread.participant_two_id)) ||
-            (!!thread.last_message_at &&
-              (!thread.participant_two_last_read_at ||
-                new Date(thread.last_message_at).getTime() > new Date(thread.participant_two_last_read_at).getTime())))
-
-        return participantOneNeedsAttention || participantTwoNeedsAttention
-      })
-
       const resolved = {
-        inbox: (!isPhaseOneArtist && (hasBandBookingAttention || hasVenueBookingAttention)) || hasPrivateInboxAttention,
         backstage: (invitedMembershipCount ?? 0) > 0 || (venueApplicationCount ?? 0) > 0,
         pendingClaims: (pendingClaimsCount ?? 0) > 0,
         adminClaims: (adminClaimsCount ?? 0) > 0,
@@ -248,16 +167,31 @@ export function DashboardNav({
       return resolved
     }
 
-    // InboxRealtime refreshes the server props when messages/read state change.
-    // Reusing a settled promise here left the badge stuck at its initial state.
-    void loadNotifications().then((nextNotifications) => {
-      if (!cancelled) setResolvedNotifications(nextNotifications)
-    })
-
+    function refreshNotifications() {
+      if (document.visibilityState !== 'visible') return
+      void loadNotifications().then((next) => { if (!cancelled) setResolvedNotifications(next) })
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const supabase = createClient()
+    const channel = supabase.channel(`navigation-notifications-${scope.userId}`)
+    for (const table of ['events', 'event_artist_memberships', 'venue_claims']) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+        window.clearTimeout(timer)
+        timer = setTimeout(refreshNotifications, 250)
+      })
+    }
+    channel.subscribe()
+    refreshNotifications()
+    const poll = window.setInterval(refreshNotifications, 30000)
+    window.addEventListener('focus', refreshNotifications)
     return () => {
       cancelled = true
+      window.clearTimeout(timer)
+      window.clearInterval(poll)
+      window.removeEventListener('focus', refreshNotifications)
+      void supabase.removeChannel(channel)
     }
-  }, [isAdmin, isPhaseOneArtist, notificationScope])
+  }, [isAdmin, notificationScope])
 
   function toggleSidebar() {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!sidebarCollapsed))
@@ -269,7 +203,6 @@ export function DashboardNav({
   }
 
   function dotForLink(href: string) {
-    if (href === '/dashboard/inbox') return resolvedNotifications.inbox
     if (href === '/dashboard/backstage') return resolvedNotifications.backstage
     if (href === '/dashboard/venues') return resolvedNotifications.pendingClaims
     return false
@@ -391,7 +324,7 @@ export function DashboardNav({
         </div>
         {isPhaseOneArtist && identities.length > 0 && (
           <nav aria-label="Artist workspace" className="mx-auto mt-3 flex max-w-7xl gap-2 border-t border-[#E8E6E0] pt-3">
-            {NAV_LINKS.filter(({ href }) => href === '/dashboard/bands' || href === '/dashboard/inbox').map(({ href, label, icon: Icon }) => (
+            {NAV_LINKS.filter(({ href }) => href === '/dashboard/bands' || href === '/dashboard/backstage').map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={cx('inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold', isActive(href) ? 'bg-[#252525] text-white' : 'text-[#5F5F5F] hover:bg-white')}>
                 <Icon className="h-4 w-4" />
                 {label}

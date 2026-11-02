@@ -44,10 +44,12 @@ function EventCard({
   event,
   role,
   membership,
+  past,
 }: {
   event: EventCardRecord
   role: 'venue' | 'artist'
   membership?: Pick<EventArtistMembership, 'status'> | null
+  past: boolean
 }) {
   const memberships = event.event_artist_memberships ?? []
   const acceptedCount = getAcceptedMemberships(memberships).length
@@ -87,17 +89,26 @@ function EventCard({
         </div>
         <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
           <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
-          <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
-            {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
-          </p>
-          {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
+          {!past && (
+            <>
+              <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
+                {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
+              </p>
+              {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
+            </>
+          )}
         </div>
       </div>
     </Link>
   )
 }
 
-export default async function BackstageListPage() {
+export default async function BackstageListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>
+}) {
+  const past = (await searchParams).view === 'past'
   const supabase = await createClient()
   const {
     data: { user },
@@ -149,35 +160,38 @@ export default async function BackstageListPage() {
   const venueIds = activeIdentity?.kind === 'venue' ? [activeIdentity.id] : []
   const todayIso = new Date().toISOString().slice(0, 10)
 
+  const venueQuery = supabase
+    .from('events')
+    .select(`
+      *,
+      venues(name, slug, location_city, location_state, claimed_by_user_id),
+      event_genres(genres(name)),
+      event_artist_memberships(id, status, bands(name, slug, user_id))
+    `)
+    .in('venue_id', venueIds)
+  const artistQuery = supabase
+    .from('event_artist_memberships')
+    .select(`
+      id,
+      status,
+      events!inner(
+        *,
+        venues(name, slug, location_city, location_state, claimed_by_user_id),
+        event_genres(genres(name)),
+        event_artist_memberships(id, status, bands(name, slug, user_id))
+      )
+    `)
+    .in('band_id', bandIds)
+    .neq('status', 'removed')
+
   const [{ data: venueEvents }, { data: artistMemberships }] = await Promise.all([
     venueIds.length
-      ? supabase
-          .from('events')
-          .select(`
-            *,
-            venues(name, slug, location_city, location_state, claimed_by_user_id),
-            event_genres(genres(name)),
-            event_artist_memberships(id, status, bands(name, slug, user_id))
-          `)
-          .in('venue_id', venueIds)
-          .gte('event_date', todayIso)
-          .order('event_date', { ascending: true })
+      ? (past ? venueQuery.lt('event_date', todayIso) : venueQuery.gte('event_date', todayIso))
+          .order('event_date', { ascending: !past })
+          .order('start_time', { ascending: !past })
       : Promise.resolve({ data: [] }),
     bandIds.length
-      ? supabase
-          .from('event_artist_memberships')
-          .select(`
-            id,
-            status,
-            events(
-              *,
-              venues(name, slug, location_city, location_state, claimed_by_user_id),
-              event_genres(genres(name)),
-              event_artist_memberships(id, status, bands(name, slug, user_id))
-            )
-          `)
-          .in('band_id', bandIds)
-          .neq('status', 'removed')
+      ? (past ? artistQuery.lt('events.event_date', todayIso) : artistQuery.gte('events.event_date', todayIso))
       : Promise.resolve({ data: [] }),
   ])
 
@@ -193,7 +207,10 @@ export default async function BackstageListPage() {
       event: Array.isArray(row.events) ? row.events[0] : row.events,
     }))
     .filter((row): row is { membership: { id: string; status: EventArtistMembership['status'] }; event: EventCardRecord } => !!row.event)
-    .filter((row) => row.event.event_date >= todayIso)
+    .sort((a, b) => {
+      const order = `${a.event.event_date}T${a.event.start_time}`.localeCompare(`${b.event.event_date}T${b.event.start_time}`)
+      return past ? -order : order
+    })
 
   const total = venueEventRows.length + artistEvents.length
 
@@ -201,8 +218,8 @@ export default async function BackstageListPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
       <PageHeader
         eyebrow="Backstages"
-        title="Booking Workspaces"
-        description={`${total} Backstage${total === 1 ? '' : 's'} for the selected profile. Each room keeps lineup, logistics, and conversation together.`}
+        title="Backstages"
+        description={`${total} ${past ? 'past' : 'upcoming'} Backstage${total === 1 ? '' : 's'} for the selected profile.`}
         actions={
           <div className="flex flex-wrap gap-2">
             {venueIds.length > 0 && (
@@ -219,15 +236,43 @@ export default async function BackstageListPage() {
         }
       />
 
+      <nav
+        aria-label="Backstage dates"
+        className="mb-6 flex w-fit gap-1 rounded-xl border border-[#E8E6E0] bg-[#F1F0EC] p-1"
+      >
+        {[
+          { label: 'Upcoming', href: '/dashboard/backstage', selected: !past },
+          { label: 'Past', href: '/dashboard/backstage?view=past', selected: past },
+        ].map(({ label, href, selected }) => (
+          <Link
+            key={label}
+            href={href}
+            aria-current={selected ? 'page' : undefined}
+            className={`inline-flex min-h-10 items-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] ${selected ? 'bg-white text-[#252525] shadow-sm' : 'text-[#777777] hover:text-[#252525]'}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+
       {total === 0 ? (
         <EmptyState
-          title="No Backstages yet"
-          description="Venues can create Events to open a Backstage. Artists can browse Available Events and apply."
+          title={past ? 'No past Backstages' : 'No upcoming Backstages'}
+          description={
+            past
+              ? 'Past events linked to this profile will appear here.'
+              : 'Venues can create Events to open a Backstage. Artists can browse Available Events and apply.'
+          }
           action={
-            <div className="flex flex-wrap justify-center gap-2">
-              {venueIds.length > 0 && <ButtonLink href="/dashboard/events/new">Create Event</ButtonLink>}
-              <ButtonLink href="/events" tone="secondary">Browse Available Events</ButtonLink>
-            </div>
+            past ? (
+              <ButtonLink href="/dashboard/backstage" tone="secondary">View upcoming Backstages</ButtonLink>
+            ) : (
+              <div className="flex flex-wrap justify-center gap-2">
+                {venueIds.length > 0 && <ButtonLink href="/dashboard/events/new">Create Event</ButtonLink>}
+                <ButtonLink href="/events" tone="secondary">Browse Available Events</ButtonLink>
+                <ButtonLink href="/dashboard/backstage?view=past" tone="secondary">View past Backstages</ButtonLink>
+              </div>
+            )
           }
         />
       ) : (
@@ -240,7 +285,7 @@ export default async function BackstageListPage() {
               />
               <div className="space-y-4">
                 {venueEventRows.map((event) => (
-                  <EventCard key={event.id} event={event} role="venue" />
+                  <EventCard key={event.id} event={event} role="venue" past={past} />
                 ))}
               </div>
             </section>
@@ -254,7 +299,7 @@ export default async function BackstageListPage() {
               />
               <div className="space-y-4">
                 {artistEvents.map(({ event, membership }) => (
-                  <EventCard key={`${event.id}-${membership.id}`} event={event} role="artist" membership={membership} />
+                  <EventCard key={`${event.id}-${membership.id}`} event={event} role="artist" membership={membership} past={past} />
                 ))}
               </div>
             </section>

@@ -43,6 +43,7 @@ export function DockThread({
   seed,
   controls,
   fallbackHeader,
+  onOpenBackstage,
 }: {
   selection: DockSelection
   identity: ManagedIdentity
@@ -57,6 +58,7 @@ export function DockThread({
   seed: DockConversation | null
   controls?: React.ReactNode
   fallbackHeader?: React.ReactNode
+  onOpenBackstage?: () => void
 }) {
   const [data, setData] = useState<DockConversation | null>(() => cache.peek(selection))
   const [error, setError] = useState<string | null>(null)
@@ -143,6 +145,7 @@ export function DockThread({
       isAdmin={isAdmin}
       active={active}
       controls={controls}
+      onOpenBackstage={onOpenBackstage}
     />
   )
 }
@@ -161,6 +164,7 @@ function DockConversationView({
   onMessages,
   onEarlier,
   controls,
+  onOpenBackstage,
 }: {
   data: DockConversation
   identity: ManagedIdentity
@@ -175,6 +179,7 @@ function DockConversationView({
   onMessages: (messages: DockMessage[]) => void
   onEarlier: () => Promise<void>
   controls?: React.ReactNode
+  onOpenBackstage?: () => void
 }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -467,6 +472,7 @@ function DockConversationView({
               ) : isAdmin ? (
                 <Link
                   href={`/dashboard/backstage/${id}`}
+                  onClick={onOpenBackstage}
                   className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-[#F6F5F2]"
                 >
                   <ExternalLink className="size-3.5" />
@@ -480,6 +486,19 @@ function DockConversationView({
         </div>
         {controls}
       </div>
+      {room && (
+        <div className="shrink-0 border-b border-[#ECEAE5] bg-white px-4 py-2">
+          <Link
+            href={`/dashboard/backstage/${room.id}`}
+            onClick={onOpenBackstage}
+            aria-label={`Open backstage for ${room.title}`}
+            className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+          >
+            Open backstage
+            <ExternalLink className="size-3" />
+          </Link>
+        </div>
+      )}
       {confirmBlock && (
         <div className="shrink-0 space-y-2 border-b border-red-100 bg-red-50 p-3">
           <p className="text-xs font-semibold text-red-900">Block this private chat?</p>

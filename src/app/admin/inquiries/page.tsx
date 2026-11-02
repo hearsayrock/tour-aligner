@@ -45,8 +45,7 @@ export default async function AdminInquiriesPage({
 
       <div className="mb-5 rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] px-4 py-3">
         <p className="text-sm text-[#666666]">
-          These records are from the pre-inbox inquiry system. Active outreach now lives in inbox
-          threads and bookings.
+          These are archived inquiry records. Current conversations are in Chats, and booking details are in Backstage.
         </p>
       </div>
 

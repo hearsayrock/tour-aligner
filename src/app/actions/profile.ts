@@ -44,7 +44,6 @@ export async function setActiveIdentity(value: string): Promise<{ error: string 
 
   revalidatePath('/dashboard')
   revalidatePath('/dashboard/backstage')
-  revalidatePath('/dashboard/inbox')
 
   return { error: null }
 }

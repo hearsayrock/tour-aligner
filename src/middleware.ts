@@ -156,6 +156,9 @@ export async function middleware(request: NextRequest) {
     return redirectWithSession(request, response, '/dashboard/profiles')
   }
 
+  // Retired URLs render only authorized redirects to Chats or Backstage.
+  if (pathname === '/dashboard/inbox' || pathname.startsWith('/dashboard/inbox/')) return response
+
   if (isChatRead) {
     log('chat-read', accessMs)
     return response

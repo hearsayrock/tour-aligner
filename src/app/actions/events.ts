@@ -30,7 +30,6 @@ function eventPaths(eventId?: string, slug?: string) {
   revalidatePath('/bands/[slug]', 'page')
   revalidatePath('/venues/[slug]', 'page')
   revalidatePath('/dashboard/venues')
-  revalidatePath('/dashboard/inbox')
   if (eventId) revalidatePath(`/dashboard/backstage/${eventId}`)
   if (slug) revalidatePath(`/events/${slug}`)
 }
@@ -214,7 +213,7 @@ async function sendEventPrivateChat(
   }
 
   if (result.action === 'incoming_pending') {
-    return { error: 'A private chat request from this profile is waiting in your Inbox. Respond there before continuing.' }
+    return { error: 'A private chat request from this profile is waiting in Chats. Respond there before continuing.' }
   }
 
   if (result.action === 'existing') {
@@ -679,7 +678,6 @@ export async function applyToEvent(input: {
   if (error) return { error: error.message }
 
   eventPaths(input.eventId, event.slug)
-  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 
@@ -727,7 +725,6 @@ export async function inviteArtistToEvent(input: {
   if (error) return { error: error.message }
 
   eventPaths(input.eventId, event.slug)
-  revalidatePath('/dashboard/inbox')
   return { success: true }
 }
 

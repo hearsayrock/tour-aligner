@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ArrowRight, CalendarDays, CheckCircle2 } from 'lucide-react'
-import { RequestContactForm } from '@/components/contact/RequestContactForm'
+import { PrivateChatRequestButton } from '@/components/private-chat/PrivateChatRequestButton'
 import { VenueAvailabilityCalendar } from '@/components/venues/VenueAvailabilityCalendar'
 import { getEffectiveVenueDateGenreFocus, getVenueShowTypeLabel } from '@/lib/venue-booking-date'
 import type { Booking, VenueBookingDate } from '@/types/database'
@@ -29,11 +29,12 @@ export function PublicVenueBookingPanel({
   defaultBillCap,
   venueId,
   venueSlug,
+  venueName,
   userBands,
   isSignedIn,
   initialSelectedDate,
   identityNotice,
-  existingThread,
+  existingBooking,
   activeBandName,
 }: {
   todayIso: string
@@ -43,11 +44,12 @@ export function PublicVenueBookingPanel({
   defaultBillCap: number
   venueId: string
   venueSlug: string
+  venueName: string
   userBands: ContactOption[]
   isSignedIn: boolean
   initialSelectedDate?: string
   identityNotice?: { title: string; body: string } | null
-  existingThread?: { threadId: string; confirmedUpcomingDate: string | null } | null
+  existingBooking?: { eventId: string; showDate: string } | null
   activeBandName?: string | null
 }) {
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate ?? todayIso)
@@ -72,22 +74,6 @@ export function PublicVenueBookingPanel({
   const selectedGenreFocus = getEffectiveVenueDateGenreFocus(
     selectedEntry?.genre_focus,
     selectedEntry ? automatedGenreFocusByBookingDateId[selectedEntry.id] : null
-  )
-  const dateFitContextByIso = useMemo(
-    () =>
-      Object.fromEntries(
-        bookingDates.map((entry) => [
-          entry.show_date,
-          {
-            effectiveGenreFocus: getEffectiveVenueDateGenreFocus(
-              entry.genre_focus,
-              automatedGenreFocusByBookingDateId[entry.id]
-            ),
-            showTypeLabel: getVenueShowTypeLabel(entry.show_type),
-          },
-        ])
-      ),
-    [automatedGenreFocusByBookingDateId, bookingDates]
   )
   const selectedStatus = selectedEntry?.is_unavailable
     ? 'unavailable'
@@ -182,7 +168,7 @@ export function PublicVenueBookingPanel({
 
           {selectedStatus !== 'full' && selectedStatus !== 'unavailable' && (
             <p className="mt-4 text-sm text-[#666666]">
-              If this feels like a fit, select your band below and the suggested date will carry into the request automatically.
+              Message the venue below and mention the date you have in mind.
             </p>
           )}
         </div>
@@ -191,63 +177,38 @@ export function PublicVenueBookingPanel({
       <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
         <div className="mb-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">
-            Request contact
+            Private chat
           </p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Start the booking conversation</h2>
         </div>
 
-        {isSignedIn && existingThread ? (
-          existingThread.confirmedUpcomingDate ? (
-            <div className="rounded-xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-[#14584E]">
-                <CheckCircle2 className="h-4 w-4" />
-                {activeBandName} is playing here on {formatDateShort(existingThread.confirmedUpcomingDate)}
-              </p>
-              <p className="mt-1 text-sm text-[#14584E]/80">
-                You already have a confirmed booking with this venue.
-              </p>
-              <Link
-                href={`/dashboard/inbox/${existingThread.threadId}`}
-                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0C7C71] hover:underline"
-              >
-                View booking in inbox
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-4">
-              <p className="text-sm font-semibold text-[#252525]">
-                You&apos;re already in a conversation with this venue
-              </p>
-              <p className="mt-1 text-sm text-[#777777]">
-                {activeBandName} has an open thread here. Head to your inbox to continue it.
-              </p>
-              <Link
-                href={`/dashboard/inbox/${existingThread.threadId}`}
-                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#FD6A2F] hover:underline"
-              >
-                Continue conversation
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          )
-        ) : isSignedIn && identityNotice ? (
+        {isSignedIn && existingBooking && (
+          <div className="mb-4 rounded-xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[#14584E]">
+              <CheckCircle2 className="h-4 w-4" />
+              {activeBandName} is playing here on {formatDateShort(existingBooking.showDate)}
+            </p>
+            <Link href={`/dashboard/backstage/${existingBooking.eventId}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0C7C71] hover:underline">
+              Open backstage<ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
+        {isSignedIn && identityNotice ? (
           <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
             <p className="font-semibold text-[#8A5A12]">{identityNotice.title}</p>
             <p className="mt-1 text-[#8A5A12]/85">{identityNotice.body}</p>
           </div>
         ) : isSignedIn && userBands.length > 0 ? (
-          <RequestContactForm
-            initiatorSide="band"
-            targetVenueId={venueId}
-            options={userBands}
-            showDate={selectedDate}
-            onShowDateChange={setSelectedDate}
-            dateFitContextByIso={dateFitContextByIso}
-          />
+          <div className="space-y-3">
+            <p className="text-sm text-[#777777]">Discuss dates in a private chat. Confirmed show details and lineup changes are managed in Backstage.</p>
+            <PrivateChatRequestButton
+              senderIdentity={{ kind: 'band', id: userBands[0].id, name: userBands[0].name, href: `/dashboard/bands/${userBands[0].id}/edit` }}
+              targetKind="venue" targetId={venueId} targetName={venueName} buttonLabel="Message venue"
+            />
+          </div>
         ) : isSignedIn && userBands.length === 0 ? (
           <p className="text-sm text-[#888888]">
-            You need an artist profile to request contact.{' '}
+            You need an artist profile to message this venue.{' '}
             <Link href="/dashboard/bands/new" className="text-[#FD6A2F] hover:underline">
               Create one
             </Link>
@@ -258,7 +219,7 @@ export function PublicVenueBookingPanel({
             <Link href={`/login?redirectTo=/venues/${venueSlug}`} className="text-[#FD6A2F] hover:underline">
               Sign in
             </Link>{' '}
-            to request contact.
+            to message this venue.
           </p>
         )}
       </section>

@@ -1,4 +1,4 @@
-import type { BackstageMessage, Event, EventArtistMembership } from '@/types/database'
+import type { Event, EventArtistMembership } from '@/types/database'
 
 export type EventWithVenue = Event & {
   venues: {
@@ -22,11 +22,6 @@ export type EventMembershipSummary = EventArtistMembership & {
     slug: string
     user_id: string
   } | null
-}
-
-export type BackstageMessageSummary = BackstageMessage & {
-  profiles: { full_name: string | null } | null
-  bands: { name: string | null } | null
 }
 
 export const EVENT_STATUS_LABELS: Record<Event['status'], string> = {
