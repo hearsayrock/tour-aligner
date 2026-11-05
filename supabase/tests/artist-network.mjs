@@ -104,19 +104,56 @@ try {
   assert.equal((await directory('followers')).length, 1, 'unfollowing does not remove their follow')
   assert.equal((await rows(`select * from search_artist_directory($1,'following')`, [secondArtist])).length, 0, 'relationships are isolated across managed identities')
 
-  // Exercise the existing artist-to-artist chat flow with the new follow table.
+  const requestChat = (from, to) => scalar(`select request_private_chat('band',$1,'band',$2,'Hello')`, [from, to])
+  const respondToChat = (threadId, actor, action, note) => scalar(
+    `select respond_to_private_chat_request($1,'band',$2,$3,$4)`, [threadId, actor, action, note],
+  )
+  const chatResponses = threadId => rows(
+    `select id, kind, body, sender_profile_id, sender_user_id, created_at
+     from private_chat_messages where thread_id=$1 and kind<>'request'`, [threadId],
+  )
+
+  const legacyAccepted = (await requestChat(secondArtist, partialMatch)).thread_id
+  const legacyDeclined = (await requestChat(artist, partialMatch)).thread_id
+  await asUser(otherOwner)
+  const legacyReply = 'Yes! Note: Tuesdays work for us.'
+  await respondToChat(legacyAccepted, partialMatch, 'accept', legacyReply)
+  await respondToChat(legacyDeclined, partialMatch, 'deny', 'Busy this month')
+  const [legacyResponse] = await chatResponses(legacyAccepted)
+  const [legacyDenial] = await chatResponses(legacyDeclined)
+  assert.equal(legacyResponse.kind, 'system')
+
+  await db.exec('reset role')
+  await db.exec(read('../migrations/20261105234042_private_chat_acceptance_replies_as_messages.sql'))
+  await asUser(owner)
+  assert.deepEqual(await chatResponses(legacyAccepted), [{ ...legacyResponse, kind: 'message', body: legacyReply }])
+  assert.deepEqual(await chatResponses(legacyDeclined), [legacyDenial])
+  await requestChat(artist, partialMatch)
+  await asUser(otherOwner)
+  await respondToChat(legacyDeclined, partialMatch, 'accept', '   ')
+  const [emptyAcceptance] = (await chatResponses(legacyDeclined)).filter(message => message.id !== legacyDenial.id)
+  assert.equal(emptyAcceptance.kind, 'system')
+  assert.equal(emptyAcceptance.body, 'Artist accepted the private chat request.')
+  await asUser(owner)
+
+  // Exercise the artist-to-artist chat flow between mutual followers.
   // Even mutual follows must respect approval, participant privacy, and blocking.
   await follow(artist, strongestMatch)
-  const requested = await scalar(`select request_private_chat('band',$1,'band',$2,'Hello')`, [artist, strongestMatch])
+  const requested = await requestChat(artist, strongestMatch)
   const threadId = requested.thread_id
   assert.equal(requested.status, 'pending')
   await assert.rejects(rows(`select send_private_chat_message($1,'band',$2,'Premature')`, [threadId, artist]), /accepted|approved/i)
   await assert.rejects(rows(`select respond_to_private_chat_request($1,'band',$2,'accept',null)`, [threadId, artist]), /receiving profile/i)
   await asUser(otherOwner)
-  const accepted = await scalar(`select respond_to_private_chat_request($1,'band',$2,'accept',null)`, [threadId, strongestMatch])
+  const accepted = await respondToChat(threadId, strongestMatch, 'accept', '  Hello back  ')
   assert.equal(accepted.status, 'accepted')
-  await rows(`select send_private_chat_message($1,'band',$2,'Hello back')`, [threadId, strongestMatch])
   await asUser(owner)
+  const responses = await chatResponses(threadId)
+  assert.equal(responses.length, 1)
+  assert.equal(responses[0].kind, 'message')
+  assert.equal(responses[0].body, 'Hello back')
+  assert.equal(responses[0].sender_profile_id, strongestMatch)
+  assert.equal(responses[0].sender_user_id, otherOwner)
   await rows(`select send_private_chat_message($1,'band',$2,'Let us play a show')`, [threadId, artist])
   await asUser(outsider)
   assert.equal(await scalar('select count(*)::int from private_chat_threads'), 0)
@@ -129,6 +166,17 @@ try {
   await assert.rejects(rows(`select request_private_chat('band',$1,'band',$2,'Try again')`, [artist, strongestMatch]), /blocked/i)
   await rows(`select archive_private_chat_thread($1,'band',$2)`, [threadId, artist])
   await rows(`select mark_private_chat_read($1,'band',$2)`, [threadId, artist])
+
+  await db.exec('reset role')
+  await db.exec(read('../rollback/20261105234042_private_chat_acceptance_replies_as_messages_rollback.sql'))
+  await asUser(owner)
+  assert.deepEqual(await chatResponses(legacyAccepted), [{ ...legacyResponse, kind: 'message', body: legacyReply }])
+  const rolledBackThread = (await requestChat(secondArtist, strongestMatch)).thread_id
+  await asUser(otherOwner)
+  await respondToChat(rolledBackThread, strongestMatch, 'accept', 'Hello again')
+  const [rolledBackResponse] = await chatResponses(rolledBackThread)
+  assert.equal(rolledBackResponse.kind, 'system')
+  assert.equal(rolledBackResponse.body, 'Artist accepted the private chat request. Note: Hello again')
 
   await db.exec('reset role; set role anon')
   await assert.rejects(rows('select * from artist_follows'), /permission denied/)

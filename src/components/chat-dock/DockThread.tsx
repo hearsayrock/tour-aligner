@@ -640,8 +640,8 @@ function DockConversationView({
         <div className="shrink-0 space-y-2 border-t border-[#ECEAE5] bg-[#FFF8F2] p-3">
           <p className="text-xs text-[#705847]">{title} wants to chat with you.</p>
           <input
-            aria-label="Optional response note"
-            placeholder="Optional note"
+            aria-label="Optional reply"
+            placeholder="Optional reply"
             value={note}
             onChange={(event) => setNote(event.target.value)}
             className="h-8 w-full rounded-lg border border-[#EBDFD1] bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-[#FD6A2F]"
