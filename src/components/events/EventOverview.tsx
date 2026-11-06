@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { EventPageSectionId } from '@/components/events/event-page-config'
-import type { ProfilePageSectionContent } from '@/components/profile-page/profile-page-types'
+import type { ProfilePageLayout, ProfilePageSectionContent } from '@/components/profile-page/profile-page-types'
 
 export type EventOverviewData = {
   title: string
@@ -31,7 +31,13 @@ export function eventFrameStyle(color: string, background: string | null, opacit
   }
 }
 
-export function EventPageHero({ event, actions }: { event: EventOverviewData; actions?: ReactNode }) {
+export function EventPageHero({ event, layout, actions }: {
+  event: EventOverviewData
+  layout: ProfilePageLayout<EventPageSectionId>
+  actions?: ReactNode
+}) {
+  const showDate = !layout.sections.some((section) => section.sectionId === 'details' && section.visible)
+  const showGenres = !layout.sections.some((section) => section.sectionId === 'genres' && section.visible)
   return (
     <header className="relative overflow-hidden border-b-4 bg-[#191619] text-white" style={{ borderColor: event.accent }}>
       {event.cover && (
@@ -47,9 +53,9 @@ export function EventPageHero({ event, actions }: { event: EventOverviewData; ac
         {actions && <div className="mb-7 flex flex-wrap items-center gap-3">{actions}</div>}
         <div className="artist-page-hero-main max-w-4xl">
           <h1 className="break-words font-[var(--font-barlow)] text-4xl font-black leading-tight sm:text-6xl">{event.title}</h1>
-          <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{event.venue} · {event.date}</p>
+          <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{event.venue}{showDate && event.date ? ' · ' + event.date : ''}</p>
           {event.location && <p className="mt-1 text-sm text-white/85">{event.location}</p>}
-          {event.genres.length > 0 && (
+          {showGenres && event.genres.length > 0 && (
             <div className="artist-page-genres mt-4 flex flex-wrap gap-2">
               {event.genres.map((genre) => (
                 <span key={genre} className="rounded-full border border-white/30 bg-black/30 px-3 py-1 text-xs font-medium">{genre}</span>
@@ -76,14 +82,38 @@ export function createEventPageSections(event: EventOverviewData, preview = fals
     {
       sectionId: 'description',
       content: <EventPane title="Event description" id={preview ? undefined : 'event-description'}>
-        <p className="whitespace-pre-wrap break-words">{event.description}</p>
+        <p className="whitespace-pre-wrap break-words">{event.description || (preview ? 'Add a description for the show.' : '')}</p>
       </EventPane>,
     },
     {
       sectionId: 'capacity',
-      content: <EventPane title="Capacity"><p className="text-xl font-semibold">{event.capacity.toLocaleString('en-US')} attendees</p></EventPane>,
+      content: <EventPane title="Capacity">
+        <p className="text-xl font-semibold">{event.capacity > 0 ? event.capacity.toLocaleString('en-US') + ' attendees' : 'Set attendee capacity.'}</p>
+      </EventPane>,
+    },
+    {
+      sectionId: 'details',
+      content: <EventPane title="Event details">
+        <p className="font-semibold">{event.date || 'Set the date and start time.'}</p>
+        <p>{event.venue}</p>
+      </EventPane>,
     },
   ]
+
+  if (event.genres.length || preview) {
+    sections.push({
+      sectionId: 'genres',
+      content: <EventPane title="Genres">
+        {event.genres.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {event.genres.map((genre) => (
+              <li key={genre} className="rounded-full border border-[#E8E8E8] px-3 py-1 font-medium">{genre}</li>
+            ))}
+          </ul>
+        ) : <p>Choose the genres on the bill.</p>}
+      </EventPane>,
+    })
+  }
 
   if (event.lineup || preview) {
     sections.push({
@@ -117,7 +147,9 @@ export function createEventPageSections(event: EventOverviewData, preview = fals
       sectionId: 'artist-call',
       content: <EventPane title="Artists needed">
         <p className="whitespace-pre-wrap break-words">
-          {event.artistNeed ?? 'This pane appears when the event is accepting artists.'}
+          {event.artistNeed === null
+            ? 'This pane appears when the event is accepting artists.'
+            : event.artistNeed || (preview ? 'Describe the artists you need for the show.' : '')}
         </p>
       </EventPane>,
     })

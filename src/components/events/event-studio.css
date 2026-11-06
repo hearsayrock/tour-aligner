@@ -1,0 +1,7 @@
+.app-shell-layout:has(> .app-shell-main [data-fullscreen-studio]) > :not(.app-shell-main) {
+  display: none;
+}
+
+.app-shell-layout:has(> .app-shell-main [data-fullscreen-studio]) > main.app-shell-main {
+  padding: 0;
+}

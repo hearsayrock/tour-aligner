@@ -10,12 +10,14 @@ export function ProfilePageCanvas<SectionId extends string>({
   layout,
   hero,
   sections,
+  children,
   className,
   style,
 }: {
   layout: ProfilePageLayout<SectionId>
   hero: ReactNode
-  sections: readonly ProfilePageSectionContent<SectionId>[]
+  sections?: readonly ProfilePageSectionContent<SectionId>[]
+  children?: ReactNode
   className?: string
   style?: CSSProperties
 }) {
@@ -27,7 +29,8 @@ export function ProfilePageCanvas<SectionId extends string>({
       style={style}
     >
       {hero}
-      <ProfilePageSectionGrid layout={layout} sections={sections} />
+      {sections && <ProfilePageSectionGrid layout={layout} sections={sections} />}
+      {children}
     </div>
   )
 }

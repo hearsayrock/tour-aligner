@@ -10,6 +10,23 @@ const definitions: ProfilePageSectionDefinition[] = ['a', 'b', 'c'].map((section
   allowedSpans: [4, 6, 8, 12], defaultVariant: 'card', required: sectionId === 'a',
 }))
 
+test('new optional panes stay hidden on existing layouts until added', () => {
+  const updatedDefinitions = [...definitions, {
+    ...definitions[1],
+    sectionId: 'new-pane',
+    defaultOrder: 3,
+    defaultVisible: false,
+  }]
+  const existingLayout = normalizeProfilePageLayout(undefined, definitions)
+  const normalized = normalizeProfilePageLayout(existingLayout, updatedDefinitions)
+  assert.deepEqual(normalized.sections.slice(0, 3), existingLayout.sections)
+  assert.equal(normalized.sections[3].visible, false)
+  assert.equal(normalizeProfilePageLayout(null, updatedDefinitions).sections[3].visible, false)
+
+  normalized.sections[3].visible = true
+  assert.equal(normalizeProfilePageLayout(normalized, updatedDefinitions).sections[3].visible, true)
+})
+
 test('scrollable lyrics can shrink vertically while retaining their content width', () => {
   const source = { sectionId: 'lyrics', x: 0, y: 0, width: 700, height: 1800 }
   const { rect } = resizeProfileBlock(source, 'se', -600, -1700, 1200, 280, [], false, 560)

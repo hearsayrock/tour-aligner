@@ -41,6 +41,7 @@ export type ProfilePageSectionDefinition<SectionId extends string = string> = {
   defaultSpan: ProfilePageSpan
   allowedSpans: readonly ProfilePageSpan[]
   defaultVariant: string
+  defaultVisible?: boolean
   required?: boolean
 }
 
@@ -79,7 +80,7 @@ export function createDefaultProfilePageLayout<SectionId extends string>(
         sectionId: definition.sectionId,
         order: definition.defaultOrder,
         span: definition.defaultSpan,
-        visible: true,
+        visible: definition.required || (definition.defaultVisible ?? true),
         variant: definition.defaultVariant,
       }))
       .sort((a, b) => a.order - b.order),
@@ -121,7 +122,7 @@ export function normalizeProfilePageLayout<SectionId extends string>(
       sectionId: definition.sectionId,
       order,
       span: nearestAllowedSpan(raw?.span, definition),
-      visible: definition.required ? true : raw?.visible !== false,
+      visible: definition.required || (typeof raw?.visible === 'boolean' ? raw.visible : (definition.defaultVisible ?? true)),
       variant: raw && typeof raw.variant === 'string' && raw.variant.trim()
         ? raw.variant
         : definition.defaultVariant,

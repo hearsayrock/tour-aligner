@@ -19,11 +19,13 @@ export function ApplyEventForm({
   eventId,
   bands,
   existingMembership,
+  acceptHref,
   declineHref,
 }: {
   eventId: string
   bands: BandOption[]
   existingMembership?: ExistingMembership | null
+  acceptHref?: string
   declineHref?: string
 }) {
   const router = useRouter()
@@ -52,8 +54,12 @@ export function ApplyEventForm({
           setError(result.error)
           return
         }
-        if (status === 'declined' && declineHref) router.replace(declineHref)
-        router.refresh()
+        const nextHref = status === 'accepted' ? acceptHref : declineHref
+        if (nextHref && nextHref !== window.location.pathname + window.location.search) {
+          router.replace(nextHref, { scroll: status === 'declined' })
+        } else {
+          router.refresh()
+        }
       })
     }
 

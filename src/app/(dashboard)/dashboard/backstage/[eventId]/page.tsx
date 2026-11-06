@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
+import { eventBackstageHref } from '@/lib/events'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function BackstageDetailPage({ params }: { params: Promise<{ eventId: string }> }) {
@@ -9,5 +10,5 @@ export default async function BackstageDetailPage({ params }: { params: Promise<
 
   const { data: event } = await supabase.from('events').select('slug').eq('id', eventId).maybeSingle()
   if (!event) notFound()
-  redirect('/events/' + event.slug)
+  redirect(eventBackstageHref(event.slug))
 }

@@ -11,7 +11,7 @@ import {
   InviteArtistForm,
   MembershipActionButton,
 } from '@/components/events/BackstageForms'
-import { MEMBERSHIP_STATUS_LABELS, getAcceptedMemberships, getOpenArtistNeed, type EventMembershipSummary } from '@/lib/events'
+import { MEMBERSHIP_STATUS_LABELS, eventBackstageHref, formatEventDateLong, getAcceptedMemberships, getOpenArtistNeed, type EventMembershipSummary } from '@/lib/events'
 import type { ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventLogistics, PrivateChatThread } from '@/types/database'
 
@@ -24,10 +24,9 @@ function membershipTone(status: EventMembershipSummary['status']) {
 }
 
 export async function BackstageWorkspace({
-  event, eventHref, venueName, memberships, selectedGenreIds, logistics, activeIdentity, viewerMembership, isVenueLeader,
+  event, venueName, memberships, selectedGenreIds, logistics, activeIdentity, viewerMembership, isVenueLeader,
 }: {
   event: Event
-  eventHref: string
   venueName: string
   memberships: EventMembershipSummary[]
   selectedGenreIds: string[]
@@ -75,9 +74,12 @@ export async function BackstageWorkspace({
   )
 
   return (
-    <section id="backstage" aria-labelledby="backstage-title" className="mt-8 scroll-mt-8 space-y-4 border-t border-[#E8E8E8] pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="backstage-title" className="text-2xl font-bold text-[#252525]">Backstage</h2>
+    <section aria-labelledby="backstage-title" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E8E8E8] bg-white p-5">
+        <div>
+          <h2 id="backstage-title" className="text-xl font-bold text-[#252525]">Backstage</h2>
+          <p className="mt-1 text-sm text-[#666666]">{formatEventDateLong(event)}</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           {!isVenueLeader && (
             <PrivateChatRequestButton
@@ -88,7 +90,7 @@ export async function BackstageWorkspace({
               buttonLabel="Private chat with venue"
             />
           )}
-          <Link href={eventHref + '?backstageChat=' + event.id + '#backstage'} scroll={false} className={buttonBaseClass('dark')}>
+          <Link href={eventBackstageHref(event.slug, { chatId: event.id })} scroll={false} className={buttonBaseClass('dark')}>
             Open Backstage chat
           </Link>
         </div>

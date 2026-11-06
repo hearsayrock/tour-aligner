@@ -15,6 +15,14 @@ type RecurrenceInput = {
   occurrenceCount?: number | null
   endDate?: string | null
 }
+export type EventStudioDetails = {
+  eventDate: string
+  startTime: string
+  genreIds: string[]
+  artistNeedDescription: string
+  attendeeCapacity: number
+  neededArtistCount: number
+}
 
 const DEFAULT_RECURRENCE_COUNT = 12
 const MAX_RECURRENCE_OCCURRENCES = 104
@@ -178,14 +186,14 @@ async function ensureEventOwner(
 ) {
   const { data: event } = await supabase
     .from('events')
-    .select('id, venue_id, slug, title, venues(claimed_by_user_id)')
+    .select('id, venue_id, slug, title, event_date, venues(claimed_by_user_id)')
     .eq('id', eventId)
     .single()
 
   const rawVenue = Array.isArray(event?.venues) ? event?.venues[0] : event?.venues
   if (!event || rawVenue?.claimed_by_user_id !== userId) return null
 
-  return event as Pick<Event, 'id' | 'venue_id' | 'slug' | 'title'>
+  return event as Pick<Event, 'id' | 'venue_id' | 'slug' | 'title' | 'event_date'>
 }
 
 async function sendEventPrivateChat(
@@ -248,17 +256,11 @@ async function uniqueEventSlug(
   }
 }
 
-export async function createEvent(input: {
+export async function createEvent(input: EventStudioDetails & {
   venueId: string
   title: string
-  eventDate: string
   eventDates?: string[]
-  startTime: string
-  genreIds: string[]
-  artistNeedDescription: string
   description: string
-  attendeeCapacity: number
-  neededArtistCount: number
   recurrence?: RecurrenceInput | null
 }): Promise<ActionResult<{ eventId?: string; eventIds?: string[]; eventSlug?: string; createdCount?: number; seriesId?: string }>> {
   const { supabase, userId } = await getUserId()
@@ -368,7 +370,11 @@ export async function createEvent(input: {
     .from('event_genres')
     .insert(events.flatMap((event) => genreIds.map((genreId) => ({ event_id: event.id, genre_id: genreId }))))
 
-  if (genreError) return { error: genreError.message }
+  if (genreError) {
+    await supabase.from('events').delete().in('id', events.map((event) => event.id))
+    if (seriesId) await supabase.from('event_series').delete().eq('id', seriesId)
+    return { error: genreError.message }
+  }
 
   const { error: messageError } = await supabase.from('backstage_messages').insert(
     events.map((event) => ({
@@ -379,7 +385,11 @@ export async function createEvent(input: {
     }))
   )
 
-  if (messageError) return { error: messageError.message }
+  if (messageError) {
+    await supabase.from('events').delete().in('id', events.map((event) => event.id))
+    if (seriesId) await supabase.from('event_series').delete().eq('id', seriesId)
+    return { error: messageError.message }
+  }
 
   eventPaths(events[0].id, events[0].slug)
   return {
@@ -518,6 +528,7 @@ export async function updateEventAppearance(input: {
   backgroundOpacity: number
   pageLayout: unknown
   isPublic: boolean
+  details?: Partial<EventStudioDetails>
 }): Promise<ActionResult> {
   const { supabase, userId } = await getUserId()
   if (!userId) return { error: 'You must be signed in.' }
@@ -548,9 +559,54 @@ export async function updateEventAppearance(input: {
     }
   }
 
+  const { eventDate, startTime, attendeeCapacity, neededArtistCount, artistNeedDescription, genreIds } = input.details ?? {}
+  if ((eventDate !== undefined && !parseIsoDate(eventDate)) ||
+      (startTime !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime))) {
+      return { error: 'Enter a valid event date and start time.' }
+  }
+  if ([attendeeCapacity, neededArtistCount].some((value) => value !== undefined &&
+      (!Number.isInteger(value) || value < 1 || value > 2_147_483_647))) {
+    return { error: 'Enter a valid attendee capacity and artist cap.' }
+  }
+  if (eventDate !== undefined && eventDate !== event.event_date) {
+    const { data: blockedDate, error } = await supabase.from('venue_unavailable_dates')
+      .select('unavailable_date')
+      .eq('venue_id', event.venue_id)
+      .eq('unavailable_date', eventDate)
+      .limit(1)
+      .maybeSingle()
+    if (error) return { error: error.message }
+    if (blockedDate) return { error: 'This date is marked unavailable.' }
+  }
+  if (genreIds) {
+    const { data: currentGenres, error } = await supabase.from('event_genres')
+      .select('genre_id').eq('event_id', event.id)
+    if (error) return { error: error.message }
+    const selected = new Set(genreIds)
+    const current = new Set(currentGenres.map((genre) => genre.genre_id))
+    const added = [...selected].filter((id) => !current.has(id))
+    const removed = [...current].filter((id) => !selected.has(id))
+    if (added.length) {
+      const { error } = await supabase.from('event_genres').upsert(
+        added.map((genre_id) => ({ event_id: event.id, genre_id })),
+        { onConflict: 'event_id,genre_id', ignoreDuplicates: true }
+      )
+      if (error) return { error: error.message }
+    }
+    if (removed.length) {
+      const { error } = await supabase.from('event_genres').delete().eq('event_id', event.id).in('genre_id', removed)
+      if (error) return { error: error.message }
+    }
+  }
+
   const { error } = await supabase.from('events').update({
     title,
     description,
+    event_date: eventDate,
+    start_time: startTime,
+    artist_need_description: artistNeedDescription === undefined ? undefined : normalizeText(artistNeedDescription),
+    attendee_capacity: attendeeCapacity,
+    needed_artist_count: neededArtistCount,
     accent_color: input.accent,
     cover_photo_path: input.coverPath,
     background_photo_path: input.backgroundPath,

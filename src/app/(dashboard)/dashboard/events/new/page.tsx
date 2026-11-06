@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
-import { EventCreateForm } from '@/components/events/EventCreateForm'
+import { EventAppearanceEditor } from '@/components/events/EventAppearanceEditor'
+import { createNewEventPageLayout, DEFAULT_EVENT_BACKGROUND_COLOR, DEFAULT_EVENT_BACKGROUND_OPACITY } from '@/components/events/event-page-config'
+import { getVenueProfileAppearance, parseVenueProfileTheme } from '@/components/profile-page/venue/venue-page-config'
 import { ButtonLink, EmptyState, PageHeader } from '@/components/ui/primitives'
 import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 
@@ -25,7 +27,7 @@ export default async function NewEventPage() {
       .order('name'),
     supabase
       .from('venues')
-      .select('id, name, capacity')
+      .select('id, name, capacity, location_city, location_state, profile_theme')
       .eq('claimed_by_user_id', user.id)
       .eq('is_active', true)
       .order('name'),
@@ -49,23 +51,58 @@ export default async function NewEventPage() {
   const cookieStore = await cookies()
   const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
   const venueIdentities = identities.filter((identity) => identity.kind === 'venue')
-  const selectedVenues = requiredIdentity.activeIdentity?.kind === 'venue'
-    ? venues.filter((venue) => venue.id === requiredIdentity.activeIdentity?.id)
-    : venues.length === 1 && !requiredIdentity.hasMultipleIdentities
-      ? venues
-      : []
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const twoYearsFromNow = new Date()
-  twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
-  const existingEvents = selectedVenues.length > 0
-    ? (await supabase
+  const venue = requiredIdentity.activeIdentity?.kind === 'venue'
+    ? venues.find((venue) => venue.id === requiredIdentity.activeIdentity?.id)
+    : undefined
+
+  if (venue) {
+    const today = new Date()
+    const twoYearsFromNow = new Date()
+    twoYearsFromNow.setFullYear(today.getFullYear() + 2)
+    const { data: existingEvents } = await supabase
       .from('events')
       .select('event_date, title')
-      .eq('venue_id', selectedVenues[0].id)
-      .gte('event_date', todayIso)
+      .eq('venue_id', venue.id)
+      .gte('event_date', today.toISOString().slice(0, 10))
       .lte('event_date', twoYearsFromNow.toISOString().slice(0, 10))
-      .order('event_date')).data ?? []
-    : []
+      .order('event_date')
+    const { accent } = getVenueProfileAppearance(parseVenueProfileTheme(venue.profile_theme))
+    const capacity = venue.capacity ?? 100
+    return (
+      <EventAppearanceEditor
+        key={venue.id}
+        eventHref="/dashboard/backstage"
+        venueId={venue.id}
+        event={{
+          title: '',
+          description: '',
+          date: '',
+          venue: venue.name,
+          location: [venue.location_city, venue.location_state].filter(Boolean).join(', '),
+          accent,
+          cover: null,
+          genres: [],
+          capacity,
+          artistNeed: '',
+          lineup: null,
+        }}
+        initialDetails={{
+          eventDate: '',
+          startTime: '20:00',
+          genreIds: [],
+          artistNeedDescription: '',
+          attendeeCapacity: capacity,
+          neededArtistCount: 3,
+        }}
+        layout={createNewEventPageLayout()}
+        backgroundColor={DEFAULT_EVENT_BACKGROUND_COLOR}
+        backgroundOpacity={DEFAULT_EVENT_BACKGROUND_OPACITY}
+        inheritedAccent={accent}
+        availableGenres={genres ?? []}
+        existingEvents={existingEvents ?? []}
+      />
+    )
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -74,7 +111,6 @@ export default async function NewEventPage() {
         backLabel="Back to Backstages"
         eyebrow="Event setup"
         title="Create Event"
-        description="Add the show details first, then arrange and style the event page. Your draft comes with a private Backstage."
       />
 
       {venueIdentities.length > 0 && (requiredIdentity.requiresSelection || requiredIdentity.activeIdentity?.kind === 'band') ? (
@@ -82,14 +118,6 @@ export default async function NewEventPage() {
           title="Select a venue to create an Event"
           body="Event creation needs one venue profile. Choose the venue you want to create this Event for, or cancel to return to Dashboard."
           identities={venueIdentities}
-        />
-      ) : selectedVenues.length > 0 ? (
-        <EventCreateForm
-          venues={selectedVenues}
-          genres={genres ?? []}
-          initialVenueId={selectedVenues[0].id}
-          lockVenue
-          existingEvents={existingEvents}
         />
       ) : (
         <EmptyState

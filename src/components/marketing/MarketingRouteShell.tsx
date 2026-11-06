@@ -6,7 +6,6 @@ import { cx } from '@/components/ui/primitives'
 function usesAuthenticatedAppShell(pathname: string) {
   return (
     pathname === '/events' ||
-    pathname.startsWith('/events/') ||
     pathname === '/venues' ||
     pathname.startsWith('/venues/') ||
     pathname === '/bands'
@@ -28,12 +27,12 @@ export function MarketingRouteShell({
 }) {
   const pathname = usePathname()
   const useAppShell = isSignedIn && usesAuthenticatedAppShell(pathname)
-  const isPublicArtistProfile = pathname.startsWith('/bands/')
-  const showFooter = !isSignedIn || !isPublicArtistProfile
+  const isStandalonePage = pathname.startsWith('/bands/') || pathname.startsWith('/events/')
+  const showFooter = !isSignedIn || !isStandalonePage
 
   return (
     <div className={cx(useAppShell && 'app-shell-layout')}>
-      {!isPublicArtistProfile && (
+      {!isStandalonePage && (
         <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
       )}
       <div className={useAppShell ? undefined : 'hidden'}>{appNav}</div>

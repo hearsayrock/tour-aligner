@@ -20,6 +20,7 @@ import {
   Eye,
   EyeOff,
   LayoutGrid,
+  Layers3,
   GripVertical,
   LoaderCircle,
   Monitor,
@@ -132,6 +133,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   hero,
   className,
   style,
+  fullScreen = false,
   exitHref,
   exitLabel = 'Exit profile studio',
   saveAction,
@@ -143,14 +145,16 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   inspectorLabel = 'Customize',
   onEditSection,
   editableSectionIds,
+  addSectionsLabel,
   toolbarActions,
 }: {
   initialLayout: ProfilePageLayout<SectionId>
   definitions: readonly ProfilePageSectionDefinition<SectionId>[]
   sections: readonly ProfilePageSectionContent<SectionId>[]
-  hero: ReactNode
+  hero: ReactNode | ((layout: ProfilePageLayout<SectionId>) => ReactNode)
   className?: string
   style?: CSSProperties
+  fullScreen?: boolean
   exitHref: string
   exitLabel?: string
   editDetailsHref: string
@@ -164,6 +168,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   inspectorLabel?: string
   onEditSection?: (sectionId: SectionId) => void
   editableSectionIds?: readonly SectionId[]
+  addSectionsLabel?: string
   toolbarActions?: ReactNode
 }) {
   const router = useRouter()
@@ -590,9 +595,18 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div ref={studioRef} className="relative z-[60] min-h-screen bg-[#DED9D2]">
+    <div ref={studioRef} data-fullscreen-studio={fullScreen ? '' : undefined} className="relative z-[60] min-h-screen bg-[#DED9D2]">
       <div ref={headerRef} className="sticky top-0 z-50 border-b border-black/10 bg-[#1C1816]/95 px-2 py-3 text-white shadow-xl backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-[96rem] flex-wrap items-center gap-1">
+          {addSectionsLabel && (
+            <ProfilePageStudioMenu open={activeMenu === 'Add sections'} onOpenChange={(open) => setActiveMenu(open ? 'Add sections' : null)} label={addSectionsLabel} icon={Layers3}>
+              {hiddenItems.length ? hiddenItems.map((item) => (
+                <button key={item.sectionId} type="button" onClick={() => updateSection(item.sectionId, { visible: true })} className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-xs font-semibold hover:bg-white/5">
+                  {definitionById.get(item.sectionId)?.label ?? item.sectionId}
+                </button>
+              )) : <p className="text-xs text-white/70">All panes are on the page.</p>}
+            </ProfilePageStudioMenu>
+          )}
           {toolbarActions}
           {inspector && onOpenInspector && <button type="button" onClick={onOpenInspector} aria-label={inspectorLabel} className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white"><PanelRight className="h-4 w-4" />{inspectorLabel}</button>}
           <ProfilePageStudioMenu open={activeMenu === 'Arrange'} onOpenChange={(open) => setActiveMenu(open ? 'Arrange' : null)} label="Arrange" icon={LayoutGrid}>
@@ -638,13 +652,13 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                     {(['left', 'center'] as const).map((alignment) => <button key={alignment} type="button" onClick={() => updateHero({ alignment })} aria-pressed={layout.hero.alignment === alignment} className={cx('min-h-9 rounded-lg text-xs font-semibold capitalize', layout.hero.alignment === alignment ? 'bg-white text-[#252525]' : 'bg-white/5 hover:bg-white/10')}>{alignment}</button>)}
                   </div>
                 </div>
-                {hiddenItems.length > 0 && <div>
+                {!addSectionsLabel && hiddenItems.length > 0 && <div>
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FFB99A]">Hidden sections</p>
                   {hiddenItems.map((item) => <button key={item.sectionId} type="button" onClick={() => updateSection(item.sectionId, { visible: true })} className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg px-2 text-left text-xs font-semibold hover:bg-white/5">{definitionById.get(item.sectionId)?.label ?? item.sectionId}<Eye className="h-3.5 w-3.5 shrink-0" /></button>)}
                 </div>}
               </div>
           </ProfilePageStudioMenu>
-          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label={exitLabel} className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+          <button type="button" onClick={() => navigateAway(exitHref, true)} disabled={saving} aria-label={exitLabel} className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-40"><X className="h-4 w-4" /></button>
           <button type="button" onClick={save} disabled={saving || !isDirty || saveDisabled} title={saveDisabled ? 'Click OK or Discard to finish editing the block.' : undefined} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#FD6A2F] bg-[#FD6A2F] px-3 text-xs font-semibold text-white transition-colors hover:border-[#E55A22] hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
             {saving ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" /> : savedNotice ? <Check className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
             {saving ? 'Saving' : savedNotice ? 'Saved' : 'Save'}
@@ -660,7 +674,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
           data-hero-alignment={layout.hero.alignment}
           style={style}
         >
-          {hero}
+          {typeof hero === 'function' ? hero(layout) : hero}
           <ProfilePageSurface items={visibleItems} mobile={viewport === 'mobile'} activeId={draggedSection} guides={guides}
             surfaceRef={gridRef} onGeometry={(geometry) => { geometryRef.current = geometry; setStacked(geometry.stacked); setDockGeometry((previous) => JSON.stringify(previous) === JSON.stringify(geometry) ? previous : geometry) }}
             renderItem={(item, placementClass, placementStyle) => {

@@ -1,16 +1,18 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { MapPin, Plus, Search } from 'lucide-react'
+import { Eye, MapPin, Plus, Search } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProfileSelectionModal } from '@/components/dashboard/ProfileSelectionModal'
-import { Badge, ButtonLink, EmptyState, PageHeader, SectionHeading } from '@/components/ui/primitives'
+import { Badge, ButtonLink, EmptyState, PageHeader, SectionHeading, buttonBaseClass } from '@/components/ui/primitives'
 import {
   EVENT_STATUS_LABELS,
   MEMBERSHIP_STATUS_LABELS,
+  eventBackstageHref,
   formatEventDate,
   getAcceptedMemberships,
   getOpenArtistNeed,
+  hasEventBackstageAccess,
 } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveRequiredActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import type { Event, EventArtistMembership } from '@/types/database'
@@ -56,51 +58,64 @@ function EventCard({
   const acceptedCount = getAcceptedMemberships(memberships).length
   const openNeed = getOpenArtistNeed(event, memberships)
   const genres = (event.event_genres ?? []).map((entry) => entry.genres?.name).filter(Boolean)
+  const eventHref = '/events/' + encodeURIComponent(event.slug)
+  const cardHref = role === 'venue' || hasEventBackstageAccess(membership?.status)
+    ? eventBackstageHref(event.slug, { invite: membership?.status === 'invited' })
+    : eventHref
 
   return (
-    <Link
-      href={`/events/${event.slug}`}
-      className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">{event.title}</h2>
-            <Badge tone="muted">
-              {role === 'venue' ? 'Venue leader' : membership ? MEMBERSHIP_STATUS_LABELS[membership.status] : 'Artist'}
-            </Badge>
-            <Badge tone={eventTone(event.status)}>{EVENT_STATUS_LABELS[event.status]}</Badge>
-          </div>
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
-            <span>{event.venues?.name ?? 'Unknown venue'}</span>
-            <span className="text-[#B0B0B0]">/</span>
-            <span>{formatEventDate(event)}</span>
-          </p>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
-            <MapPin className="h-3.5 w-3.5" />
-            {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
-          </p>
-          {genres.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {genres.slice(0, 4).map((genre) => (
-                <Badge key={genre} tone="default">{genre}</Badge>
-              ))}
+    <article className="flex flex-col rounded-2xl border border-[#E6E6E6] bg-white shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)] sm:flex-row">
+      <Link href={cardHref} className="group block min-w-0 flex-1 rounded-2xl p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">{event.title}</h2>
+              <Badge tone="muted">
+                {role === 'venue' ? 'Venue leader' : membership ? MEMBERSHIP_STATUS_LABELS[membership.status] : 'Artist'}
+              </Badge>
+              <Badge tone={eventTone(event.status)}>{EVENT_STATUS_LABELS[event.status]}</Badge>
             </div>
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
+              <span>{event.venues?.name ?? 'Unknown venue'}</span>
+              <span className="text-[#B0B0B0]">/</span>
+              <span>{formatEventDate(event)}</span>
+            </p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
+              <MapPin className="h-3.5 w-3.5" />
+              {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
+            </p>
+            {genres.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {genres.slice(0, 4).map((genre) => (
+                  <Badge key={genre} tone="default">{genre}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
+            <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
+            {!past && (
+              <>
+                <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
+                  {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
+                </p>
+                {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
+              </>
+            )}
+          </div>
+        </div>
+      </Link>
+      {role === 'venue' && (
+        <div className="flex shrink-0 flex-wrap gap-2 border-t border-[#E6E6E6] p-4 sm:flex-col sm:justify-center sm:border-l sm:border-t-0">
+          <ButtonLink href={eventHref + '?edit=1'} tone="secondary">Edit event page</ButtonLink>
+          {event.is_public && (
+            <Link href={eventHref} target="_blank" rel="noopener noreferrer" className={buttonBaseClass('secondary')}>
+              <Eye className="h-4 w-4" /> View public page
+            </Link>
           )}
         </div>
-        <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
-          <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
-          {!past && (
-            <>
-              <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
-                {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
-              </p>
-              {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
-            </>
-          )}
-        </div>
-      </div>
-    </Link>
+      )}
+    </article>
   )
 }
 
@@ -260,7 +275,7 @@ export default async function BackstageListPage({
                     </Badge>
                   </div>
                 </div>
-                <ButtonLink href={`/events/${item.slug}${activeIdentity?.kind === 'band' ? '?invite=1' : '#backstage'}`} tone="secondary">
+                <ButtonLink href={eventBackstageHref(item.slug, { invite: activeIdentity?.kind === 'band' })} tone="secondary">
                   {activeIdentity?.kind === 'band' ? 'Review invitation' : 'Review applications'}
                 </ButtonLink>
               </li>

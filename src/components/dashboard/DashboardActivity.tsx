@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { CheckCircle2, ChevronRight, Clock3, FilePenLine, Mail, UserMinus, Users } from 'lucide-react'
 import { Badge, Card, SectionHeading } from '@/components/ui/primitives'
 import { DashboardDiscoverySection, DashboardStartingPoint } from '@/components/dashboard/DashboardDiscovery'
-import { MEMBERSHIP_STATUS_LABELS, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
+import { MEMBERSHIP_STATUS_LABELS, eventBackstageHref, formatEventDate, getAcceptedMemberships, getOpenArtistNeed } from '@/lib/events'
 import type { buildDashboardActivity, DashboardAction, DashboardScheduleItem } from '@/lib/dashboard-activity'
 import { EMPTY_DISCOVERY, type DashboardDiscovery } from '@/lib/dashboard-discovery'
 import type { ActiveIdentity, ManagedIdentity } from '@/lib/managed-identity'
@@ -27,7 +27,7 @@ function ActionRows({ items, hideVenue }: { items: DashboardAction[]; hideVenue:
     <ul className="divide-y divide-[#EEEEEE]">
       {items.map((item) => {
         const Icon = actionIcons[item.kind]
-        const href = `/events/${item.event.slug}${item.kind === 'invite' ? '?invite=1' : '#backstage'}`
+        const href = eventBackstageHref(item.event.slug, { invite: item.kind === 'invite' })
         return (
           <li key={item.id}>
             <Link href={href} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-[#FCFAF8] sm:flex-nowrap sm:px-5 ${focusClass}`}>

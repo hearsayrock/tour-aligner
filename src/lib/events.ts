@@ -80,6 +80,17 @@ export function eventIsAvailable(event: Pick<Event, 'is_public' | 'is_accepting_
   return event.is_public && event.is_accepting_artists && (event.status === 'draft' || event.status === 'active')
 }
 
+export function hasEventBackstageAccess(status: EventArtistMembership['status'] | undefined) {
+  return status === 'invited' || status === 'accepted' || status === 'removal_requested'
+}
+
+export function eventBackstageHref(slug: string, { invite, chatId }: { invite?: boolean; chatId?: string } = {}) {
+  const params = new URLSearchParams({ view: 'backstage' })
+  if (invite) params.set('invite', '1')
+  if (chatId) params.set('backstageChat', chatId)
+  return '/events/' + encodeURIComponent(slug) + '?' + params.toString()
+}
+
 export function slugify(value: string) {
   return value
     .toLowerCase()

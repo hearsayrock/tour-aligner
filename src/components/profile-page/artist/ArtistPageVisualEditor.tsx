@@ -6,6 +6,7 @@ import { ImageIcon, Layers3, Link2, Music2, Palette, Plus, PencilLine, SlidersHo
 import { createClient } from '@/lib/supabase/client'
 import { ImageCropModal } from '@/components/ui/ImageCropModal'
 import { ProfilePageBlockActions } from '@/components/profile-page/ProfilePageBlockActions'
+import { ProfilePagePaneEditor } from '@/components/profile-page/ProfilePagePaneEditor'
 import { ProfilePageLayoutEditor } from '@/components/profile-page/ProfilePageLayoutEditor'
 import { ArtistPageHero } from '@/components/profile-page/artist/ArtistPageHero'
 import {
@@ -912,7 +913,7 @@ export function ArtistPageVisualEditor({
         const blockId = blockIdFromSection(section.sectionId)
         const editingContent = inspectorOpen && inspectorMode === 'content' && editingSectionId === section.sectionId
         const editingBlock = inspectorOpen && inspectorMode === 'blocks' && blockId && blockId === selectedBlockId
-        return { ...section, content: <div className="relative h-full">{section.content}{(editingContent || editingBlock) && <div className="absolute left-0 right-0 top-0 z-40 max-h-[70dvh] min-h-[300px] overflow-y-auto rounded-[30px] bg-white text-[#252525] shadow-xl" tabIndex={-1} data-artist-editor role="region" aria-label="Edit block">{editingContent ? contentInspector : blockInspector}</div>}</div> }
+        return { ...section, content: <div className="relative h-full">{section.content}{(editingContent || editingBlock) && <ProfilePagePaneEditor data-artist-editor aria-label="Edit block">{editingContent ? contentInspector : blockInspector}</ProfilePagePaneEditor>}</div> }
       })}
       hero={(
         <ArtistPageHero

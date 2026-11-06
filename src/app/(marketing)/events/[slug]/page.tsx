@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { IdentitySwitcher } from '@/components/dashboard/IdentitySwitcher'
 import { ApplyEventForm } from '@/components/events/ApplyEventForm'
 import { BackstageWorkspace } from '@/components/events/BackstageWorkspace'
 import { EventAppearanceEditor } from '@/components/events/EventAppearanceEditor'
@@ -9,13 +10,14 @@ import { createEventPageSections, eventFrameStyle, EventPageHero, type EventOver
 import { DEFAULT_EVENT_BACKGROUND_COLOR, DEFAULT_EVENT_BACKGROUND_OPACITY, normalizeEventPageLayout } from '@/components/events/event-page-config'
 import { EventProfileSwitcher } from '@/components/events/EventProfileSwitcher'
 import { EventShareButton } from '@/components/events/EventShareButton'
+import { EventViewNav } from '@/components/events/EventViewNav'
 import { ProfilePageCanvas } from '@/components/profile-page/ProfilePageCanvas'
 import { getVenueProfileAppearance, parseVenueProfileTheme } from '@/components/profile-page/venue/venue-page-config'
 import { Badge, ButtonLink, Card, SectionHeading } from '@/components/ui/primitives'
-import { eventIsAvailable, formatEventDateLong, getAcceptedMemberships, type EventGenreSummary, type EventMembershipSummary } from '@/lib/events'
+import { eventBackstageHref, eventIsAvailable, formatEventDateLong, getAcceptedMemberships, hasEventBackstageAccess, type EventGenreSummary, type EventMembershipSummary } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, activeIdentityLabel, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
 import { createClient } from '@/lib/supabase/server'
-import type { Event, EventArtistMembership, Json } from '@/types/database'
+import type { Event, Json } from '@/types/database'
 
 type EventDetail = Event & {
   venues: {
@@ -28,10 +30,6 @@ type EventDetail = Event & {
   event_artist_memberships: EventMembershipSummary[] | null
 }
 
-function hasBackstageAccess(status: EventArtistMembership['status'] | undefined) {
-  return status === 'invited' || status === 'accepted' || status === 'removal_requested'
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = await createClient()
@@ -41,9 +39,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function EventDetailPage({ params, searchParams }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ edit?: string; invite?: string }>
+  searchParams: Promise<{ edit?: string; invite?: string; view?: string; backstageChat?: string }>
 }) {
-  const [{ slug }, { edit, invite }] = await Promise.all([params, searchParams])
+  const [{ slug }, { edit, invite, view, backstageChat }] = await Promise.all([params, searchParams])
+  const eventHref = '/events/' + encodeURIComponent(slug)
+  const backstageHref = eventBackstageHref(slug)
+  const loginHref = '/login?redirectTo=' + encodeURIComponent(eventHref)
+  const invitationLink = invite === '1'
   const supabase = await createClient()
   const [{ data: rawEvent }, { data: { user } }] = await Promise.all([
     supabase
@@ -59,9 +61,10 @@ export default async function EventDetailPage({ params, searchParams }: {
     supabase.auth.getUser(),
   ])
 
-  const eventHref = '/events/' + encodeURIComponent(slug)
-  const loginHref = '/login?redirectTo=' + encodeURIComponent(eventHref)
-  if (!user && invite === '1') redirect(loginHref)
+  if (!user && (invitationLink || view === 'backstage')) {
+    const returnHref = eventBackstageHref(slug, { invite: invitationLink, chatId: backstageChat })
+    redirect('/login?redirectTo=' + encodeURIComponent(returnHref))
+  }
 
   const event = rawEvent as unknown as EventDetail | null
   if (!event || (!event.is_public && !user)) notFound()
@@ -85,7 +88,7 @@ export default async function EventDetailPage({ params, searchParams }: {
 
   const backstageIdentities = identities.filter((identity) =>
     identity.kind === 'venue' ? identity.id === event.venue_id :
-      memberships.some((membership) => membership.band_id === identity.id && hasBackstageAccess(membership.status))
+      memberships.some((membership) => membership.band_id === identity.id && hasEventBackstageAccess(membership.status))
   )
   if (!event.is_public && backstageIdentities.length === 0) notFound()
 
@@ -103,7 +106,17 @@ export default async function EventDetailPage({ params, searchParams }: {
   }
   const isInvited = applicationMembership?.status === 'invited'
   const canChat = isVenueLeader || viewerMembership?.status === 'accepted' || viewerMembership?.status === 'removal_requested'
-  const showSwitcher = !isVenueLeader && !hasBackstageAccess(viewerMembership?.status) && backstageIdentities.length > 0
+  const isEditing = isVenueLeader && edit === '1'
+  const inviteProfiles = invitationLink && !isInvited ? backstageIdentities.filter((profile) =>
+    profile.kind === 'band' && memberships.some((membership) => membership.band_id === profile.id && membership.status === 'invited')
+  ) : []
+  const switcherProfiles = inviteProfiles.length > 0 || canChat || isInvited ? inviteProfiles : backstageIdentities
+  const canViewBackstage = backstageIdentities.length > 0
+  const backstageActive = canViewBackstage && (view === 'backstage' || invitationLink)
+  const loadLogistics = backstageActive && !isEditing && switcherProfiles.length === 0 && (canChat || isInvited)
+  if (!isEditing && canChat && backstageChat === event.id && view !== 'backstage') {
+    redirect(eventBackstageHref(slug, { chatId: event.id }))
+  }
   const acceptedMemberships = getAcceptedMemberships(memberships)
 
   const signImage = async (path: string | null) => {
@@ -117,7 +130,7 @@ export default async function EventDetailPage({ params, searchParams }: {
     event.is_public && event.lineup_published
       ? supabase.rpc('get_public_event_lineup', { p_event_id: event.id })
       : { data: null },
-    canChat || isInvited
+    loadLogistics
       ? supabase.from('event_logistics').select('*').eq('event_id', event.id).maybeSingle()
       : { data: null, error: null },
   ])
@@ -149,12 +162,23 @@ export default async function EventDetailPage({ params, searchParams }: {
     lineup: event.lineup_published ? lineup : null,
   }
 
-  if (isVenueLeader && edit === '1') {
+  if (isEditing) {
+    const { data: availableGenres } = await supabase.from('genres').select('id, name').order('name')
     return (
       <EventAppearanceEditor
         eventId={event.id}
         eventHref={eventHref}
+        venueId={event.venue_id}
         event={overview}
+        initialDetails={{
+          eventDate: event.event_date,
+          startTime: event.start_time,
+          genreIds: genres.map((genre) => genre.id),
+          artistNeedDescription: event.artist_need_description,
+          attendeeCapacity: event.attendee_capacity,
+          neededArtistCount: event.needed_artist_count,
+        }}
+        availableGenres={availableGenres ?? genres}
         layout={layout}
         coverPath={event.cover_photo_path ?? null}
         backgroundPath={event.background_photo_path ?? null}
@@ -168,13 +192,17 @@ export default async function EventDetailPage({ params, searchParams }: {
     )
   }
 
-  const showApplication = event.is_public && !canChat && !isInvited && !showSwitcher &&
+  const showApplication = event.is_public && !canViewBackstage &&
     identity.kind !== 'venue' && (Boolean(viewerMembership) || eventIsAvailable(event))
   const showActions = user || event.is_public || event.status === 'cancelled'
   const hero = (
-    <EventPageHero event={overview} actions={showActions ? (
+    <EventPageHero event={overview} layout={layout} actions={showActions ? (
       <>
-        {user && <Link href="/events" className="mr-auto text-sm font-semibold text-white hover:underline">Back to Available Events</Link>}
+        {user && (
+          <Link href={canViewBackstage ? '/dashboard/backstage' : '/events'} className="mr-auto text-sm font-semibold text-white hover:underline">
+            {canViewBackstage ? 'Back to Backstages' : 'Back to Available Events'}
+          </Link>
+        )}
         {event.status === 'cancelled' && <Badge tone="danger">Event cancelled</Badge>}
         {isVenueLeader && (
           <>
@@ -182,73 +210,82 @@ export default async function EventDetailPage({ params, searchParams }: {
             <ButtonLink href={eventHref + '?edit=1'}>Edit event page</ButtonLink>
           </>
         )}
-        {canChat && <ButtonLink href="#backstage" tone="secondary">Open Backstage</ButtonLink>}
         {event.is_public && <EventShareButton href={eventHref} />}
       </>
     ) : undefined} />
   )
 
-  const inviteAndApply = isInvited || showSwitcher || showApplication ? (
-    <div className="mx-auto grid max-w-7xl gap-4 px-6 pt-6 lg:px-8">
-      {isInvited && (
-        <Card className="p-5">
-          <SectionHeading title="Backstage invitation" />
-          <ApplyEventForm
-            eventId={event.id}
-            bands={[]}
-            existingMembership={applicationMembership}
-            declineHref={event.is_public ? undefined : '/dashboard/backstage'}
-          />
-        </Card>
-      )}
-      {showSwitcher && <EventProfileSwitcher identities={backstageIdentities} />}
-      {showApplication && (
-        <Card className="p-5">
-          <SectionHeading title="Apply" />
-          {!user ? (
-            <p className="text-sm text-[#666666]">
-              <Link href={loginHref} className="font-semibold text-[#A84216] hover:underline">Sign in</Link>{' '}
-              with an artist profile to apply.
-            </p>
-          ) : identity.kind === 'all' && identities.some((item) => item.kind === 'band') ? (
-            <p className="text-sm text-[#666666]">Choose an artist in the Acting as menu to apply. Your current profile is {activeIdentityLabel(identity)}.</p>
-          ) : (
-            <ApplyEventForm
-              eventId={event.id}
-              bands={identity.kind === 'band' ? [identity] : []}
-              existingMembership={applicationMembership}
-            />
-          )}
-        </Card>
+  const showIdentityMenu = identities.length > 1
+  const viewControls = canViewBackstage || showIdentityMenu ? (
+    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 pt-6 lg:px-8">
+      {canViewBackstage && <EventViewNav eventHref={eventHref} backstageHref={backstageHref} backstageActive={backstageActive} />}
+      {showIdentityMenu && (
+        <div className="ml-auto flex flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-1 text-sm text-[#555555]">
+          <span>Acting as</span>
+          <IdentitySwitcher activeIdentity={identity} identities={identities} />
+        </div>
       )}
     </div>
   ) : null
 
-  return (
-    <>
-      <ProfilePageCanvas
-        layout={layout}
-        hero={<>{hero}{inviteAndApply}</>}
-        sections={createEventPageSections(overview)}
-        className={user ? undefined : 'pt-16'}
-        style={{ ...eventFrameStyle(backgroundColor, backgroundUrl, backgroundOpacity), minHeight: 0 }}
-      />
+  const application = showApplication && (
+    <div className="mx-auto max-w-7xl px-6 pt-6 lg:px-8">
+      <Card className="p-5">
+        <SectionHeading title="Apply" />
+        {!user ? (
+          <p className="text-sm text-[#666666]">
+            <Link href={loginHref} className="font-semibold text-[#A84216] hover:underline">Sign in</Link>{' '}
+            with an artist profile to apply.
+          </p>
+        ) : identity.kind === 'all' && identities.some((item) => item.kind === 'band') ? (
+          <p className="text-sm text-[#666666]">Choose an artist in the Acting as menu to apply. Your current profile is {activeIdentityLabel(identity)}.</p>
+        ) : (
+          <ApplyEventForm
+            eventId={event.id}
+            bands={identity.kind === 'band' ? [identity] : []}
+            existingMembership={applicationMembership}
+          />
+        )}
+      </Card>
+    </div>
+  )
 
-      {(canChat || isInvited) && (
-        <div className="mx-auto max-w-7xl px-6 pb-10 lg:px-8">
-          {(canChat || isInvited) && logisticsError && (
-            <p role="alert" className="mt-6 text-sm text-red-600">Could not load Backstage logistics. Refresh the page to try again.</p>
+  return (
+    <ProfilePageCanvas
+      layout={layout}
+      hero={<>{hero}{viewControls}{application}</>}
+      sections={backstageActive ? undefined : createEventPageSections(overview)}
+      style={{ ...eventFrameStyle(backgroundColor, backgroundUrl, backgroundOpacity), minHeight: 0 }}
+    >
+      {backstageActive && (
+        <div className="mx-auto max-w-7xl space-y-4 px-6 pb-10 pt-6 lg:px-8">
+          {switcherProfiles.length > 0 && <EventProfileSwitcher identities={switcherProfiles} />}
+          {logisticsError && (
+            <Card className="p-5">
+              <p role="alert" className="text-sm text-red-600">Could not load Backstage logistics. Refresh the page to try again.</p>
+            </Card>
+          )}
+          {isInvited && (
+            <Card className="p-5">
+              <SectionHeading title="Backstage invitation" />
+              <ApplyEventForm
+                eventId={event.id}
+                bands={[]}
+                existingMembership={applicationMembership}
+                acceptHref={backstageHref}
+                declineHref={event.is_public ? eventHref : '/dashboard/backstage'}
+              />
+            </Card>
           )}
           {isInvited && !logisticsError && (
-            <Card className="mt-6 p-5">
+            <Card className="p-5">
               <SectionHeading title="Pinned Logistics" description="Review the show details before you respond." />
               <EventLogisticsDisplay logistics={logistics} />
             </Card>
           )}
-          {canChat && identity.kind !== 'all' && !logisticsError && (
+          {canChat && switcherProfiles.length === 0 && identity.kind !== 'all' && !logisticsError && (
             <BackstageWorkspace
               event={event}
-              eventHref={eventHref}
               venueName={overview.venue}
               memberships={memberships}
               selectedGenreIds={genres.map((genre) => genre.id)}
@@ -260,6 +297,6 @@ export default async function EventDetailPage({ params, searchParams }: {
           )}
         </div>
       )}
-    </>
+    </ProfilePageCanvas>
   )
 }
