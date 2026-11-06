@@ -149,7 +149,7 @@ export function EventCreateForm({
   const [recurrenceLimitType, setRecurrenceLimitType] = useState<RecurrenceLimitType>('count')
   const [recurrenceCount, setRecurrenceCount] = useState(DEFAULT_RECURRENCE_COUNT)
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('')
-  const [createdResult, setCreatedResult] = useState<{ eventId: string; createdCount: number } | null>(null)
+  const [createdResult, setCreatedResult] = useState<{ eventSlug: string; createdCount: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const controlledEventDates = selectedEventDates?.length ? selectedEventDates : null
@@ -228,19 +228,19 @@ export function EventCreateForm({
           : null,
       })
 
-      if (result.error || !result.eventId) {
+      if (result.error || !result.eventSlug) {
         setError(result.error ?? 'Unable to create event.')
         return
       }
 
       const createdCount = result.createdCount ?? result.eventIds?.length ?? 1
       if (mode === 'redirect' && createdCount === 1) {
-        router.push(`/dashboard/backstage/${result.eventId}`)
+        router.push(`/events/${result.eventSlug}?edit=1`)
         router.refresh()
         return
       }
 
-      setCreatedResult({ eventId: result.eventId, createdCount })
+      setCreatedResult({ eventSlug: result.eventSlug, createdCount })
       onCreated?.()
       router.refresh()
     })
@@ -498,8 +498,8 @@ export function EventCreateForm({
           <p className="font-semibold">
             Created {createdResult.createdCount} Event{createdResult.createdCount === 1 ? '' : 's'}.
           </p>
-          <Link href={`/dashboard/backstage/${createdResult.eventId}`} className="mt-1 inline-flex font-semibold underline">
-            Open first Backstage
+          <Link href={`/events/${createdResult.eventSlug}?edit=1`} className="mt-1 inline-flex font-semibold underline">
+            Edit first event page
           </Link>
         </div>
       )}
@@ -510,7 +510,7 @@ export function EventCreateForm({
         className={`${buttonBaseClass('primary')} w-full`}
       >
         <CalendarClock className="h-4 w-4" />
-        {isPending ? 'Creating...' : recurrenceEnabled ? 'Create Event series' : 'Create Event and Backstage'}
+        {isPending ? 'Creating...' : recurrenceEnabled ? 'Create Event series' : 'Create draft and design page'}
       </button>
     </form>
   )

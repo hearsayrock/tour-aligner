@@ -25,6 +25,7 @@ function room(id: string, messages: DockMessage[] = [], more = false): DockConve
       photo: null,
       date: '2026-11-01',
       membershipId: 'membership',
+      slug: 'test-event',
       membershipStatus: 'accepted',
       canChat: true,
       preview: '',

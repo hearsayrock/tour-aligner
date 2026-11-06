@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Event } from '@/types/database'
 import type { ManagedIdentity } from './managed-identity'
 
-type AttentionEvent = Pick<Event, 'id' | 'title' | 'event_date' | 'start_time'>
+type AttentionEvent = Pick<Event, 'id' | 'slug' | 'title' | 'event_date' | 'start_time'>
 
 export type BackstageAttentionItem = AttentionEvent & { pendingCount: number }
 
@@ -17,14 +17,13 @@ export async function loadBackstageAttention(
 
   let query = supabase
     .from('event_artist_memberships')
-    .select('events!inner(id, title, event_date, start_time)')
+    .select('events!inner(id, slug, title, event_date, start_time)')
     .eq('status', identity.kind === 'band' ? 'invited' : 'applied')
-    .eq('events.status', 'active')
     .gte('events.event_date', todayIso)
 
   query = identity.kind === 'band'
-    ? query.eq('band_id', identity.id)
-    : query.eq('events.venue_id', identity.id)
+    ? query.eq('band_id', identity.id).in('events.status', ['draft', 'active'])
+    : query.eq('events.venue_id', identity.id).eq('events.status', 'active')
 
   const { data, error } = await query
   if (error) throw error

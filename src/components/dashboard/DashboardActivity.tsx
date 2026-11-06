@@ -27,7 +27,7 @@ function ActionRows({ items, hideVenue }: { items: DashboardAction[]; hideVenue:
     <ul className="divide-y divide-[#EEEEEE]">
       {items.map((item) => {
         const Icon = actionIcons[item.kind]
-        const href = item.kind === 'invite' ? `/events/${item.event.slug}#event-description` : `/dashboard/backstage/${item.event.id}`
+        const href = `/events/${item.event.slug}${item.kind === 'invite' ? '?invite=1' : '#backstage'}`
         return (
           <li key={item.id}>
             <Link href={href} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-[#FCFAF8] sm:flex-nowrap sm:px-5 ${focusClass}`}>
@@ -59,7 +59,7 @@ function ScheduleRow({ item, hideVenue, showProfiles }: { item: DashboardSchedul
   const openSpots = Math.max(0, getOpenArtistNeed(event, event.event_artist_memberships ?? []))
   return (
     <li>
-      <Link href={`/dashboard/backstage/${event.id}`} className={`flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-[#FCFAF8] sm:flex-row sm:items-center sm:gap-5 sm:px-5 ${focusClass}`}>
+      <Link href={`/events/${event.slug}`} className={`flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-[#FCFAF8] sm:flex-row sm:items-center sm:gap-5 sm:px-5 ${focusClass}`}>
         <time dateTime={`${event.event_date}T${event.start_time}`} className="shrink-0 text-sm font-medium text-[#666666] sm:w-44">
           {formatEventDate(event)}
         </time>
@@ -140,7 +140,7 @@ export function DashboardActivityView({ activity, activeIdentity, identities, di
           <ul className="divide-y divide-[#EEEEEE] border-t border-[#EEEEEE]">
             {waiting.map((item) => (
               <li key={item.id}>
-                <Link href={item.kind === 'application' ? `/events/${item.event.slug}#event-description` : `/dashboard/backstage/${item.event.id}`} className={`flex items-start gap-3 px-5 py-3 hover:bg-[#FCFAF8] ${focusClass}`}>
+                <Link href={`/events/${item.event.slug}`} className={`flex items-start gap-3 px-5 py-3 hover:bg-[#FCFAF8] ${focusClass}`}>
                   <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#999999]" aria-hidden="true" />
                   <span className="min-w-0 text-sm">
                     <span className="block font-medium text-[#252525]">{item.event.title}</span>

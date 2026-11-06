@@ -25,20 +25,26 @@ export function subscribeChatDock(onOpen: (chat: OpenChat) => void) {
   return () => window.removeEventListener(OPEN_CHAT_EVENT, receive)
 }
 
-export function readChatDockLocation(search: string): { threadId: string | null } | null {
+type DockLocationRequest = { threadId: string | null; backstageId?: string }
+
+export function readChatDockLocation(search: string): DockLocationRequest | null {
   const params = new URLSearchParams(search)
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const backstageId = params.get('backstageChat')
+  if (backstageId && uuid.test(backstageId)) return { threadId: null, backstageId }
   const threadId = params.get('chat')
-  if (threadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)) return { threadId }
+  if (threadId && uuid.test(threadId)) return { threadId }
   return params.get('chats') === 'open' ? { threadId: null } : null
 }
 
-export function subscribeChatDockLocation(onOpen: (request: { threadId: string | null }) => boolean) {
+export function subscribeChatDockLocation(onOpen: (request: DockLocationRequest) => boolean) {
   function receive() {
     const url = new URL(window.location.href)
     const request = readChatDockLocation(url.search)
     if (!request || !onOpen(request)) return
     url.searchParams.delete('chat')
     url.searchParams.delete('chats')
+    url.searchParams.delete('backstageChat')
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
   }
   window.addEventListener('popstate', receive)

@@ -21,6 +21,7 @@ export type DockPrivateChat = {
 
 export type DockBackstage = {
   id: string
+  slug: string
   title: string
   venueName: string
   photo: string | null

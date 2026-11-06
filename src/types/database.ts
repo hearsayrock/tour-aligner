@@ -457,13 +457,12 @@ export interface Database {
           lineup_published: boolean
           migrated_booking_group_key: string | null
           venue_booking_date_id: string | null
-          logistics_load_in: string | null
-          logistics_soundcheck: string | null
-          logistics_set_times: string | null
-          logistics_backline: string | null
-          logistics_artist_should_bring: string | null
-          logistics_parking_access: string | null
-          logistics_notes: string | null
+          cover_photo_path: string | null
+          background_photo_path: string | null
+          background_photo_opacity: number
+          page_background_color: string | null
+          page_layout: Json | null
+          accent_color: string | null
           created_at: string
           updated_at: string
         }
@@ -487,13 +486,12 @@ export interface Database {
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
           venue_booking_date_id?: string | null
-          logistics_load_in?: string | null
-          logistics_soundcheck?: string | null
-          logistics_set_times?: string | null
-          logistics_backline?: string | null
-          logistics_artist_should_bring?: string | null
-          logistics_parking_access?: string | null
-          logistics_notes?: string | null
+          cover_photo_path?: string | null
+          background_photo_path?: string | null
+          background_photo_opacity?: number
+          page_background_color?: string | null
+          page_layout?: Json | null
+          accent_color?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -516,14 +514,45 @@ export interface Database {
           lineup_published?: boolean
           migrated_booking_group_key?: string | null
           venue_booking_date_id?: string | null
-          logistics_load_in?: string | null
-          logistics_soundcheck?: string | null
-          logistics_set_times?: string | null
-          logistics_backline?: string | null
-          logistics_artist_should_bring?: string | null
-          logistics_parking_access?: string | null
-          logistics_notes?: string | null
+          cover_photo_path?: string | null
+          background_photo_path?: string | null
+          background_photo_opacity?: number
+          page_background_color?: string | null
+          page_layout?: Json | null
+          accent_color?: string | null
           updated_at?: string
+        }
+      }
+      event_logistics: {
+        Row: {
+          event_id: string
+          load_in: string | null
+          soundcheck: string | null
+          set_times: string | null
+          backline: string | null
+          artist_should_bring: string | null
+          parking_access: string | null
+          notes: string | null
+        }
+        Insert: {
+          event_id: string
+          load_in?: string | null
+          soundcheck?: string | null
+          set_times?: string | null
+          backline?: string | null
+          artist_should_bring?: string | null
+          parking_access?: string | null
+          notes?: string | null
+        }
+        Update: {
+          event_id?: string
+          load_in?: string | null
+          soundcheck?: string | null
+          set_times?: string | null
+          backline?: string | null
+          artist_should_bring?: string | null
+          parking_access?: string | null
+          notes?: string | null
         }
       }
       event_series: {
@@ -656,6 +685,7 @@ export interface Database {
           invite_note: string | null
           removal_note: string | null
           applied_at: string | null
+          invitation_note: string | null
           invited_at: string | null
           accepted_at: string | null
           declined_at: string | null
@@ -674,6 +704,7 @@ export interface Database {
           invite_note?: string | null
           removal_note?: string | null
           applied_at?: string | null
+          invitation_note?: string | null
           invited_at?: string | null
           accepted_at?: string | null
           declined_at?: string | null
@@ -691,6 +722,7 @@ export interface Database {
           invite_note?: string | null
           removal_note?: string | null
           applied_at?: string | null
+          invitation_note?: string | null
           invited_at?: string | null
           accepted_at?: string | null
           declined_at?: string | null
@@ -1263,6 +1295,14 @@ export interface Database {
         }
         Returns: Json
       }
+      invite_artist_to_event: {
+        Args: { p_event_id: string; p_band_id: string; p_note: string }
+        Returns: undefined
+      }
+      decline_event_invite: {
+        Args: { p_membership_id: string }
+        Returns: undefined
+      }
       accept_event_invite: {
         Args: {
           p_membership_id: string
@@ -1363,3 +1403,5 @@ export type ContactMessageKind = ContactMessage['kind']
 export type BookingStatus = Booking['status']
 export type PrivateChatStatus = PrivateChatThread['status']
 export type PrivateChatMessageKind = PrivateChatMessage['kind']
+
+export type EventLogistics = Database['public']['Tables']['event_logistics']['Row']

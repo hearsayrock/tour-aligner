@@ -194,6 +194,7 @@ export async function loadDockPrivateChats(
 
 type EventRow = {
   id: string
+  slug: string
   title: string
   venue_id: string
   event_date: string
@@ -221,7 +222,7 @@ export async function loadDockBackstages(
   let query = supabase
     .from('events')
     .select(
-      'id, title, venue_id, event_date, venues(name, profile_photo_url), backstage_messages(body, created_at)'
+      'id, slug, title, venue_id, event_date, venues(name, profile_photo_url), backstage_messages(body, created_at)'
     )
     .order('event_date', { ascending: false })
     .order('created_at', { referencedTable: 'backstage_messages', ascending: false })
@@ -247,6 +248,7 @@ export async function loadDockBackstages(
       const latest = canChat ? event.backstage_messages?.[0] : null
       return {
         id: event.id,
+        slug: event.slug,
         title: event.title,
         venueName: event.venues?.name ?? 'Venue',
         photo: event.venues?.profile_photo_url ?? null,

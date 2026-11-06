@@ -257,16 +257,20 @@ export function ChatDock({
 
   useEffect(
     () => subscribeChatDockLocation((request) => {
-      if (request.threadId) {
-        if (!scope) {
-          setExpanded(true)
-          return false
-        }
+      if ((request.threadId || request.backstageId) && !scope) {
+        setExpanded(true)
+        return false
+      }
+      if (request.backstageId) {
+        openConversation({ kind: 'backstage', id: request.backstageId }, 'Backstage')
+      } else if (request.threadId) {
         openPrivate(request.threadId)
-      } else setExpanded(true)
+      } else {
+        setExpanded(true)
+      }
       return true
     }),
-    [scope, openPrivate, locationQuery]
+    [scope, openPrivate, openConversation, locationQuery]
   )
 
   function focusWindow(id: string) {
@@ -763,6 +767,11 @@ export function ChatDock({
                         onPointerEnter={() => prefetch({ kind: 'backstage', id: room.id })}
                         onFocus={() => prefetch({ kind: 'backstage', id: room.id })}
                         onClick={() => {
+                          if (room.membershipStatus === 'invited') {
+                            showBackstagePage()
+                            router.push('/events/' + room.slug + '?invite=1')
+                            return
+                          }
                           openConversation({ kind: 'backstage', id: room.id }, room.title)
                         }}
                         className="flex w-full items-center gap-3 px-4 pb-9 pt-3 text-left transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
@@ -781,7 +790,7 @@ export function ChatDock({
                           <span className="mt-1 flex items-center gap-2">
                             <span className="flex-1 truncate text-[11px] text-[#817668]">
                               {room.membershipStatus === 'invited'
-                                ? 'You’re invited. Accept to join the chat.'
+                                ? 'You’re invited. Open the event to respond.'
                                 : room.preview || 'Open Backstage chat'}
                             </span>
                             {room.unread && (
@@ -794,12 +803,12 @@ export function ChatDock({
                         </span>
                       </button>
                       <Link
-                        href={`/dashboard/backstage/${room.id}`}
+                        href={'/events/' + room.slug + (room.membershipStatus === 'invited' ? '?invite=1' : '')}
                         onClick={showBackstagePage}
-                        aria-label={`Open backstage for ${room.title}`}
+                        aria-label={`View event for ${room.title}`}
                         className="absolute bottom-2.5 right-4 inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
                       >
-                        Open backstage
+                        View event
                         <ExternalLink className="size-3" />
                       </Link>
                     </div>

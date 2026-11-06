@@ -1,0 +1,3 @@
+-- This migration is not safely reversible once venues upload covers.
+-- Export the cover paths and accent colors and remove the bucket contents through
+-- the Storage API before manually removing the storage policies, bucket, and columns.

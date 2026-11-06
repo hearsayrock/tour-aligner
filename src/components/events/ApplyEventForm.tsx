@@ -3,28 +3,28 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { LinkifiedText } from '@/components/contact/LinkifiedText'
+import { buttonBaseClass } from '@/components/ui/primitives'
 import { applyToEvent, updateMembershipStatus } from '@/app/actions/events'
+import type { EventArtistMembership } from '@/types/database'
 
 type BandOption = {
   id: string
   name: string
 }
 
-type ExistingMembership = {
-  id: string
-  status: 'applied' | 'invited' | 'accepted' | 'declined' | 'removed' | 'removal_requested'
-}
+type ExistingMembership = Pick<EventArtistMembership, 'id' | 'status' | 'source' | 'invitation_note'>
 
 export function ApplyEventForm({
   eventId,
   bands,
   existingMembership,
-  backstageHref,
+  declineHref,
 }: {
   eventId: string
   bands: BandOption[]
   existingMembership?: ExistingMembership | null
-  backstageHref?: string | null
+  declineHref?: string
 }) {
   const router = useRouter()
   const [note, setNote] = useState('')
@@ -32,19 +32,6 @@ export function ApplyEventForm({
   const [sent, setSent] = useState(false)
   const [isPending, startTransition] = useTransition()
   const bandId = bands[0]?.id ?? ''
-
-  if (existingMembership?.status === 'accepted' || existingMembership?.status === 'removal_requested') {
-    return (
-      <div className="rounded-2xl border border-[#CBEAE2] bg-[#F3FBF8] p-5">
-        <p className="text-sm font-semibold text-[#14584E]">You are in Backstage for this event.</p>
-        {backstageHref && (
-          <Link href={backstageHref} className="mt-3 inline-block text-sm font-medium text-[#0C7C71] hover:underline">
-            Open Backstage
-          </Link>
-        )}
-      </div>
-    )
-  }
 
   if (existingMembership?.status === 'applied') {
     return (
@@ -55,30 +42,45 @@ export function ApplyEventForm({
   }
 
   if (existingMembership?.status === 'invited') {
+    const membershipId = existingMembership.id
+
+    function respond(status: 'accepted' | 'declined') {
+      setError(null)
+      startTransition(async () => {
+        const result = await updateMembershipStatus({ membershipId, status })
+        if (result.error) {
+          setError(result.error)
+          return
+        }
+        if (status === 'declined' && declineHref) router.replace(declineHref)
+        router.refresh()
+      })
+    }
+
     return (
-      <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-5">
-        <p className="text-sm font-semibold text-[#8A5A12]">This venue invited you to Backstage.</p>
-        <button
-          type="button"
-          onClick={() => {
-            setError(null)
-            startTransition(async () => {
-              const result = await updateMembershipStatus({ membershipId: existingMembership.id, status: 'accepted' })
-              if (result.error) {
-                setError(result.error)
-                return
-              }
-              router.push(backstageHref ?? '/dashboard/backstage')
-              router.refresh()
-            })
-          }}
-          disabled={isPending}
-          className="mt-3 rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {isPending ? 'Accepting...' : 'Accept invite'}
-        </button>
-        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-4">
+        <p className="text-sm text-[#755021]">This venue invited you to Backstage. Chat opens once you accept.</p>
+        {existingMembership.invitation_note && (
+          <LinkifiedText text={existingMembership.invitation_note} className="mt-3 whitespace-pre-wrap break-words text-sm text-[#252525]" />
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => respond('accepted')} disabled={isPending} className={buttonBaseClass('primary')}>
+            Accept invite
+          </button>
+          <button type="button" onClick={() => respond('declined')} disabled={isPending} className={buttonBaseClass('secondary')}>
+            Decline
+          </button>
+        </div>
+        {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
+    )
+  }
+
+  if (existingMembership?.status === 'declined') {
+    return (
+      <p className="text-sm text-[#666666]">
+        {existingMembership.source === 'invitation' ? 'Invitation declined.' : 'Application declined.'}
+      </p>
     )
   }
 

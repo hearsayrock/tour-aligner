@@ -72,9 +72,9 @@ export default async function NewEventPage() {
       <PageHeader
         backHref="/dashboard/backstage"
         backLabel="Back to Backstages"
-        eyebrow="New Backstage"
+        eyebrow="Event setup"
         title="Create Event"
-        description="Create the Event first. TourAligner will create its private Backstage automatically."
+        description="Add the show details first, then arrange and style the event page. Your draft comes with a private Backstage."
       />
 
       {venueIdentities.length > 0 && (requiredIdentity.requiresSelection || requiredIdentity.activeIdentity?.kind === 'band') ? (

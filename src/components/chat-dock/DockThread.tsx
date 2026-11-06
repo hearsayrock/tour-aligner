@@ -12,7 +12,7 @@ import {
   unarchivePrivateChatThread,
   unblockPrivateChatThread,
 } from '@/app/actions/private-chat'
-import { markBackstageRead, sendBackstageMessage, updateMembershipStatus } from '@/app/actions/events'
+import { markBackstageRead, sendBackstageMessage } from '@/app/actions/events'
 import { LinkifiedText } from '@/components/contact/LinkifiedText'
 import { type ManagedIdentity } from '@/lib/managed-identity'
 import type { DockConversationCache } from '@/lib/chat-dock-cache'
@@ -471,7 +471,7 @@ function DockConversationView({
                 </>
               ) : isAdmin ? (
                 <Link
-                  href={`/dashboard/backstage/${id}`}
+                  href={'/events/' + data.backstage.slug}
                   onClick={onOpenBackstage}
                   className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-[#F6F5F2]"
                 >
@@ -489,12 +489,12 @@ function DockConversationView({
       {room && (
         <div className="shrink-0 border-b border-[#ECEAE5] bg-white px-4 py-2">
           <Link
-            href={`/dashboard/backstage/${room.id}`}
+            href={'/events/' + room.slug + (room.membershipStatus === 'invited' ? '?invite=1' : '')}
             onClick={onOpenBackstage}
-            aria-label={`Open backstage for ${room.title}`}
+            aria-label={`View event for ${room.title}`}
             className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
           >
-            Open backstage
+            View event
             <ExternalLink className="size-3" />
           </Link>
         </div>
@@ -574,7 +574,7 @@ function DockConversationView({
         {!loading && !visibleMessages.length && (
           <DockEmpty title={room && !room.canChat ? 'Your Backstage invitation' : 'No messages yet'}>
             {room && !room.canChat
-              ? 'Accept the invitation to join the conversation.'
+              ? 'Open the event to review the invitation.'
               : 'The conversation starts here.'}
           </DockEmpty>
         )}
@@ -661,20 +661,6 @@ function DockConversationView({
               </button>
             ))}
           </div>
-        </div>
-      )}
-      {room?.membershipStatus === 'invited' && (
-        <div className="shrink-0 border-t border-[#ECEAE5] p-3">
-          <button
-            type="button"
-            disabled={pending}
-            className={`${smallButton} w-full !border-[#FD6A2F] !bg-[#FD6A2F] !text-white`}
-            onClick={() =>
-              void run(() => updateMembershipStatus({ membershipId: room.membershipId!, status: 'accepted' }))
-            }
-          >
-            Accept invite
-          </button>
         </div>
       )}
       {canReply ? (

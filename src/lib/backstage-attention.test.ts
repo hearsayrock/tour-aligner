@@ -26,7 +26,7 @@ function mockClient(rows: unknown[] = []) {
   return { supabase, requests }
 }
 
-test('artist attention requests only this artist’s pending invites on active upcoming events', async () => {
+test('artist attention requests only this artist’s pending invites on draft and active upcoming events', async () => {
   const { supabase, requests } = mockClient()
   assert.deepEqual(await loadBackstageAttention(supabase, artist, today), [])
   assert.equal(requests.length, 1)
@@ -34,7 +34,7 @@ test('artist attention requests only this artist’s pending invites on active u
   assert.equal(request.pathname, '/rest/v1/event_artist_memberships')
   assert.equal(request.searchParams.get('band_id'), 'eq.artist-one')
   assert.equal(request.searchParams.get('status'), 'eq.invited')
-  assert.equal(request.searchParams.get('events.status'), 'eq.active')
+  assert.equal(request.searchParams.get('events.status'), 'in.(draft,active)')
   assert.equal(request.searchParams.get('events.event_date'), `gte.${today}`)
   // An inner join excludes memberships whose event fails the date/status filters.
   assert.match(request.searchParams.get('select') ?? '', /events!inner\(/)

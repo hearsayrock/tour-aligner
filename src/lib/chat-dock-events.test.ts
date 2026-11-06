@@ -48,6 +48,8 @@ test('chat links accept supported commands and reject malformed identifiers', ()
   const id = '00000000-0000-0000-0000-000000000001'
   assert.deepEqual(readChatDockLocation(`?chat=${id}`), { threadId: id })
   assert.deepEqual(readChatDockLocation('?chats=open'), { threadId: null })
+  assert.deepEqual(readChatDockLocation(`?backstageChat=${id}`), { threadId: null, backstageId: id })
+  assert.equal(readChatDockLocation('?backstageChat=invalid'), null)
   assert.equal(readChatDockLocation('?chat=invalid'), null)
   assert.equal(readChatDockLocation('?chats=closed'), null)
   assert.equal(readChatDockLocation(''), null)

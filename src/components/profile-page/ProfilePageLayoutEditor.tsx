@@ -133,6 +133,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   className,
   style,
   exitHref,
+  exitLabel = 'Exit profile studio',
   saveAction,
   externalDirty = false,
   saveDisabled = false,
@@ -151,6 +152,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
   className?: string
   style?: CSSProperties
   exitHref: string
+  exitLabel?: string
   editDetailsHref: string
   onEditDetails?: () => void
   saveAction: (layout: ProfilePageLayout<SectionId>) => Promise<SaveResult>
@@ -166,14 +168,26 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
 }) {
   const router = useRouter()
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
-  const [headerHeight, setHeaderHeight] = useState(65)
+  const studioRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    const studio = studioRef.current
     const header = headerRef.current
-    if (!header) return
-    const observer = new ResizeObserver(() => setHeaderHeight(header.getBoundingClientRect().height))
+    if (!studio || !header) return
+    function positionInspector() {
+      if (!studio || !header) return
+      studio.style.setProperty('--studio-header-bottom', `${Math.max(0, header.getBoundingClientRect().bottom)}px`)
+    }
+    const observer = new ResizeObserver(positionInspector)
     observer.observe(header)
-    return () => observer.disconnect()
+    positionInspector()
+    window.addEventListener('scroll', positionInspector, { capture: true, passive: true })
+    window.addEventListener('resize', positionInspector)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', positionInspector, true)
+      window.removeEventListener('resize', positionInspector)
+    }
   }, [])
   const [layout, setLayout] = useState(initialLayout)
   const [savedLayout, setSavedLayout] = useState(initialLayout)
@@ -576,7 +590,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
     .sort((a, b) => a.order - b.order)
 
   return (
-    <div className="relative z-[60] min-h-screen bg-[#DED9D2]" style={{ '--studio-header-height': `${headerHeight}px` } as CSSProperties}>
+    <div ref={studioRef} className="relative z-[60] min-h-screen bg-[#DED9D2]">
       <div ref={headerRef} className="sticky top-0 z-50 border-b border-black/10 bg-[#1C1816]/95 px-2 py-3 text-white shadow-xl backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-[96rem] flex-wrap items-center gap-1">
           {toolbarActions}
@@ -630,7 +644,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
                 </div>}
               </div>
           </ProfilePageStudioMenu>
-          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label="Exit profile studio" className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+          <button type="button" onClick={() => navigateAway(exitHref, true)} aria-label={exitLabel} className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
           <button type="button" onClick={save} disabled={saving || !isDirty || saveDisabled} title={saveDisabled ? 'Click OK or Discard to finish editing the block.' : undefined} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#FD6A2F] bg-[#FD6A2F] px-3 text-xs font-semibold text-white transition-colors hover:border-[#E55A22] hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
             {saving ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" /> : savedNotice ? <Check className="h-4 w-4 shrink-0" /> : <Save className="h-4 w-4 shrink-0" />}
             {saving ? 'Saving' : savedNotice ? 'Saved' : 'Save'}
@@ -734,7 +748,7 @@ export function ProfilePageLayoutEditor<SectionId extends string>({
         </div>
       </div>
       {inspector && inspectorOpen && (
-        <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[82vh] overflow-y-auto rounded-t-[28px] border border-[#DDD4CC] bg-white shadow-[0_-20px_60px_rgba(26,20,16,0.24)] lg:inset-y-0 lg:max-h-none lg:left-auto lg:top-[var(--studio-header-height)] lg:w-[390px] lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-[-18px_0_50px_rgba(26,20,16,0.16)]">
+        <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[82vh] overflow-y-auto rounded-t-[28px] border border-[#DDD4CC] bg-white shadow-[0_-20px_60px_rgba(26,20,16,0.24)] lg:inset-y-0 lg:max-h-none lg:left-auto lg:top-[var(--studio-header-bottom,65px)] lg:w-[390px] lg:rounded-none lg:border-y-0 lg:border-r-0 lg:shadow-[-18px_0_50px_rgba(26,20,16,0.16)]">
           {inspector}
         </aside>
       )}

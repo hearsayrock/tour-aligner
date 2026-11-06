@@ -50,6 +50,8 @@ export async function middleware(request: NextRequest) {
   const { response, supabase, user } = await updateSession(request)
   const sessionMs = performance.now() - sessionStartedAt
   const { pathname } = request.nextUrl
+  const isEventDetail = /^\/events\/[^/]+$/.test(pathname)
+  const isLegacyBackstage = /^\/dashboard\/backstage\/[^/]+$/.test(pathname)
   const isChatRead = pathname === '/api/chat-dock/conversation'
   const log = (outcome: string, accessMs = 0) => {
     const totalMs = performance.now() - startedAt
@@ -73,6 +75,17 @@ export async function middleware(request: NextRequest) {
 
   if (!user) {
     if (isChatRead) return chatReadError(response, 'Sign in to use chats.', 401)
+    if (isEventDetail) {
+      log('public-event')
+      return response
+    }
+    if (isLegacyBackstage) {
+      const url = new URL('/login', request.url)
+      url.searchParams.set('redirectTo', pathname)
+      const redirect = NextResponse.redirect(url)
+      response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+      return redirect
+    }
     if (pathname === '/terms/accept') {
       log('terms-login-redirect')
       return redirectWithSession(request, response, '/login')
@@ -133,6 +146,11 @@ export async function middleware(request: NextRequest) {
     )
   }
 
+  if (isEventDetail) {
+    log('event', accessMs)
+    return response
+  }
+
   // Administrators retain access to the admin workspace without a managed artist or venue.
   if (access?.is_admin) {
     log('admin', accessMs)
@@ -161,6 +179,12 @@ export async function middleware(request: NextRequest) {
 
   if (isChatRead) {
     log('chat-read', accessMs)
+    return response
+  }
+
+  if ((pathname === '/events' || pathname === '/dashboard/events/new') &&
+      (pathname === '/events' || access?.venues?.length)) {
+    log('events', accessMs)
     return response
   }
 

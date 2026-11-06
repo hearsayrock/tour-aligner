@@ -5,7 +5,8 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/events'
 import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity, type ManagedIdentity } from '@/lib/managed-identity'
-import type { Event, EventArtistMembership } from '@/types/database'
+import { normalizeEventPageLayout } from '@/components/events/event-page-config'
+import type { Event, EventArtistMembership, Json } from '@/types/database'
 
 type ActionResult<T extends object = object> = T & { error?: string; success?: true }
 type RecurrenceInput = {
@@ -259,7 +260,7 @@ export async function createEvent(input: {
   attendeeCapacity: number
   neededArtistCount: number
   recurrence?: RecurrenceInput | null
-}): Promise<ActionResult<{ eventId?: string; eventIds?: string[]; createdCount?: number; seriesId?: string }>> {
+}): Promise<ActionResult<{ eventId?: string; eventIds?: string[]; eventSlug?: string; createdCount?: number; seriesId?: string }>> {
   const { supabase, userId } = await getUserId()
   if (!userId) return { error: 'You must be signed in to create an event.' }
 
@@ -384,6 +385,7 @@ export async function createEvent(input: {
   return {
     success: true,
     eventId: events[0].id,
+    eventSlug: events[0].slug,
     eventIds: events.map((event) => event.id),
     createdCount: events.length,
     seriesId: seriesId ?? undefined,
@@ -505,16 +507,72 @@ export async function deleteVenueUnavailableDate(input: {
   return { success: true }
 }
 
-export async function updateEventSettings(input: {
+export async function updateEventAppearance(input: {
   eventId: string
   title: string
+  description: string
+  accent: string | null
+  coverPath: string | null
+  backgroundPath: string | null
+  backgroundColor: string
+  backgroundOpacity: number
+  pageLayout: unknown
+  isPublic: boolean
+}): Promise<ActionResult> {
+  const { supabase, userId } = await getUserId()
+  if (!userId) return { error: 'You must be signed in.' }
+
+  const event = await ensureEventOwner(supabase, input.eventId, userId)
+  if (!event) return { error: 'You can only manage events for venues you own.' }
+
+  const activeIdentity = await getActiveManagedIdentity(supabase, userId)
+  if (activeIdentity.kind !== 'venue' || activeIdentity.id !== event.venue_id) {
+    return { error: 'Switch to the venue profile that owns this event before editing it.' }
+  }
+
+  const title = normalizeText(input.title)
+  const description = normalizeText(input.description)
+  if (!title || !description) return { error: 'Enter a title and event description.' }
+  if (input.accent !== null && !/^#[0-9a-f]{6}$/i.test(input.accent)) {
+    return { error: 'Choose a valid accent color.' }
+  }
+  if (!/^#[0-9a-f]{6}$/i.test(input.backgroundColor)) return { error: 'Choose a valid background color.' }
+  if (!Number.isInteger(input.backgroundOpacity) || input.backgroundOpacity < 0 || input.backgroundOpacity > 100) {
+    return { error: 'Set background image visibility between 0 and 100%.' }
+  }
+  for (const path of [input.coverPath, input.backgroundPath]) {
+    if (path === null) continue
+    const [eventFolder, file, extra] = path.split('/')
+    if (eventFolder !== event.id || extra !== undefined || !/^[0-9a-f-]{36}[.]jpg$/.test(file ?? '')) {
+      return { error: 'Choose images for this event.' }
+    }
+  }
+
+  const { error } = await supabase.from('events').update({
+    title,
+    description,
+    accent_color: input.accent,
+    cover_photo_path: input.coverPath,
+    background_photo_path: input.backgroundPath,
+    background_photo_opacity: input.backgroundOpacity,
+    page_background_color: input.backgroundColor,
+    page_layout: normalizeEventPageLayout(input.pageLayout) as unknown as Json,
+    is_public: input.isPublic,
+  }).eq('id', event.id)
+
+  if (error) return { error: error.message }
+
+  eventPaths(event.id, event.slug)
+  return { success: true }
+}
+
+export async function updateEventSettings(input: {
+  eventId: string
   eventDate: string
   startTime: string
   artistNeedDescription: string
-  description: string
   attendeeCapacity: number
   neededArtistCount: number
-  isPublic: boolean
   isAcceptingArtists: boolean
   status: Event['status']
   lineupPublished: boolean
@@ -526,25 +584,21 @@ export async function updateEventSettings(input: {
   const event = await ensureEventOwner(supabase, input.eventId, userId)
   if (!event) return { error: 'You can only manage events for venues you own.' }
 
-  const title = normalizeText(input.title)
   const genreIds = Array.from(new Set(input.genreIds.filter(Boolean)))
-  if (!title || !input.eventDate || !input.startTime) return { error: 'Title, date, and time are required.' }
-  if (genreIds.length === 0) return { error: 'Choose at least one genre.' }
-  if (input.attendeeCapacity < 1 || input.neededArtistCount < 1) {
+  if (!input.eventDate || !input.startTime) return { error: 'Date and time are required.' }
+  if (!Number.isInteger(input.attendeeCapacity) || input.attendeeCapacity < 1 ||
+      !Number.isInteger(input.neededArtistCount) || input.neededArtistCount < 1) {
     return { error: 'Capacity and needed artist count must be at least 1.' }
   }
 
   const { error } = await supabase
     .from('events')
     .update({
-      title,
       event_date: input.eventDate,
       start_time: input.startTime,
       artist_need_description: normalizeText(input.artistNeedDescription),
-      description: normalizeText(input.description),
       attendee_capacity: input.attendeeCapacity,
       needed_artist_count: input.neededArtistCount,
-      is_public: input.isPublic,
       is_accepting_artists: input.isAcceptingArtists,
       status: input.status,
       lineup_published: input.lineupPublished,
@@ -553,12 +607,14 @@ export async function updateEventSettings(input: {
 
   if (error) return { error: error.message }
 
-  await supabase.from('event_genres').delete().eq('event_id', input.eventId)
-  const { error: genreError } = await supabase
-    .from('event_genres')
-    .insert(genreIds.map((genreId) => ({ event_id: input.eventId, genre_id: genreId })))
-
-  if (genreError) return { error: genreError.message }
+  const { error: clearGenresError } = await supabase.from('event_genres').delete().eq('event_id', input.eventId)
+  if (clearGenresError) return { error: clearGenresError.message }
+  if (genreIds.length > 0) {
+    const { error: genreError } = await supabase
+      .from('event_genres')
+      .insert(genreIds.map((genreId) => ({ event_id: input.eventId, genre_id: genreId })))
+    if (genreError) return { error: genreError.message }
+  }
 
   eventPaths(input.eventId, event.slug)
   return { success: true }
@@ -581,17 +637,17 @@ export async function updateEventLogistics(input: {
   if (!event) return { error: 'Only the venue leader can update logistics.' }
 
   const { error } = await supabase
-    .from('events')
-    .update({
-      logistics_load_in: normalizeText(input.loadIn) || null,
-      logistics_soundcheck: normalizeText(input.soundcheck) || null,
-      logistics_set_times: normalizeText(input.setTimes) || null,
-      logistics_backline: normalizeText(input.backline) || null,
-      logistics_artist_should_bring: normalizeText(input.artistShouldBring) || null,
-      logistics_parking_access: normalizeText(input.parkingAccess) || null,
-      logistics_notes: normalizeText(input.notes) || null,
-    })
-    .eq('id', input.eventId)
+    .from('event_logistics')
+    .upsert({
+      event_id: input.eventId,
+      load_in: normalizeText(input.loadIn) || null,
+      soundcheck: normalizeText(input.soundcheck) || null,
+      set_times: normalizeText(input.setTimes) || null,
+      backline: normalizeText(input.backline) || null,
+      artist_should_bring: normalizeText(input.artistShouldBring) || null,
+      parking_access: normalizeText(input.parkingAccess) || null,
+      notes: normalizeText(input.notes) || null,
+    }, { onConflict: 'event_id' })
 
   if (error) return { error: error.message }
 
@@ -700,27 +756,11 @@ export async function inviteArtistToEvent(input: {
   const { data: band } = await supabase.from('bands').select('id, name').eq('id', input.bandId).single()
   if (!band) return { error: 'Artist not found.' }
 
-  const privateChatResult = await sendEventPrivateChat(supabase, {
-    senderKind: 'venue',
-    senderId: event.venue_id,
-    recipientKind: 'band',
-    recipientId: input.bandId,
-    body: `Invitation to perform at ${event.title}${normalizeText(input.note) ? `\n\n${normalizeText(input.note)}` : ''}`,
+  const { error } = await supabase.rpc('invite_artist_to_event', {
+    p_event_id: input.eventId,
+    p_band_id: input.bandId,
+    p_note: normalizeText(input.note),
   })
-  if (privateChatResult.error) return privateChatResult
-
-  const now = new Date().toISOString()
-  const payload = {
-    event_id: input.eventId,
-    band_id: input.bandId,
-    status: 'invited' as const,
-    source: 'invitation' as const,
-    invited_at: now,
-  }
-
-  const { error } = await supabase
-    .from('event_artist_memberships')
-    .upsert(payload, { onConflict: 'event_id,band_id' })
 
   if (error) return { error: error.message }
 
@@ -781,6 +821,12 @@ export async function updateMembershipStatus(input: {
     update.accepted_at = now
     message = `${membership.bands?.name ?? 'Artist'} joined Backstage.`
   } else if (input.status === 'declined') {
+    if (isActiveArtistOwner && membership.status === 'invited') {
+      const { error } = await supabase.rpc('decline_event_invite', { p_membership_id: input.membershipId })
+      if (error) return { error: error.message }
+      eventPaths(membership.event_id, membership.events.slug)
+      return { success: true }
+    }
     if (!isActiveVenueLeader) return { error: 'Only the active venue profile can decline artists.' }
     update.declined_at = now
     message = `Venue declined ${membership.bands?.name ?? 'this artist'} for this event.`

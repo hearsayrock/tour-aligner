@@ -59,7 +59,7 @@ function EventCard({
 
   return (
     <Link
-      href={`/dashboard/backstage/${event.id}`}
+      href={`/events/${event.slug}`}
       className="group block rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -260,7 +260,7 @@ export default async function BackstageListPage({
                     </Badge>
                   </div>
                 </div>
-                <ButtonLink href={`/dashboard/backstage/${item.id}`} tone="secondary">
+                <ButtonLink href={`/events/${item.slug}${activeIdentity?.kind === 'band' ? '?invite=1' : '#backstage'}`} tone="secondary">
                   {activeIdentity?.kind === 'band' ? 'Review invitation' : 'Review applications'}
                 </ButtonLink>
               </li>

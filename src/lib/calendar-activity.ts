@@ -79,7 +79,7 @@ export function buildVenueEventActivity(event: CalendarEventRecord): CalendarAct
   return {
     id: `venue-event-${event.id}`,
     title: event.title,
-    href: `/dashboard/backstage/${event.id}`,
+    href: `/events/${event.slug}`,
     subtitle: event.venues?.name ?? 'Backstage',
     meta: metaParts.join(' / '),
     tone: eventStatusTone(event.status),
@@ -107,7 +107,7 @@ export function buildArtistEventActivity(args: {
   return {
     id: `artist-event-${event.id}-${membershipStatus}`,
     title: event.title,
-    href: membershipStatus === 'invited' ? `/events/${event.slug}#event-description` : `/dashboard/backstage/${event.id}`,
+    href: `/events/${event.slug}${membershipStatus === 'invited' ? '?invite=1' : ''}`,
     subtitle: event.venues?.name ?? 'Backstage',
     meta: location || undefined,
     tone: membershipStatusTone(membershipStatus),
