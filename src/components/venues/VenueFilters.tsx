@@ -58,7 +58,7 @@ function CustomSelect({
       >
         {children}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#888888]" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
     </div>
   )
 }
@@ -90,7 +90,7 @@ function LocationFilterInput({
 
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-[#A0A0A0]">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-text-subtle">
         {geoLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
       </span>
       <input
@@ -104,7 +104,7 @@ function LocationFilterInput({
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#888888] transition-colors hover:bg-[#EFEFEF] hover:text-[#252525]"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink"
           aria-label="Clear location"
         >
           <X className="h-4 w-4" />
@@ -114,7 +114,7 @@ function LocationFilterInput({
           type="button"
           onClick={onUseLocation}
           disabled={geoLoading}
-          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#FD6A2F] transition-colors hover:bg-[#FFF3EE] hover:text-[#E55A22] disabled:opacity-40"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-brand-text transition-colors hover:bg-brand-tint hover:text-brand-text disabled:opacity-40"
           aria-label="Use my location"
         >
           <Crosshair className="h-4 w-4" />
@@ -187,9 +187,9 @@ export function VenueFilters({ genres }: VenueFiltersProps) {
   }
 
   return (
-    <div className="sticky top-[73px] z-20 mb-8 rounded-2xl border border-[#E6E6E6] bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,20,20,0.07)] backdrop-blur lg:top-4">
+    <div className="sticky top-[73px] z-20 mb-8 rounded-2xl border border-border bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,20,20,0.07)] backdrop-blur lg:top-4">
       <div className="relative mb-3">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A0A0A0]" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle" />
         <input
           type="text"
           placeholder="Search venues or cities"

@@ -41,7 +41,7 @@ export function EventViewNav({ eventHref, backstageHref, backstageActive }: {
           aria-current={active ? 'page' : undefined}
           className={cx(
             'inline-flex min-h-10 items-center justify-center rounded-lg px-5 text-sm font-semibold',
-            active ? 'bg-[#252525] text-white' : 'text-[#666666] hover:bg-[#F5F5F5] hover:text-[#252525]',
+            active ? 'bg-cocoa text-white' : 'text-text-secondary hover:bg-surface-2 hover:text-ink',
           )}
         >
           {label}

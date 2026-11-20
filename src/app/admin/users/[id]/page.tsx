@@ -10,8 +10,8 @@ function fmtDate(s: string) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-[#888888] uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-sm text-[#252525]">{value}</p>
+      <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-sm text-ink">{value}</p>
     </div>
   )
 }
@@ -48,18 +48,18 @@ export default async function AdminUserDetailPage({
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
-      <Link href="/admin/users" className="text-sm text-[#888888] hover:text-[#252525] transition-colors">
+      <Link href="/admin/users" className="text-sm text-muted hover:text-ink transition-colors">
         ← Users
       </Link>
 
       <div className="flex items-start justify-between mt-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-[#252525]">{profile.full_name ?? profile.email ?? 'Unknown user'}</h1>
-          <p className="text-sm text-[#888888] mt-0.5">{profile.email ?? '—'}</p>
+          <h1 className="text-xl font-bold text-ink">{profile.full_name ?? profile.email ?? 'Unknown user'}</h1>
+          <p className="text-sm text-muted mt-0.5">{profile.email ?? '—'}</p>
         </div>
         <div className="flex items-center gap-2">
           {profile.is_admin && (
-            <span className="text-xs px-2 py-0.5 rounded border bg-[#FD6A2F]/10 text-[#FD6A2F] border-[#FD6A2F]/20">
+            <span className="text-xs px-2 py-0.5 rounded border bg-brand/10 text-brand-text border-brand/20">
               Admin
             </span>
           )}
@@ -72,7 +72,7 @@ export default async function AdminUserDetailPage({
       </div>
 
       {/* Details */}
-      <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 grid grid-cols-2 gap-5 mb-6">
+      <div className="bg-surface border border-border rounded-xl p-5 grid grid-cols-2 gap-5 mb-6">
         <Field label="Email" value={profile.email ?? '—'} />
         <Field label="Phone" value={profile.phone ?? '—'} />
         <Field label="Role" value={profile.primary_role ?? '—'} />
@@ -81,21 +81,21 @@ export default async function AdminUserDetailPage({
 
       {/* Actions */}
       {!profile.is_admin && (
-        <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-5 mb-6">
-          <h2 className="text-sm font-semibold text-[#252525] mb-3">Actions</h2>
+        <div className="bg-surface border border-border rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-semibold text-ink mb-3">Actions</h2>
           <form action={toggleSuspend}>
             <button
               type="submit"
               className={`text-sm font-semibold px-4 py-2 rounded-lg border transition-colors ${
                 profile.is_suspended
-                  ? 'border-[#E8E8E8] text-[#252525] hover:bg-[#F5F5F5]'
+                  ? 'border-border text-ink hover:bg-surface-2'
                   : 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100'
               }`}
             >
               {profile.is_suspended ? 'Unsuspend user' : 'Suspend user'}
             </button>
           </form>
-          <p className="text-xs text-[#888888] mt-2">
+          <p className="text-xs text-muted mt-2">
             To permanently delete a user, use the Supabase dashboard.
           </p>
         </div>
@@ -103,65 +103,65 @@ export default async function AdminUserDetailPage({
 
       {/* Bands */}
       <div className="mb-6">
-        <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest mb-3">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-widest mb-3">
           Bands ({bands?.length ?? 0})
         </h2>
         {(bands ?? []).length > 0 ? (
-          <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
             {(bands ?? []).map((band, i) => (
               <div
                 key={band.id}
                 className={`flex items-center justify-between px-4 py-3 ${
-                  i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                  i > 0 ? 'border-t border-border' : ''
                 }`}
               >
-                <Link href={`/admin/bands/${band.id}`} className="text-sm text-[#FD6A2F] hover:underline">
+                <Link href={`/admin/bands/${band.id}`} className="text-sm text-brand-text hover:underline">
                   {band.name}
                 </Link>
                 <div className="flex items-center gap-3">
                   {!band.is_active && (
-                    <span className="text-xs text-[#888888]">Inactive</span>
+                    <span className="text-xs text-muted">Inactive</span>
                   )}
-                  <span className="text-xs text-[#888888]">{fmtDate(band.created_at)}</span>
+                  <span className="text-xs text-muted">{fmtDate(band.created_at)}</span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#888888]">No bands.</p>
+          <p className="text-sm text-muted">No bands.</p>
         )}
       </div>
 
       {/* Venues */}
       <div>
-        <h2 className="text-sm font-semibold text-[#888888] uppercase tracking-widest mb-3">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-widest mb-3">
           Claimed venues ({venues?.length ?? 0})
         </h2>
         {(venues ?? []).length > 0 ? (
-          <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
             {(venues ?? []).map((venue, i) => (
               <div
                 key={venue.id}
                 className={`flex items-center justify-between px-4 py-3 ${
-                  i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                  i > 0 ? 'border-t border-border' : ''
                 }`}
               >
                 <div>
-                  <Link href={`/admin/venues/${venue.id}`} className="text-sm text-[#FD6A2F] hover:underline">
+                  <Link href={`/admin/venues/${venue.id}`} className="text-sm text-brand-text hover:underline">
                     {venue.name}
                   </Link>
-                  <p className="text-xs text-[#888888]">
+                  <p className="text-xs text-muted">
                     {venue.location_city}, {venue.location_state}
                   </p>
                 </div>
                 {!venue.is_active && (
-                  <span className="text-xs text-[#888888]">Inactive</span>
+                  <span className="text-xs text-muted">Inactive</span>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#888888]">No claimed venues.</p>
+          <p className="text-sm text-muted">No claimed venues.</p>
         )}
       </div>
     </div>

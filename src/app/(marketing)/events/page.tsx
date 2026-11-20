@@ -55,38 +55,38 @@ function EventCard({ event }: { event: PublicEvent }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group grid gap-5 rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)] sm:grid-cols-[88px_minmax(0,1fr)_170px]"
+      className="group grid gap-5 rounded-2xl border border-border bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)] sm:grid-cols-[88px_minmax(0,1fr)_170px]"
     >
-      <div className="flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-[#FFD5C4] bg-[#FFF3EE] text-[#A84216]">
+      <div className="flex h-20 w-20 flex-col items-center justify-center rounded-2xl border border-brand-tint-border bg-brand-tint text-brand-tint-text">
         <span className="text-xs font-semibold uppercase tracking-[0.16em]">{month}</span>
         <span className="text-3xl font-bold leading-none">{day}</span>
       </div>
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">
+          <h2 className="text-xl font-bold tracking-tight text-ink group-hover:text-brand-text">
             {event.title}
           </h2>
           <Badge tone={event.status === 'active' ? 'success' : 'warning'}>
             {event.status === 'active' ? 'Active' : 'Draft'}
           </Badge>
         </div>
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
-          <CalendarDays className="h-4 w-4 text-[#FD6A2F]" />
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+          <CalendarDays className="h-4 w-4 text-brand-text" />
           <span>{formatEventDate(event)}</span>
         </p>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[#777777]">
-          <MapPin className="h-4 w-4 text-[#999999]" />
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+          <MapPin className="h-4 w-4 text-text-subtle" />
           <span>{event.venues?.name ?? 'Unknown venue'}</span>
           {event.venues && (
             <>
-              <span className="text-[#B0B0B0]">/</span>
+              <span className="text-sand-light">/</span>
               <span>{[event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ')}</span>
             </>
           )}
         </p>
         {event.artist_need_description && (
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#666666]">{event.artist_need_description}</p>
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-text-secondary">{event.artist_need_description}</p>
         )}
         <div className="mt-4 flex flex-wrap gap-1.5">
           {genreNames.length > 0 ? (
@@ -102,14 +102,14 @@ function EventCard({ event }: { event: PublicEvent }) {
         </div>
       </div>
 
-      <div className="flex flex-col justify-between rounded-2xl border border-[#EEEEEE] bg-[#FAFAFA] px-4 py-3 text-sm sm:text-right">
+      <div className="flex flex-col justify-between rounded-2xl border border-border bg-page px-4 py-3 text-sm sm:text-right">
         <div>
-          <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
-          <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
+          <p className="font-semibold text-ink">{acceptedCount}/{event.needed_artist_count} artists</p>
+          <p className={openNeed <= 0 ? 'mt-1 text-xs text-warning-text' : 'mt-1 text-xs text-text-secondary'}>
             {openNeed <= 0 ? 'Lineup target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
           </p>
         </div>
-        <span className="mt-4 inline-flex min-h-9 items-center justify-center rounded-xl bg-[#252525] px-3 text-xs font-semibold text-white transition-colors group-hover:bg-[#FD6A2F]">
+        <span className="mt-4 inline-flex min-h-9 items-center justify-center rounded-xl bg-cocoa px-3 text-xs font-semibold text-white transition-colors group-hover:bg-brand">
           View event
         </span>
       </div>
@@ -159,7 +159,7 @@ export default async function EventsPage({
 
     if (identities.length > 1 && activeIdentity.kind === 'all') {
       return (
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <div className="workspace-page">
           <PageHeader
             eyebrow="Available events"
             title="Choose a profile"
@@ -205,7 +205,7 @@ export default async function EventsPage({
   const hasFilters = !!params.genre || !!params.q
 
   return (
-    <div className={`mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 ${user ? 'pt-8 lg:pt-10' : 'pt-24'}`}>
+    <div className={user ? 'workspace-page' : 'mx-auto max-w-7xl px-4 pt-24 pb-16 sm:px-6 lg:px-8'}>
       <PageHeader
         eyebrow="Event discovery"
         title="Available Events"
@@ -217,10 +217,10 @@ export default async function EventsPage({
         }
       />
 
-      <form className="mb-8 rounded-2xl border border-[#E6E6E6] bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,20,20,0.07)] backdrop-blur">
+      <form className="mb-8 rounded-2xl border border-border bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,20,20,0.07)] backdrop-blur">
         <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_260px_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A0A0A0]" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle" />
             <input
               name="q"
               defaultValue={params.q ?? ''}
@@ -238,12 +238,12 @@ export default async function EventsPage({
               <option key={genre.id} value={genre.id}>{genre.name}</option>
             ))}
           </select>
-          <button className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22]">
+          <button className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand px-5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-dim">
             Filter
           </button>
         </div>
         {hasFilters && (
-          <Link href="/events" className="mt-3 inline-flex min-h-8 items-center text-sm font-semibold text-[#777777] transition-colors hover:text-[#252525]">
+          <Link href="/events" className="mt-3 inline-flex min-h-8 items-center text-sm font-semibold text-text-secondary transition-colors hover:text-ink">
             Clear filters
           </Link>
         )}

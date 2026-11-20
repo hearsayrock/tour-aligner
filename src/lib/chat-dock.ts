@@ -6,7 +6,7 @@ export type ChatProfile = {
   kind: 'band' | 'venue'
   id: string
   name: string
-  href: string
+  href: string | null
   photo: string | null
   meta: string
 }

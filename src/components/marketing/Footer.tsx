@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { WaitlistButton } from '@/components/marketing/WaitlistButton'
 
@@ -13,7 +14,7 @@ const footerLinkClass = 'text-sm text-white/68 transition-colors hover:text-whit
 
 export function Footer() {
   return (
-    <footer className="bg-[#111111] text-white">
+    <footer data-theme="cocoa" className="bg-page text-white">
       <div className="mx-auto max-w-7xl px-6 py-12 sm:py-14 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div className="max-w-lg">
@@ -21,7 +22,7 @@ export function Footer() {
               href="/"
               className="inline-flex font-[var(--font-barlow)] text-2xl font-black uppercase tracking-[-0.02em] text-white"
             >
-              Tour<span className="text-[#c4682f]">Aligner</span>
+              <Image src="/touraligner/brand/touraligner-logo-light.svg" width={144} height={40} alt="TourAligner" />
             </Link>
             <p className="mt-4 max-w-md text-sm leading-7 text-white/58 sm:text-base">
               Stronger artist profiles and a cleaner way to route tours, connect with venues,
@@ -65,7 +66,7 @@ export function Footer() {
               <div className="mt-4 flex flex-col items-start gap-3">
                 <WaitlistButton
                   label="Join waitlist"
-                  className="!min-h-0 !justify-start !rounded-none !bg-transparent !px-0 !py-0 !font-normal !text-white/68 hover:!bg-transparent hover:!text-white focus-visible:!ring-offset-[#111111]"
+                  className="!min-h-0 !justify-start !rounded-none !bg-transparent !px-0 !py-0 !font-normal !text-white/68 hover:!bg-transparent hover:!text-white focus-visible:!ring-offset-edge"
                 />
                 <Link href="/login" className={footerLinkClass}>
                   Sign in

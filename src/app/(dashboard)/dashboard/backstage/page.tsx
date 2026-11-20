@@ -64,23 +64,23 @@ function EventCard({
     : eventHref
 
   return (
-    <article className="flex flex-col rounded-2xl border border-[#E6E6E6] bg-white shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)] sm:flex-row">
+    <article className="flex flex-col rounded-2xl border border-border bg-white shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)] sm:flex-row">
       <Link href={cardHref} className="group block min-w-0 flex-1 rounded-2xl p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">{event.title}</h2>
+              <h2 className="text-xl font-bold tracking-tight text-ink group-hover:text-brand-text">{event.title}</h2>
               <Badge tone="muted">
                 {role === 'venue' ? 'Venue leader' : membership ? MEMBERSHIP_STATUS_LABELS[membership.status] : 'Artist'}
               </Badge>
               <Badge tone={eventTone(event.status)}>{EVENT_STATUS_LABELS[event.status]}</Badge>
             </div>
-            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#666666]">
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
               <span>{event.venues?.name ?? 'Unknown venue'}</span>
-              <span className="text-[#B0B0B0]">/</span>
+              <span className="text-sand-light">/</span>
               <span>{formatEventDate(event)}</span>
             </p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-[#888888]">
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
               <MapPin className="h-3.5 w-3.5" />
               {event.venues ? [event.venues.location_city, event.venues.location_state].filter(Boolean).join(', ') : 'Location pending'}
             </p>
@@ -92,21 +92,21 @@ function EventCard({
               </div>
             )}
           </div>
-          <div className="rounded-xl border border-[#EEEEEE] bg-[#FAFAFA] px-3 py-2 text-right text-sm">
-            <p className="font-semibold text-[#252525]">{acceptedCount}/{event.needed_artist_count} artists</p>
+          <div className="rounded-xl border border-border bg-page px-3 py-2 text-right text-sm">
+            <p className="font-semibold text-ink">{acceptedCount}/{event.needed_artist_count} artists</p>
             {!past && (
               <>
-                <p className={openNeed <= 0 ? 'mt-1 text-xs text-[#8A5A12]' : 'mt-1 text-xs text-[#777777]'}>
+                <p className={openNeed <= 0 ? 'mt-1 text-xs text-warning-text' : 'mt-1 text-xs text-text-secondary'}>
                   {openNeed <= 0 ? 'Target reached' : `${openNeed} open spot${openNeed === 1 ? '' : 's'}`}
                 </p>
-                {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-[#FD6A2F]">Accepting artists</p>}
+                {event.is_accepting_artists && <p className="mt-1 text-xs font-medium text-brand-text">Accepting artists</p>}
               </>
             )}
           </div>
         </div>
       </Link>
       {role === 'venue' && (
-        <div className="flex shrink-0 flex-wrap gap-2 border-t border-[#E6E6E6] p-4 sm:flex-col sm:justify-center sm:border-l sm:border-t-0">
+        <div className="flex shrink-0 flex-wrap gap-2 border-t border-border p-4 sm:flex-col sm:justify-center sm:border-l sm:border-t-0">
           <ButtonLink href={eventHref + '?edit=1'} tone="secondary">Edit event page</ButtonLink>
           {event.is_public && (
             <Link href={eventHref} target="_blank" rel="noopener noreferrer" className={buttonBaseClass('secondary')}>
@@ -156,7 +156,7 @@ export default async function BackstageListPage({
 
   if (requiredIdentity.requiresSelection) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="workspace-page">
         <PageHeader
           eyebrow="Backstages"
           title="Choose a profile"
@@ -232,9 +232,8 @@ export default async function BackstageListPage({
   const total = venueEventRows.length + artistEvents.length
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <div className="workspace-page">
       <PageHeader
-        eyebrow="Backstages"
         title="Backstages"
         description={`${total} ${past ? 'past' : 'upcoming'} Backstage${total === 1 ? '' : 's'} for the selected profile.`}
         actions={
@@ -254,7 +253,7 @@ export default async function BackstageListPage({
       />
 
       {attentionItems.length > 0 && (
-        <section className="mb-8 rounded-2xl border border-[#FFD5C4] bg-[#FFF3EE] p-5">
+        <section className="mb-8 rounded-ds-2xl border border-border bg-page p-5">
           <SectionHeading
             title="Needs attention"
             description={activeIdentity?.kind === 'band'
@@ -263,10 +262,10 @@ export default async function BackstageListPage({
           />
           <ul className="space-y-3">
             {attentionItems.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#E6E6E6] bg-white p-4">
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-white p-4">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-[#252525]">{item.title}</h3>
-                  <p className="mt-1 text-sm text-[#666666]">{formatEventDate(item)}</p>
+                  <h3 className="font-semibold text-ink">{item.title}</h3>
+                  <p className="mt-1 text-sm text-text-secondary">{formatEventDate(item)}</p>
                   <div className="mt-2">
                     <Badge tone="brand">
                       {activeIdentity?.kind === 'band'
@@ -286,7 +285,7 @@ export default async function BackstageListPage({
 
       <nav
         aria-label="Backstage dates"
-        className="mb-6 flex w-fit gap-1 rounded-xl border border-[#E8E6E0] bg-[#F1F0EC] p-1"
+        className="mb-6 flex w-fit gap-1 rounded-full border border-border bg-surface-2 p-1"
       >
         {[
           { label: 'Upcoming', href: '/dashboard/backstage', selected: !past },
@@ -296,7 +295,7 @@ export default async function BackstageListPage({
             key={label}
             href={href}
             aria-current={selected ? 'page' : undefined}
-            className={`inline-flex min-h-10 items-center rounded-lg px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] ${selected ? 'bg-white text-[#252525] shadow-sm' : 'text-[#777777] hover:text-[#252525]'}`}
+            className={`inline-flex min-h-10 items-center rounded-full px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${selected ? 'bg-white text-ink shadow-sm' : 'text-text-secondary hover:text-ink'}`}
           >
             {label}
           </Link>

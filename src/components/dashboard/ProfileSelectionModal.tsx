@@ -49,20 +49,20 @@ export function ProfileSelectionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-selection-title"
-        className="relative w-full max-w-md rounded-2xl border border-[#E8E8E8] bg-white p-6 shadow-xl"
+        className="relative w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="profile-selection-title" className="text-lg font-semibold text-[#252525]">
+            <h2 id="profile-selection-title" className="text-lg font-semibold text-ink">
               {title}
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-[#777777]">{body}</p>
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">{body}</p>
           </div>
           <button
             type="button"
             onClick={cancel}
             aria-label="Cancel and return to dashboard"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#888888] transition-colors hover:bg-[#F5F5F5] hover:text-[#252525]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-ink"
           >
             <X className="h-4 w-4" />
           </button>
@@ -78,14 +78,14 @@ export function ProfileSelectionModal({
                 type="button"
                 onClick={() => selectIdentity(identity)}
                 disabled={isPending}
-                className="flex w-full items-center gap-3 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-left transition-colors hover:border-[#CCCCCC] hover:bg-white disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-border bg-page px-4 py-3 text-left transition-colors hover:border-border-strong hover:bg-white disabled:opacity-50"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E8E8E8] bg-white text-[#FD6A2F]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-brand-text">
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-[#252525]">{identity.name}</span>
-                  <span className="block text-xs text-[#888888]">{identity.kind === 'band' ? 'Artist profile' : 'Venue profile'}</span>
+                  <span className="block truncate text-sm font-semibold text-ink">{identity.name}</span>
+                  <span className="block text-xs text-muted">{identity.kind === 'band' ? 'Artist profile' : 'Venue profile'}</span>
                 </span>
               </button>
             )
@@ -98,7 +98,7 @@ export function ProfileSelectionModal({
           <button
             type="button"
             onClick={cancel}
-            className="rounded-xl border border-[#E8E8E8] px-4 py-2.5 text-sm font-semibold text-[#252525] transition-colors hover:border-[#CCCCCC] hover:bg-[#F5F5F5]"
+            className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-border-strong hover:bg-surface-2"
           >
             Cancel
           </button>

@@ -94,24 +94,24 @@ function VenueCard({ venue, availability }: { venue: Venue; availability?: Avail
   return (
     <Link
       href={`/venues/${venue.slug}`}
-      className="group flex min-h-full flex-col rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-[#D0D0D0] hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
+      className="group flex min-h-full flex-col rounded-2xl border border-border bg-white p-5 shadow-[0_12px_28px_rgba(20,20,20,0.035)] transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_38px_rgba(20,20,20,0.07)]"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-[#777777]">
-          <MapPin className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-secondary">
+          <MapPin className="h-4 w-4 shrink-0 text-brand-text" />
           <span className="truncate">{[venue.location_city, venue.location_state].filter(Boolean).join(', ')}</span>
         </div>
         {!venue.claimed_by_user_id && <Badge tone="brand">Unclaimed</Badge>}
       </div>
 
-      <h2 className="mt-4 text-xl font-bold tracking-tight text-[#202020] group-hover:text-[#FD6A2F]">
+      <h2 className="mt-4 text-xl font-bold tracking-tight text-ink group-hover:text-brand-text">
         {venue.name}
       </h2>
 
       {venue.description ? (
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#666666]">{venue.description}</p>
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{venue.description}</p>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-[#888888]">Venue details are still being filled in.</p>
+        <p className="mt-3 text-sm leading-6 text-muted">Venue details are still being filled in.</p>
       )}
 
       <div className="mt-5 flex flex-wrap gap-2">
@@ -131,15 +131,15 @@ function VenueCard({ venue, availability }: { venue: Venue; availability?: Avail
 
       <div className="mt-auto pt-5">
         {availability ? (
-          <div className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
+          <div className="rounded-2xl border border-border bg-surface px-4 py-3">
             <Badge tone={availability.tone}>
               <CalendarDays className="h-3.5 w-3.5" />
               {availability.label}
             </Badge>
-            <p className="mt-2 text-xs leading-5 text-[#777777]">{availability.detail}</p>
+            <p className="mt-2 text-xs leading-5 text-text-secondary">{availability.detail}</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3 text-xs leading-5 text-[#888888]">
+          <div className="rounded-2xl border border-dashed border-border bg-surface px-4 py-3 text-xs leading-5 text-muted">
             No availability calendar posted yet.
           </div>
         )}
@@ -248,7 +248,7 @@ export default async function VenuesPage({ searchParams }: PageProps) {
   const filtered = Object.values(filters).some(Boolean)
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Venue discovery"
         title="Venue Directory"

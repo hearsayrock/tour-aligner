@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/primitives'
 import { Suspense } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -89,28 +90,29 @@ function VenueCard({
     <Link
       href={
         recommendation?.recommendedDate
-          ? `/venues/${venue.slug}?selectedDate=${recommendation.recommendedDate}`
+          ? `/venues/${venue.slug}?selectedDate=${recommendation.recommendedDate}#availability`
           : `/venues/${venue.slug}`
       }
-      className="flex flex-col gap-2 bg-white border border-[#E8E8E8] rounded-xl p-5 hover:border-[#CCCCCC] hover:shadow-sm transition-all"
+      className="flex flex-col gap-2 rounded-ds-2xl border border-border bg-page p-5 transition-colors hover:border-border-strong"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-sm text-[#888888]">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#FD6A2F] shrink-0">
+        <span className="flex items-center gap-1 text-sm text-muted">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text shrink-0">
             <path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
           </svg>
           {venue.location_city}
         </span>
         {!venue.claimed_by_user_id && (
-          <span className="text-xs font-medium text-[#FD6A2F] shrink-0">Unclaimed</span>
+          <span className="text-xs font-medium text-brand-text shrink-0">Unclaimed</span>
         )}
       </div>
+      <h2 className="break-words text-xl font-bold leading-tight text-ink">{venue.name}</h2>
       {recommendation && (
         <div
           className={`rounded-lg border px-3 py-2 ${
             recommendation.tone === 'open_date'
-              ? 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]'
-              : 'border-[#E8E8E8] bg-[#FAFAFA] text-[#555555]'
+              ? 'border-success-border bg-success-tint text-success-text'
+              : 'border-border bg-page text-text-secondary'
           }`}
         >
           <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
@@ -119,14 +121,13 @@ function VenueCard({
           <p className="mt-1 text-sm leading-snug">{recommendation.detail}</p>
         </div>
       )}
-      <p className="font-bold text-[#252525] leading-snug">{venue.name}</p>
       {venue.description && (
-        <p className="text-sm text-[#777777] leading-relaxed line-clamp-2">{venue.description}</p>
+        <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">{venue.description}</p>
       )}
       {(venue.capacity || venue.age_requirement) && (
         <div className="flex items-center gap-2 mt-1">
           {venue.capacity && (
-            <span className="flex items-center gap-1 text-xs text-[#888888] bg-[#F5F5F5] border border-[#E8E8E8] rounded-md px-2 py-1">
+            <span className="flex items-center gap-1 text-xs text-muted bg-surface-2 border border-border rounded-md px-2 py-1">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
@@ -135,7 +136,7 @@ function VenueCard({
             </span>
           )}
           {venue.age_requirement && (
-            <span className="flex items-center gap-1 text-xs text-[#888888] bg-[#F5F5F5] border border-[#E8E8E8] rounded-md px-2 py-1">
+            <span className="flex items-center gap-1 text-xs text-muted bg-surface-2 border border-border rounded-md px-2 py-1">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
               </svg>
@@ -173,29 +174,29 @@ function Pagination({ page, totalPages, searchParams }: {
     <div className="flex items-center justify-center gap-1 mt-8">
       <Link
         href={href(page - 1)}
-        className={`px-3 py-1.5 text-sm rounded-lg border border-[#E8E8E8] transition-colors ${
-          page <= 1 ? 'pointer-events-none opacity-30' : 'hover:border-[#CCCCCC]'
+        className={`px-3 py-1.5 text-sm rounded-lg border border-border transition-colors ${
+          page <= 1 ? 'pointer-events-none opacity-30' : 'hover:border-border-strong'
         }`}
       >←</Link>
       {pages.map((p, i) =>
         p === '…' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-sm text-[#888888]">…</span>
+          <span key={`ellipsis-${i}`} className="px-2 text-sm text-muted">…</span>
         ) : (
           <Link
             key={p}
             href={href(p as number)}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
               p === page
-                ? 'bg-[#FD6A2F] text-white border-[#FD6A2F]'
-                : 'border-[#E8E8E8] hover:border-[#CCCCCC]'
+                ? 'bg-brand text-on-brand border-brand'
+                : 'border-border hover:border-border-strong'
             }`}
           >{p}</Link>
         )
       )}
       <Link
         href={href(page + 1)}
-        className={`px-3 py-1.5 text-sm rounded-lg border border-[#E8E8E8] transition-colors ${
-          page >= totalPages ? 'pointer-events-none opacity-30' : 'hover:border-[#CCCCCC]'
+        className={`px-3 py-1.5 text-sm rounded-lg border border-border transition-colors ${
+          page >= totalPages ? 'pointer-events-none opacity-30' : 'hover:border-border-strong'
         }`}
       >→</Link>
     </div>
@@ -355,7 +356,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
 
   if (requiredIdentity.requiresSelection) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="workspace-page">
         <ProfileSelectionModal
           title="Select a profile to browse Venues"
           body="Venues are browsed from one active profile at a time. Use the profile selector in the nav to choose the profile you want to browse from."
@@ -536,8 +537,8 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
     const recommendationsByVenueId = await fetchVenueRecommendations(featured)
 
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
+      <div className="workspace-page">
+        <PageHeader title="Venue Directory" />
         {identityNotice && (
           <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
         )}
@@ -546,12 +547,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
         </Suspense>
 
         {featured.length === 0 ? (
-          <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
-            <p className="text-[#888888]">No venues found.</p>
+          <div className="bg-white border border-border rounded-xl p-16 text-center">
+            <p className="text-muted">No venues found.</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 mb-6">
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3 mb-6">
               {featured.map((venue) => (
                 <VenueCard
                   key={venue.id}
@@ -564,7 +565,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
               {total > FEATURED_COUNT ? (
                 <Link
                   href="/dashboard/venues?view=all"
-                  className="inline-flex items-center gap-1.5 text-sm text-[#888888] hover:text-[#252525] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
                 >
                   View all {total} venues
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -572,7 +573,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
                   </svg>
                 </Link>
               ) : <span />}
-              <Link href="/dashboard/venues/new" className="text-sm text-[#FD6A2F] hover:underline">
+              <Link href="/dashboard/venues/new" className="text-sm text-brand-text hover:underline">
                 Don&apos;t see your venue? Add it →
               </Link>
             </div>
@@ -617,8 +618,8 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
   delete searchParamsRecord.recommendBand
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-bold mb-6">Venue Directory</h1>
+    <div className="workspace-page">
+      <PageHeader title="Venue Directory" />
       {identityNotice && (
         <IdentityRequiredNotice title={identityNotice.title} body={identityNotice.body} />
       )}
@@ -627,13 +628,13 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       </Suspense>
 
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-[#888888]">
+        <p className="text-sm text-muted">
           {total} venue{total !== 1 ? 's' : ''}{hasFilters ? ' matching your filters' : ''}
         </p>
         {hasFilters && (
           <Link
             href="/dashboard/venues"
-            className="text-xs text-[#888888] hover:text-[#FD6A2F] transition-colors"
+            className="text-xs text-muted hover:text-brand-text transition-colors"
           >
             Clear filters
           </Link>
@@ -641,17 +642,17 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       </div>
 
       {pageVenues.length === 0 ? (
-        <div className="bg-white border border-[#E8E8E8] rounded-xl p-16 text-center">
-          <p className="text-[#888888]">No venues found. Try adjusting your filters.</p>
+        <div className="bg-white border border-border rounded-xl p-16 text-center">
+          <p className="text-muted">No venues found. Try adjusting your filters.</p>
         </div>
       ) : showStateGroupings ? (
         <div className="space-y-8">
           {grouped.map(({ state, venues }) => (
             <div key={state}>
-              <p className="text-xs font-semibold text-[#AAAAAA] uppercase tracking-widest mb-3">
+              <p className="font-ds-mono text-xs font-semibold text-text-secondary uppercase tracking-widest mb-3">
                 {STATE_ABBR_TO_NAME[state] ?? state}
               </p>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {venues.map((venue) => (
                   <VenueCard
                     key={venue.id}
@@ -664,7 +665,7 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {pageVenues.map((venue) => (
             <VenueCard
               key={venue.id}
@@ -676,13 +677,12 @@ export default async function DashboardVenuesPage({ searchParams }: PageProps) {
       )}
 
       <Pagination page={page} totalPages={totalPages} searchParams={searchParamsRecord} />
-      <p className="mt-6 text-center text-sm text-[#888888]">
+      <p className="mt-6 text-center text-sm text-muted">
         Don&apos;t see your venue?{' '}
-        <Link href="/dashboard/venues/new" className="text-[#FD6A2F] hover:underline">
+        <Link href="/dashboard/venues/new" className="text-brand-text hover:underline">
           Add it →
         </Link>
       </p>
     </div>
   )
 }
-

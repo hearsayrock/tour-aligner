@@ -11,7 +11,7 @@ export function ProfilePageSectionGrid<SectionId extends string>({ layout, secti
   return <ProfilePageSurface items={layout.sections
     .filter((item) => item.visible && contentById.has(item.sectionId))
     .sort((a, b) => a.order - b.order)} renderItem={(item, className, style) => (
-      <div key={item.sectionId} data-section-id={item.sectionId} className={className} style={style}>
+      <div key={item.sectionId} id={'section-' + item.sectionId} data-section-id={item.sectionId} className={className} style={style}>
         {contentById.get(item.sectionId)}
       </div>
     )} />

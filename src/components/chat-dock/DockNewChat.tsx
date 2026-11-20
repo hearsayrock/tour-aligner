@@ -124,13 +124,13 @@ export function DockNewChat({
 
   return (
     <>
-      <div className="shrink-0 border-b border-[#ECEAE5] p-3">
+      <div className="shrink-0 border-b border-border p-3">
         {target ? (
-          <div className="flex items-center gap-2.5 rounded-xl bg-[#FAF9F6] p-2">
+          <div className="flex items-center gap-2.5 rounded-xl bg-surface p-2">
             <DockAvatar name={target.name} photo={target.photo} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold">{target.name}</p>
-              <p className="truncate text-[11px] text-[#837C72]">{target.meta}</p>
+              <p className="truncate text-[11px] text-text-subtle">{target.meta}</p>
             </div>
             <button
               type="button"
@@ -148,8 +148,8 @@ export function DockNewChat({
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-xl border border-[#E5E3DE] bg-[#F7F6F3] px-3">
-            <Search className="size-4 shrink-0 text-[#928B81]" />
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3">
+            <Search className="size-4 shrink-0 text-text-subtle" />
             <input
               ref={inputRef}
               role="combobox"
@@ -183,9 +183,9 @@ export function DockNewChat({
                 }
               }}
               placeholder="Find an artist or venue"
-              className="h-10 w-full bg-transparent text-[13px] outline-none placeholder:text-[#979086]"
+              className="h-10 w-full bg-transparent text-[13px] outline-none placeholder:text-text-subtle"
             />
-            {loading && <LoaderCircle className="size-4 shrink-0 animate-spin text-[#928B81]" />}
+            {loading && <LoaderCircle className="size-4 shrink-0 animate-spin text-text-subtle" />}
           </div>
         )}
       </div>
@@ -219,12 +219,12 @@ export function DockNewChat({
                 aria-selected={activeIndex === index}
                 onClick={() => selectProfile(profile)}
                 type="button"
-                className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#F8F6F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F] ${activeIndex === index ? 'bg-[#FFF3EB]' : ''}`}
+                className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand ${activeIndex === index ? 'bg-surface' : ''}`}
               >
                 <DockAvatar name={profile.name} photo={profile.photo} />
                 <span className="min-w-0">
                   <span className="block truncate text-[13px] font-semibold">{profile.name}</span>
-                  <span className="block truncate text-[11px] text-[#837C72]">{profile.meta}</span>
+                  <span className="block truncate text-[11px] text-text-subtle">{profile.meta}</span>
                 </span>
               </button>
             ))}

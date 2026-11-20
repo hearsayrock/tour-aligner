@@ -383,7 +383,7 @@ function DockConversationView({
     <>
       <div
         data-chat-drag-handle
-        className="flex shrink-0 items-center gap-1 border-b border-[#ECEAE5] px-2.5 py-2.5 md:cursor-grab"
+        className="flex shrink-0 items-center gap-1 border-b border-border px-2.5 py-2.5 md:cursor-grab"
       >
         <button
           type="button"
@@ -391,7 +391,7 @@ function DockConversationView({
           data-chat-window-title
           aria-label={`Minimize ${title}`}
           aria-expanded={true}
-          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
         >
           <DockAvatar
             name={title}
@@ -399,8 +399,8 @@ function DockConversationView({
             room={data.kind === 'backstage'}
           />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-semibold text-[#252525]">{title}</span>
-            <span className="block truncate text-[11px] text-[#878074]">
+            <span className="block truncate text-[13px] font-semibold text-ink">{title}</span>
+            <span className="block truncate text-[11px] text-text-subtle">
               {data.kind === 'private'
                 ? data.chat.partner.meta || 'Private chat'
                 : `${data.backstage.venueName} · ${new Date(`${data.backstage.date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
@@ -418,17 +418,17 @@ function DockConversationView({
             <MoreHorizontal className="size-4" />
           </button>
           {menu && (
-            <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-[#E8E5DF] bg-white p-1.5 shadow-xl">
+            <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-border bg-white p-1.5 shadow-xl">
               {data.kind === 'private' ? (
                 <>
-                  <Link
+                  {data.chat.partner.href && <Link
                     href={data.chat.partner.href}
                     onClick={() => setMenu(false)}
-                    className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-[#F6F5F2]"
+                    className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-surface"
                   >
                     <ExternalLink className="size-3.5" />
                     View profile
-                  </Link>
+                  </Link>}
                   <button
                     type="button"
                     disabled={pending}
@@ -439,7 +439,7 @@ function DockConversationView({
                           : archivePrivateChatThread(id, identity.kind, identity.id)
                       )
                     }
-                    className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-[#F6F5F2] disabled:opacity-40"
+                    className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-surface disabled:opacity-40"
                   >
                     <Archive className="size-3.5" />
                     {data.chat.archived ? 'Unarchive' : 'Archive'}
@@ -462,7 +462,7 @@ function DockConversationView({
                       type="button"
                       disabled={pending}
                       onClick={() => void run(() => unblockPrivateChatThread(id, identity.kind, identity.id))}
-                      className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-xs hover:bg-[#F6F5F2]"
+                      className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-xs hover:bg-surface"
                     >
                       <Undo2 className="size-3.5" />
                       Unblock chat
@@ -473,13 +473,13 @@ function DockConversationView({
                 <Link
                   href={'/events/' + data.backstage.slug}
                   onClick={onOpenBackstage}
-                  className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-[#F6F5F2]"
+                  className="flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs hover:bg-surface"
                 >
                   <ExternalLink className="size-3.5" />
                   Open Backstage
                 </Link>
               ) : (
-                <p className="px-3 py-2 text-xs text-[#77736D]">Shared Backstage chat</p>
+                <p className="px-3 py-2 text-xs text-text-secondary">Shared Backstage chat</p>
               )}
             </div>
           )}
@@ -487,12 +487,12 @@ function DockConversationView({
         {controls}
       </div>
       {room && (
-        <div className="shrink-0 border-b border-[#ECEAE5] bg-white px-4 py-2">
+        <div className="shrink-0 border-b border-border bg-white px-4 py-2">
           <Link
             href={'/events/' + room.slug + (room.membershipStatus === 'invited' ? '?invite=1' : '')}
             onClick={onOpenBackstage}
             aria-label={`View event for ${room.title}`}
-            className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+            className="inline-flex items-center gap-1 rounded text-[11px] font-semibold text-rust hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             View event
             <ExternalLink className="size-3" />
@@ -510,7 +510,7 @@ function DockConversationView({
             placeholder="Optional note"
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            className="h-9 w-full rounded-lg border border-red-100 bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-[#FD6A2F]"
+            className="h-9 w-full rounded-lg border border-red-100 bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-brand"
           />
           <div className="flex gap-2">
             <button
@@ -546,7 +546,7 @@ function DockConversationView({
         aria-label={`${title} messages`}
         aria-live="polite"
         aria-relevant="additions"
-        className="app-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[#FCFBF9] px-3 py-4"
+        className="app-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-surface px-3 py-4"
       >
         {loading && (
           <div
@@ -554,9 +554,9 @@ function DockConversationView({
             aria-label="Loading conversation..."
             className="space-y-5 motion-safe:animate-pulse"
           >
-            <div className="h-12 w-2/3 rounded-2xl bg-[#EDEAE4]" />
-            <div className="ml-auto h-16 w-3/4 rounded-2xl bg-[#E5E2DB]" />
-            <div className="h-10 w-1/2 rounded-2xl bg-[#EDEAE4]" />
+            <div className="h-12 w-2/3 rounded-2xl bg-surface-2" />
+            <div className="ml-auto h-16 w-3/4 rounded-2xl bg-surface-2" />
+            <div className="h-10 w-1/2 rounded-2xl bg-surface-2" />
           </div>
         )}
         {!loading && data.hasMoreMessages && canRead && (
@@ -586,36 +586,36 @@ function DockConversationView({
           return (
             <div key={message.id}>
               {newDay && (
-                <p className="my-4 text-center text-[10px] font-medium text-[#9A9185]">
+                <p className="my-4 text-center text-[10px] font-medium text-text-subtle">
                   {formatChatDateDivider(message.created_at)}
                 </p>
               )}
               {message.system ? (
                 <LinkifiedText
                   text={message.body}
-                  className="mx-auto max-w-[95%] rounded-lg bg-[#F0EEE9] px-3 py-2 text-center text-[10px] leading-relaxed text-[#82796C]"
+                  className="mx-auto max-w-[95%] rounded-lg bg-surface-2 px-3 py-2 text-center text-[10px] leading-relaxed text-text-subtle"
                 />
               ) : (
                 <div className={`flex flex-col ${message.own ? 'items-end' : 'items-start'}`}>
                   {(!previous || previous.sender !== message.sender || previous.system || newDay) && (
-                    <p className="mb-1 px-1 text-[10px] font-medium text-[#837B70]">
+                    <p className="mb-1 px-1 text-[10px] font-medium text-text-subtle">
                       {message.own ? 'You' : message.sender}
                     </p>
                   )}
                   <div
-                    className={`max-w-[86%] rounded-2xl px-3 py-2 ${message.own ? 'rounded-br-md bg-[#252525] text-white' : 'rounded-bl-md border border-[#E8E5DF] bg-white text-[#35322D]'}`}
+                    className={`max-w-[86%] rounded-2xl px-3 py-2 ${message.own ? 'rounded-br-md bg-cocoa text-white' : 'rounded-bl-md border border-border bg-white text-ink'}`}
                   >
                     <LinkifiedText
                       text={message.body}
                       className="whitespace-pre-wrap break-words text-[13px] leading-relaxed"
                       linkClassName={
                         message.own
-                          ? 'break-all text-[#FFBE9F] underline'
-                          : 'break-all text-[#BD4C1D] underline'
+                          ? 'break-all text-warning-border underline'
+                          : 'break-all text-rust underline'
                       }
                     />
                     <p
-                      className={`mt-1 text-right text-[9px] ${message.own ? 'text-white/55' : 'text-[#A09990]'}`}
+                      className={`mt-1 text-right text-[9px] ${message.own ? 'text-white/55' : 'text-text-subtle'}`}
                     >
                       {message.id.startsWith('temp-')
                         ? 'Sending...'
@@ -637,14 +637,14 @@ function DockConversationView({
         </p>
       )}
       {incoming && (
-        <div className="shrink-0 space-y-2 border-t border-[#ECEAE5] bg-[#FFF8F2] p-3">
-          <p className="text-xs text-[#705847]">{title} wants to chat with you.</p>
+        <div className="shrink-0 space-y-2 border-t border-border bg-surface p-3">
+          <p className="text-xs text-warm-text">{title} wants to chat with you.</p>
           <input
             aria-label="Optional reply"
             placeholder="Optional reply"
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            className="h-8 w-full rounded-lg border border-[#EBDFD1] bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-[#FD6A2F]"
+            className="h-8 w-full rounded-lg border border-border bg-white px-2 text-xs outline-none focus:ring-2 focus:ring-brand"
           />
           <div className="flex flex-wrap gap-1.5">
             {(['accept', 'deny', 'deny_and_block'] as const).map((action) => (
@@ -652,7 +652,7 @@ function DockConversationView({
                 key={action}
                 type="button"
                 disabled={pending}
-                className={`${smallButton} ${action === 'accept' ? '!border-[#FD6A2F] !bg-[#FD6A2F] !text-white' : ''}`}
+                className={`${smallButton} ${action === 'accept' ? '!border-brand !bg-brand !text-white' : ''}`}
                 onClick={() =>
                   void run(() => respondToPrivateChatRequest(id, identity.kind, identity.id, action, note))
                 }
@@ -674,7 +674,7 @@ function DockConversationView({
       ) : (
         thread &&
         !incoming && (
-          <div className="shrink-0 border-t border-[#ECEAE5] bg-white px-4 py-3 text-xs text-[#81786C]">
+          <div className="shrink-0 border-t border-border bg-white px-4 py-3 text-xs text-text-secondary">
             {thread.status === 'pending'
               ? 'Your private chat request is pending.'
               : thread.status === 'blocked'

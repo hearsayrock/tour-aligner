@@ -14,7 +14,7 @@ export function CalendarActivityList({
 }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-[24px] border border-dashed border-[#E0D8CD] bg-[linear-gradient(180deg,#FFFDFB_0%,#FAF7F2_100%)] px-4 py-6 text-sm leading-6 text-[#7B736B]">
+      <div className="py-4 text-sm leading-6 text-text-secondary">
         {emptyMessage}
       </div>
     )
@@ -24,22 +24,22 @@ export function CalendarActivityList({
     <div className="space-y-3">
       {items.map((item) => {
         const content = (
-          <div className="group rounded-[24px] border border-[#E8E0D7] bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFAF7_100%)] px-4 py-3.5 shadow-[0_14px_32px_rgba(17,17,17,0.05)] transition-all hover:-translate-y-0.5 hover:border-[#D8CCBD] hover:shadow-[0_18px_38px_rgba(17,17,17,0.09)]">
+          <div className="group border-b border-border py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-[#252525]">{item.title}</p>
+                  <p className="font-semibold text-ink">{item.title}</p>
                   {item.statusLabel && <Badge tone={item.tone}>{item.statusLabel}</Badge>}
                 </div>
-                {item.subtitle && <p className="mt-1 text-sm leading-6 text-[#666666]">{item.subtitle}</p>}
+                {item.subtitle && <p className="mt-1 text-sm leading-6 text-text-secondary">{item.subtitle}</p>}
                 {item.meta && (
-                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8A7D70]">
+                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-subtle">
                     {item.meta}
                   </p>
                 )}
               </div>
               {item.href && (
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#E8E0D7] bg-white text-[#8A7D70] transition-colors group-hover:text-[#252525]">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-text-subtle transition-colors group-hover:text-ink">
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
               )}

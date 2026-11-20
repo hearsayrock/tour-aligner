@@ -1,0 +1,202 @@
+/* GENERATED from design-system/tokens.json (TourAligner design system, synced 2026-11-19). Do not edit by hand.
+   Run `npm run ds:sync` after updating tokens.json.
+
+   How to use it in the real app:
+   - Import this file once, after `@import "tailwindcss"`.
+   - Never write a hex value for a TourAligner colour in app code. Use a token: a Tailwind utility (bg-page, text-ink,
+     border-border, bg-brand) or var(--tads-ink) in CSS.
+   - Switch grounds with data-theme="cream" or data-theme="cocoa" on a container. Every semantic token follows. */
+
+:root, [data-theme="light"] {
+  --tads-brand: #FD6A2F;
+  --tads-brand-dim: #E55A22;
+  --tads-brand-text: #A24A22;
+  --tads-brand-tint: #FFF3EE;
+  --tads-brand-tint-border: #FFD5C4;
+  --tads-brand-tint-text: #A84216;
+  --tads-brand-2: #00bba5;
+  --tads-page: #FAFAFA;
+  --tads-surface: #FFFFFF;
+  --tads-surface-2: #F5F5F5;
+  --tads-field: #F7F7F7;
+  --tads-border: #E8E8E8;
+  --tads-border-strong: #CFCFCF;
+  --tads-border-hover: #CFCFCF;
+  --tads-warm-border: #EAE3DD;
+  --tads-ink: #252525;
+  --tads-ink-strong: #181818;
+  --tads-ink-black: #111111;
+  --tads-text-secondary: #666666;
+  --tads-text-subtle: #6B6B6B;
+  --tads-muted: #888888;
+  --tads-placeholder: #A3A3A3;
+  --tads-warm-text: #655B54;
+  --tads-success: #0C7C71;
+  --tads-success-hover: #0A695F;
+  --tads-success-tint: #F3FBF8;
+  --tads-success-border: #CBEAE2;
+  --tads-success-text: #14584E;
+  --tads-warning-tint: #FFF7E8;
+  --tads-warning-border: #F2D7A6;
+  --tads-warning-text: #8A5A12;
+  --tads-danger: #C73636;
+  --tads-danger-hover: #A82B2B;
+  --tads-danger-tint: #FFF1F1;
+  --tads-danger-border: #F3C6C6;
+  --tads-danger-text: #9D2020;
+  --tads-info-tint: #F1FBFD;
+  --tads-info-border: #BFE7EF;
+  --tads-info-text: #0E6275;
+  --tads-edge: #252525;
+  --tads-on-brand: #1E1A17;
+  --tads-on-danger: #FFFFFF;
+  --tads-cream: #F5E9DA;
+  --tads-cocoa: #40241A;
+  --tads-cocoa-2: #5A3727;
+  --tads-terracotta: #D6804A;
+  --tads-peach: #F29B66;
+  --tads-rust: #A8481A;
+  --tads-sage: #93A276;
+  --tads-sage-light: #C9DDB0;
+  --tads-sand: #C2B5A3;
+  --tads-sand-light: #DDD2C4;
+  --tads-shadow-hard: 4px 4px 0 #252525;
+  --tads-shadow-hard-sm: 2px 2px 0 #252525;
+  --tads-shadow-card: 0 14px 34px rgba(20,20,20,0.04);
+  --tads-shadow-raised: 0 18px 42px rgba(17,17,17,0.05);
+  --tads-radius-md: 6px;
+  --tads-radius-lg: 10px;
+  --tads-radius-xl: 14px;
+  --tads-radius-2xl: 20px;
+  --tads-radius-3xl: 28px;
+  --tads-radius-full: 9999px;
+  --tads-space-1: 4px;
+  --tads-space-2: 8px;
+  --tads-space-3: 12px;
+  --tads-space-4: 16px;
+  --tads-space-6: 24px;
+  --tads-space-8: 32px;
+  --tads-space-10: 40px;
+  --tads-space-12: 48px;
+  --tads-font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --tads-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --tads-font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+[data-theme="cream"] {
+  --tads-brand-text: #A24A22;
+  --tads-brand-tint: #F8DCC6;
+  --tads-brand-tint-border: #EDBF9D;
+  --tads-brand-tint-text: #9A3F14;
+  --tads-page: #F5E9DA;
+  --tads-surface: #FBF4EA;
+  --tads-surface-2: #EDDFCC;
+  --tads-field: #FBF4EA;
+  --tads-border: #DDD0BC;
+  --tads-border-strong: #BFAF99;
+  --tads-ink: #1E1A17;
+  --tads-ink-strong: #1E1A17;
+  --tads-text-secondary: #5E5045;
+  --tads-text-subtle: #6B5B4F;
+  --tads-muted: #7A6A5D;
+  --tads-placeholder: #8A7B6D;
+  --tads-success: #0A7268;
+  --tads-edge: #1E1A17;
+  --tads-on-brand: #1E1A17;
+  --tads-on-danger: #FFFFFF;
+  --tads-shadow-hard: 4px 4px 0 #1e1a17;
+  --tads-shadow-hard-sm: 2px 2px 0 #1e1a17;
+}
+
+[data-theme="cocoa"] {
+  --tads-brand-text: #F29B66;
+  --tads-brand-tint: #5C3A2B;
+  --tads-brand-tint-border: #7A4A33;
+  --tads-brand-tint-text: #F29B66;
+  --tads-page: #40241A;
+  --tads-surface: #4F2F22;
+  --tads-surface-2: #5C3A2B;
+  --tads-field: #4F2F22;
+  --tads-border: #6B4636;
+  --tads-border-strong: #8A6650;
+  --tads-ink: #F5E9DA;
+  --tads-ink-strong: #FFF8EE;
+  --tads-text-secondary: #D8C9B6;
+  --tads-text-subtle: #BFAE98;
+  --tads-muted: #A8947D;
+  --tads-placeholder: #9C8671;
+  --tads-success: #3DBBAA;
+  --tads-edge: #F5E9DA;
+  --tads-on-brand: #1E1A17;
+  --tads-on-danger: #FFFFFF;
+  --tads-shadow-hard: 4px 4px 0 #f5e9da;
+  --tads-shadow-hard-sm: 2px 2px 0 #f5e9da;
+}
+
+@theme inline {
+  --color-brand: var(--tads-brand);
+  --color-brand-dim: var(--tads-brand-dim);
+  --color-brand-text: var(--tads-brand-text);
+  --color-brand-tint: var(--tads-brand-tint);
+  --color-brand-tint-border: var(--tads-brand-tint-border);
+  --color-brand-tint-text: var(--tads-brand-tint-text);
+  --color-brand-2: var(--tads-brand-2);
+  --color-page: var(--tads-page);
+  --color-surface: var(--tads-surface);
+  --color-surface-2: var(--tads-surface-2);
+  --color-field: var(--tads-field);
+  --color-border: var(--tads-border);
+  --color-border-strong: var(--tads-border-strong);
+  --color-border-hover: var(--tads-border-hover);
+  --color-warm-border: var(--tads-warm-border);
+  --color-ink: var(--tads-ink);
+  --color-ink-strong: var(--tads-ink-strong);
+  --color-ink-black: var(--tads-ink-black);
+  --color-text-secondary: var(--tads-text-secondary);
+  --color-text-subtle: var(--tads-text-subtle);
+  --color-muted: var(--tads-muted);
+  --color-placeholder: var(--tads-placeholder);
+  --color-warm-text: var(--tads-warm-text);
+  --color-success: var(--tads-success);
+  --color-success-hover: var(--tads-success-hover);
+  --color-success-tint: var(--tads-success-tint);
+  --color-success-border: var(--tads-success-border);
+  --color-success-text: var(--tads-success-text);
+  --color-warning-tint: var(--tads-warning-tint);
+  --color-warning-border: var(--tads-warning-border);
+  --color-warning-text: var(--tads-warning-text);
+  --color-danger: var(--tads-danger);
+  --color-danger-hover: var(--tads-danger-hover);
+  --color-danger-tint: var(--tads-danger-tint);
+  --color-danger-border: var(--tads-danger-border);
+  --color-danger-text: var(--tads-danger-text);
+  --color-info-tint: var(--tads-info-tint);
+  --color-info-border: var(--tads-info-border);
+  --color-info-text: var(--tads-info-text);
+  --color-edge: var(--tads-edge);
+  --color-on-brand: var(--tads-on-brand);
+  --color-on-danger: var(--tads-on-danger);
+  --color-cream: var(--tads-cream);
+  --color-cocoa: var(--tads-cocoa);
+  --color-cocoa-2: var(--tads-cocoa-2);
+  --color-terracotta: var(--tads-terracotta);
+  --color-peach: var(--tads-peach);
+  --color-rust: var(--tads-rust);
+  --color-sage: var(--tads-sage);
+  --color-sage-light: var(--tads-sage-light);
+  --color-sand: var(--tads-sand);
+  --color-sand-light: var(--tads-sand-light);
+  --radius-ds-md: var(--tads-radius-md);
+  --radius-ds-lg: var(--tads-radius-lg);
+  --radius-ds-xl: var(--tads-radius-xl);
+  --radius-ds-2xl: var(--tads-radius-2xl);
+  --radius-ds-3xl: var(--tads-radius-3xl);
+  --radius-ds-full: var(--tads-radius-full);
+  --shadow-hard: var(--tads-shadow-hard);
+  --shadow-hard-sm: var(--tads-shadow-hard-sm);
+  --shadow-card: var(--tads-shadow-card);
+  --shadow-raised: var(--tads-shadow-raised);
+  --font-ds-sans: var(--font-figtree), var(--tads-font-sans);
+  --font-ds-display: var(--font-barlow-condensed), var(--tads-font-display);
+  --font-ds-mono: var(--font-jetbrains-mono), var(--tads-font-mono);
+}

@@ -36,32 +36,34 @@ export function EventPageHero({ event, layout, actions }: {
   layout: ProfilePageLayout<EventPageSectionId>
   actions?: ReactNode
 }) {
-  const showDate = !layout.sections.some((section) => section.sectionId === 'details' && section.visible)
   const showGenres = !layout.sections.some((section) => section.sectionId === 'genres' && section.visible)
   return (
-    <header className="relative overflow-hidden border-b-4 bg-[#191619] text-white" style={{ borderColor: event.accent }}>
-      {event.cover && (
-        <Image src={event.cover} alt="" fill sizes="100vw" unoptimized className="object-cover object-center" />
-      )}
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/50 to-black/85" />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at top left, ' + event.accent + '55, transparent 65%)' }}
-      />
-      <div className="artist-page-hero-inner relative mx-auto max-w-7xl px-6 py-12 sm:py-16 lg:px-8 lg:py-20">
-        {actions && <div className="mb-7 flex flex-wrap items-center gap-3">{actions}</div>}
-        <div className="artist-page-hero-main max-w-4xl">
-          <h1 className="break-words font-[var(--font-barlow)] text-4xl font-black leading-tight sm:text-6xl">{event.title}</h1>
-          <p className="mt-3 text-base font-semibold text-white/95 sm:text-lg">{event.venue}{showDate && event.date ? ' · ' + event.date : ''}</p>
-          {event.location && <p className="mt-1 text-sm text-white/85">{event.location}</p>}
-          {showGenres && event.genres.length > 0 && (
-            <div className="artist-page-genres mt-4 flex flex-wrap gap-2">
-              {event.genres.map((genre) => (
-                <span key={genre} className="rounded-full border border-white/30 bg-black/30 px-3 py-1 text-xs font-medium">{genre}</span>
-              ))}
+    <header data-theme="cream" className="border-b-[1.5px] border-edge bg-page text-ink">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-strong py-4">
+          <Link href="/" className="inline-flex min-h-12 items-center">
+            <Image src="/touraligner/brand/touraligner-logo-dark.svg" alt="TourAligner" width={126} height={35} />
+          </Link>
+          {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
+        </div>
+        <div className="artist-page-hero-inner grid items-center gap-6 py-8 sm:py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+          <div className="artist-page-hero-main min-w-0">
+            {event.date && <p className="font-ds-mono text-xs font-semibold tracking-widest uppercase text-brand-text sm:text-sm">{event.date}</p>}
+            <h1 className="mt-3 font-ds-display text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.9] font-extrabold tracking-tight uppercase [overflow-wrap:anywhere]">{event.title}</h1>
+            <div className="mt-6 border-l-4 pl-4" style={{ borderColor: event.accent }}>
+              <p className="text-lg font-bold sm:text-xl">{event.venue}</p>
+              {event.location && <p className="text-sm text-text-secondary">{event.location}</p>}
             </div>
-          )}
+            {showGenres && event.genres.length > 0 && (
+              <ul className="artist-page-genres mt-5 flex flex-wrap gap-2">
+                {event.genres.map((genre) => <li key={genre} className="rounded-full border border-edge px-3 py-1 text-xs font-medium">{genre}</li>)}
+              </ul>
+            )}
+          </div>
+          <div className="relative aspect-[2.4] overflow-hidden rounded-ds-2xl border-[1.5px] border-edge bg-cocoa shadow-hard sm:aspect-[2.8] lg:aspect-[1.4]">
+            <Image src={event.cover || '/touraligner/samples/desert.svg'} alt="" fill priority unoptimized
+              sizes="(min-width: 1024px) 44vw, 95vw" className={event.cover ? 'object-contain' : 'object-cover'} />
+          </div>
         </div>
       </div>
     </header>
@@ -70,9 +72,9 @@ export function EventPageHero({ event, layout, actions }: {
 
 function EventPane({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
   return (
-    <section id={id} className="h-full scroll-mt-8 rounded-[28px] border border-[#E8E8E8] bg-white p-6 shadow-sm">
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-[#666666]">{title}</h2>
-      <div className="mt-3 text-sm leading-relaxed text-[#252525]">{children}</div>
+    <section id={id} className="h-full scroll-mt-8 rounded-ds-2xl border border-border bg-surface p-6">
+      <h2 className="font-ds-display text-2xl leading-none font-extrabold uppercase text-ink">{title}</h2>
+      <div className="mt-3 text-sm leading-relaxed text-ink">{children}</div>
     </section>
   )
 }
@@ -107,7 +109,7 @@ export function createEventPageSections(event: EventOverviewData, preview = fals
         {event.genres.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {event.genres.map((genre) => (
-              <li key={genre} className="rounded-full border border-[#E8E8E8] px-3 py-1 font-medium">{genre}</li>
+              <li key={genre} className="rounded-full border border-border px-3 py-1 font-medium">{genre}</li>
             ))}
           </ul>
         ) : <p>Choose the genres on the bill.</p>}
@@ -125,7 +127,7 @@ export function createEventPageSections(event: EventOverviewData, preview = fals
               {event.lineup.map((artist) => (
                 <li key={artist.id}>
                   {preview ? <span className="font-semibold">{artist.name}</span> : (
-                    <Link href={'/bands/' + artist.slug} className="block rounded-xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3 font-semibold hover:border-[#CCCCCC]">
+                    <Link href={'/bands/' + artist.slug} className="block rounded-xl border border-border bg-field px-4 py-3 font-semibold hover:border-edge">
                       {artist.name}
                     </Link>
                   )}
@@ -133,7 +135,7 @@ export function createEventPageSections(event: EventOverviewData, preview = fals
               ))}
             </ul>
           ) : (
-            <p className="text-[#666666]">
+            <p className="text-text-secondary">
               {preview && !event.lineup ? 'This pane appears after you publish the lineup in Backstage.' : 'Lineup has not been announced yet.'}
             </p>
           )}

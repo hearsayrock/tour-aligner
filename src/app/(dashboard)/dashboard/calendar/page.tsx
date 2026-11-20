@@ -73,7 +73,7 @@ export default async function DashboardCalendarPage({
 
   if (identities.length === 0) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="workspace-page">
         <PageHeader
           eyebrow="Calendar"
           title="Calendar workspace"
@@ -106,7 +106,7 @@ export default async function DashboardCalendarPage({
 
   if (!requestedIdentity && resolvedIdentity.requiresSelection) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="workspace-page">
         <PageHeader
           eyebrow="Calendar"
           title="Choose a profile"
@@ -159,7 +159,7 @@ export default async function DashboardCalendarPage({
     }))
 
     return (
-      <div className="mx-auto w-full max-w-none px-4 py-6 sm:px-5 lg:px-6 lg:py-8">
+      <div className="workspace-page">
         <PageHeader
           eyebrow="Calendar"
           title={`${venue.name} Calendar`}
@@ -299,7 +299,7 @@ export default async function DashboardCalendarPage({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <div className="workspace-page">
       <PageHeader
         eyebrow="Calendar"
         title={`${band.name} Calendar`}

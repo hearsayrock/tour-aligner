@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { Suspense } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Layers3, MapPin, Mic2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTimingStart, logServerTiming } from '@/lib/performance'
 import { getManagedUserData } from '@/lib/managed-user-data'
@@ -27,10 +27,10 @@ async function DashboardActivity({ userId, activeIdentity, identities }: {
     console.error('Failed to load dashboard activity', error)
     return (
       <Card className="flex items-start gap-3 p-5" as="div">
-        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#A84216]" aria-hidden="true" />
+        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-brand-tint-text" aria-hidden="true" />
         <div role="alert">
-          <p className="font-semibold text-[#252525]">Dashboard activity could not be loaded</p>
-          <p className="mt-1 text-sm text-[#777777]">Refresh the page to try again.</p>
+          <p className="font-semibold text-ink">Dashboard activity could not be loaded</p>
+          <p className="mt-1 text-sm text-text-secondary">Refresh the page to try again.</p>
         </div>
       </Card>
     )
@@ -84,11 +84,12 @@ export default async function DashboardPage() {
     total: getServerTimingStart() - startedAt,
   })
 
+  const IdentityIcon = activeIdentity.kind === 'venue' ? MapPin : activeIdentity.kind === 'band' ? Mic2 : Layers3
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <header className="mb-6 lg:pr-12">
-        <h1 className="text-2xl font-bold tracking-tight text-[#181818]">Dashboard</h1>
-        <p className="mt-1 text-sm text-[#777777]">{activeIdentity.kind === 'all' ? 'All profiles' : activeIdentity.name}</p>
+    <div className="workspace-page dashboard-page">
+      <header className="dashboard-masthead">
+        <h1>Dashboard</h1>
+        <p><IdentityIcon size={16} aria-hidden="true" />{activeIdentity.kind === 'all' ? 'All profiles' : activeIdentity.name}</p>
       </header>
 
       <Suspense key={activeIdentity.kind === 'all' ? 'all' : `${activeIdentity.kind}:${activeIdentity.id}`} fallback={<DashboardActivitySkeleton />}>

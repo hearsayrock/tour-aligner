@@ -69,7 +69,7 @@ export function WaitlistButton({
           setModalOpen(true)
         }}
         className={cx(
-          'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2',
+          'inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-bold text-on-brand transition-colors hover:bg-brand-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
           className
         )}
       >
@@ -84,11 +84,11 @@ export function WaitlistButton({
           aria-modal="true"
           aria-labelledby="artist-waitlist-title"
         >
-          <div className="relative my-auto w-full max-w-lg rounded-[24px] border border-[#E6DFD3] bg-white p-6 text-[#181818] shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:p-7">
+          <div className="relative my-auto w-full max-w-lg rounded-[24px] border border-border bg-white p-6 text-ink-strong shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:p-7">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-[#777777] transition-colors hover:bg-[#F2F2F2] hover:text-[#252525]"
+              className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-2 hover:text-ink"
               aria-label="Close waitlist form"
             >
               <X size={18} />
@@ -96,20 +96,20 @@ export function WaitlistButton({
 
             {joined ? (
               <div className="pr-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3FBF8] text-[#0C7C71]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success-tint text-success">
                   <CheckCircle2 size={23} />
                 </div>
                 <h2
                   id="artist-waitlist-title"
-                  className="mt-5 text-2xl font-semibold tracking-tight text-[#111111]"
+                  className="mt-5 text-2xl font-semibold tracking-tight text-ink-black"
                 >
                   You are on the list.
                 </h2>
-                <p className="mt-3 text-sm leading-7 text-[#5E656C]">{successMessage}</p>
+                <p className="mt-3 text-sm leading-7 text-text-secondary">{successMessage}</p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link
                     href="/signup"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#E55A22]"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition hover:bg-brand-dim"
                   >
                     Create artist profile
                     <ArrowRight size={16} />
@@ -117,7 +117,7 @@ export function WaitlistButton({
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#E2E2E2] bg-white px-5 py-3 text-sm font-semibold text-[#252525] transition hover:bg-[#F6F6F6]"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-surface"
                   >
                     Back to landing page
                   </button>
@@ -125,23 +125,23 @@ export function WaitlistButton({
               </div>
             ) : (
               <>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-tint text-brand-text">
                   <Music2 size={22} />
                 </div>
                 <h2
                   id="artist-waitlist-title"
-                  className="mt-5 text-2xl font-semibold tracking-tight text-[#111111]"
+                  className="mt-5 text-2xl font-semibold tracking-tight text-ink-black"
                 >
                   Get first access to TourAligner.
                 </h2>
-                <p className="mt-3 text-sm leading-7 text-[#5E656C]">
+                <p className="mt-3 text-sm leading-7 text-text-secondary">
                   Tell us where to send your invite and what part of booking shows needs to
                   get easier first.
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                   <div>
-                    <label htmlFor={emailId} className="mb-1.5 block text-sm font-medium text-[#424242]">
+                    <label htmlFor={emailId} className="mb-1.5 block text-sm font-medium text-ink">
                       Email Address
                     </label>
                     <input
@@ -150,24 +150,24 @@ export function WaitlistButton({
                       type="email"
                       required
                       autoComplete="email"
-                      className="w-full rounded-xl border border-[#DADADA] bg-[#F8F8F8] px-4 py-3 text-sm text-[#252525] outline-none transition focus:border-[#FD6A2F] focus:bg-white focus:ring-2 focus:ring-[#FD6A2F]/15"
+                      className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/15"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor={gripeId} className="mb-1.5 block text-sm font-medium text-[#424242]">
-                      Tell us the biggest gripe you have with the booking process. <span className="text-[#8B8B8B]">(optional)</span>
+                    <label htmlFor={gripeId} className="mb-1.5 block text-sm font-medium text-ink">
+                      Tell us the biggest gripe you have with the booking process. <span className="text-text-subtle">(optional)</span>
                     </label>
                     <textarea
                       id={gripeId}
                       name="bookingProcessGripe"
                       rows={4}
-                      className="w-full resize-none rounded-xl border border-[#DADADA] bg-[#F8F8F8] px-4 py-3 text-sm text-[#252525] outline-none transition focus:border-[#FD6A2F] focus:bg-white focus:ring-2 focus:ring-[#FD6A2F]/15"
+                      className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-ink outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/15"
                     />
                   </div>
 
                   {error && (
-                    <p className="rounded-xl border border-[#F3C6C6] bg-[#FFF1F1] px-4 py-3 text-sm text-[#9D2020]">
+                    <p className="rounded-xl border border-danger-border bg-danger-tint px-4 py-3 text-sm text-danger-text">
                       {error}
                     </p>
                   )}
@@ -176,14 +176,14 @@ export function WaitlistButton({
                     <button
                       type="button"
                       onClick={() => setModalOpen(false)}
-                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#E2E2E2] bg-white px-5 py-3 text-sm font-semibold text-[#252525] transition hover:bg-[#F6F6F6]"
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-surface"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isPending}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#FD6A2F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-70"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition hover:bg-brand-dim disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isPending && <Loader2 size={16} className="animate-spin" />}
                       Join Wait List

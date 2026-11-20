@@ -336,17 +336,17 @@ export function EventCreateForm({
           title="Recurring Schedule"
           description="Create linked weekly Event occurrences with one Backstage per date."
         />
-        <label className="mb-4 flex items-center gap-3 rounded-2xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-sm font-semibold text-[#252525]">
+        <label className="mb-4 flex items-center gap-3 rounded-2xl border border-border bg-page px-4 py-3 text-sm font-semibold text-ink">
           <input
             type="checkbox"
             checked={recurrenceEnabled}
             onChange={(event) => setRecurrenceEnabled(event.target.checked)}
           />
-          <Repeat2 className="h-4 w-4 text-[#FD6A2F]" />
+          <Repeat2 className="h-4 w-4 text-brand-text" />
           Repeat weekly
         </label>
         {controlledEventDates && !recurrenceEnabled && (
-          <p className="-mt-2 mb-4 rounded-2xl border border-[#EAE1D7] bg-[#FAFAFA] px-3 py-2 text-xs leading-5 text-[#666666]">
+          <p className="-mt-2 mb-4 rounded-2xl border border-border bg-page px-3 py-2 text-xs leading-5 text-text-secondary">
             Calendar selection controls these dates. Use Ctrl/Cmd-click to add individual dates or Shift-click to add a range.
           </p>
         )}
@@ -366,8 +366,8 @@ export function EventCreateForm({
                       title={weekday.label}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         selected
-                          ? 'border-[#FD6A2F] bg-[#FFF3EE] text-[#A84216]'
-                          : 'border-[#E8E8E8] bg-white text-[#777777] hover:border-[#CCCCCC]'
+                          ? 'border-brand bg-brand-tint text-brand-tint-text'
+                          : 'border-border bg-white text-text-secondary hover:border-border-strong'
                       }`}
                     >
                       {weekday.short}
@@ -417,13 +417,13 @@ export function EventCreateForm({
         )}
 
         {previewDates.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-[#EAE1D7] bg-white/80 p-3 text-xs text-[#666666]">
-            <p className="font-semibold text-[#252525]">
+          <div className="mt-4 rounded-2xl border border-border bg-white/80 p-3 text-xs text-text-secondary">
+            <p className="font-semibold text-ink">
               {previewDates.length} Event{previewDates.length === 1 ? '' : 's'}: {previewDates.slice(0, 8).map(formatShortDate).join(', ')}
               {previewDates.length > 8 ? `, +${previewDates.length - 8} more` : ''}
             </p>
             {overlappingEvents.length > 0 && (
-              <p className="mt-2 text-[#A84216]">
+              <p className="mt-2 text-brand-tint-text">
                 {overlappingEvents.length} selected date{overlappingEvents.length === 1 ? '' : 's'} already have Events.
               </p>
             )}
@@ -446,8 +446,8 @@ export function EventCreateForm({
                 onClick={() => toggleGenre(genre.id)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   selected
-                    ? 'border-[#FD6A2F] bg-[#FFF3EE] text-[#A84216]'
-                    : 'border-[#E8E8E8] bg-white text-[#777777] hover:border-[#CCCCCC]'
+                    ? 'border-brand bg-brand-tint text-brand-tint-text'
+                    : 'border-border bg-white text-text-secondary hover:border-border-strong'
                 }`}
               >
                 {genre.name}
@@ -459,14 +459,14 @@ export function EventCreateForm({
 
       <Card className="overflow-hidden">
         <details open={mode !== 'inline'}>
-          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525] sm:px-6">
+          <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-ink sm:px-6">
             <span className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-[#FD6A2F]" />
+              <Info className="h-4 w-4 text-brand-text" />
               Artist-facing notes
             </span>
-            <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+            <SlidersHorizontal className="h-4 w-4 text-muted" />
           </summary>
-          <div className="space-y-4 border-t border-[#EEEEEE] p-5 sm:p-6">
+          <div className="space-y-4 border-t border-border p-5 sm:p-6">
             <div>
               <label className={labelClass}>Artists needed</label>
               <textarea
@@ -494,7 +494,7 @@ export function EventCreateForm({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
       {createdResult && (
-        <div className="rounded-2xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-3 text-sm text-[#14584E]">
+        <div className="rounded-2xl border border-success-border bg-success-tint px-4 py-3 text-sm text-success-text">
           <p className="font-semibold">
             Created {createdResult.createdCount} Event{createdResult.createdCount === 1 ? '' : 's'}.
           </p>

@@ -9,7 +9,7 @@ export function ProcessingOverlay({
 }) {
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#F3F3F3]/62 backdrop-blur-[1px] ${className}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-surface-2/62 backdrop-blur-[1px] ${className}`}
       role="status"
       aria-live="polite"
       aria-label="Loading"

@@ -82,8 +82,8 @@ function DetailRow({
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8A8A8A]">{label}</p>
-        <div className="mt-1 text-sm leading-6 text-[#2A2A2A]">{value}</div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-subtle">{label}</p>
+        <div className="mt-1 text-sm leading-6 text-ink">{value}</div>
       </div>
     </div>
   )
@@ -91,11 +91,11 @@ function DetailRow({
 
 function SectionCard({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
-    <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+    <section className="h-full rounded-ds-2xl border border-border bg-surface p-6 sm:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">{eyebrow}</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">{title}</h2>
+          <p className="font-ds-mono text-xs tracking-widest uppercase text-text-secondary">{eyebrow}</p>
+          <h2 className="mt-2 font-ds-display text-3xl leading-none font-extrabold uppercase text-ink">{title}</h2>
         </div>
       </div>
       {children}
@@ -132,7 +132,7 @@ export function createArtistPageSections({
             {artistType && <DetailRow icon={Users} label="Artist type" value={artistType} />}
             {band.set_length_min && <DetailRow icon={Radio} label="Set length" value={`${band.set_length_min} minutes`} />}
             {!location && !touringRadius && !artistType && !band.set_length_min && (
-              <p className="text-sm leading-6 text-[#777777]">Add a home base and performance details to help venues understand the artist.</p>
+              <p className="text-sm leading-6 text-text-secondary">Add a home base and performance details to help venues understand the artist.</p>
             )}
           </div>
         </SectionCard>
@@ -142,7 +142,7 @@ export function createArtistPageSections({
       sectionId: 'featured-track' as const,
       content: (
         <SectionCard eyebrow="Listen" title="Featured track">
-          {embedUrl ? <iframe src={embedUrl} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-2xl border-0" /> : <div className="min-h-32" />}
+          {embedUrl ? <iframe title="Featured music on Spotify" src={embedUrl} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-2xl border-0" /> : <div className="min-h-32" />}
         </SectionCard>
       ),
     }] : []),
@@ -157,7 +157,7 @@ export function createArtistPageSections({
       content: (
         <SectionCard eyebrow="On stage" title="Members">
           <div className="flex flex-wrap gap-2" style={onEditContent ? { minHeight: 80 } : undefined}>
-            {(band.members ?? []).map((member) => <span key={member} className="rounded-full border border-[#E3DDD7] bg-[#FAF8F5] px-4 py-2 text-sm font-semibold text-[#4E4945]">{member}</span>)}
+            {(band.members ?? []).map((member) => <span key={member} className="rounded-full border border-border bg-surface-2 px-4 py-2 text-sm font-semibold text-text-secondary">{member}</span>)}
           </div>
         </SectionCard>
       ),
@@ -167,20 +167,20 @@ export function createArtistPageSections({
       content: (
         <SectionCard eyebrow="Shows" title="Upcoming shows">
           {shows.length > 0 ? (
-            <div className="divide-y divide-[#EEEEEE]">
+            <div className="divide-y divide-border">
               {shows.map((show) => {
                 const date = new Date(`${show.show_date}T00:00:00`)
                 const month = date.toLocaleDateString('en-US', { month: 'short' })
                 const day = date.toLocaleDateString('en-US', { day: 'numeric' })
                 return (
                   <div key={show.id} className="grid gap-4 py-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
-                    <div className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl border border-[#FFD5C4] bg-[#FFF3EE] text-[#A84216]">
+                    <div className="flex h-16 w-16 flex-col items-center justify-center rounded-2xl border border-border bg-surface-2 text-ink">
                       <span className="text-xs font-semibold uppercase tracking-[0.14em]">{month}</span>
                       <span className="text-2xl font-bold leading-none">{day}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#252525]">{show.venues?.name ?? 'TBA'}</p>
-                      {show.venues && <p className="mt-1 text-sm text-[#777777]">{[show.venues.location_city, show.venues.location_state].filter(Boolean).join(', ')}</p>}
+                      <p className="font-semibold text-ink">{show.venues?.name ?? 'TBA'}</p>
+                      {show.venues && <p className="mt-1 text-sm text-text-secondary">{[show.venues.location_city, show.venues.location_state].filter(Boolean).join(', ')}</p>}
                     </div>
                   </div>
                 )
@@ -189,8 +189,8 @@ export function createArtistPageSections({
           ) : (
             <div className="rounded-2xl border border-dashed border-[#E4DED4] bg-[#FCFBF8] px-6 py-10 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF3EE] text-[#FD6A2F]"><CalendarDays className="h-5 w-5" /></div>
-              <h3 className="mt-4 text-lg font-semibold text-[#252525]">No upcoming shows listed</h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#777777]">Confirmed future dates will appear here once this artist starts locking in shows.</p>
+              <h3 className="mt-4 text-lg font-semibold text-ink">No upcoming shows listed</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-secondary">Confirmed future dates will appear here once this artist starts locking in shows.</p>
             </div>
           )}
         </SectionCard>
@@ -199,11 +199,11 @@ export function createArtistPageSections({
     ...(streamingLinks.length > 0 || socialLinks.length > 0 || onEditContent ? [{
       sectionId: 'streaming-links' as const,
       content: (
-        <section className="h-full rounded-[28px] border border-[#E6DFD3] bg-white p-5 shadow-[0_18px_42px_rgba(17,17,17,0.05)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--profile-accent)]">Links</p>
+        <section className="h-full rounded-ds-2xl border border-border bg-surface p-5">
+          <p className="font-ds-mono text-xs tracking-widest uppercase text-text-secondary">Links</p>
           <div className="mt-4 space-y-2" style={onEditContent ? { minHeight: 80 } : undefined}>
             {[...streamingLinks, ...socialLinks].map((link) => (
-              <a key={link.key} href={band[link.key] as string} target="_blank" rel="noopener noreferrer" className="artist-page-link-button flex min-h-12 items-center justify-between gap-3 border border-[#EEEEEE] bg-[#FAFAFA] px-4 text-sm font-semibold text-[#252525] transition-all hover:border-[#D4D4D4] hover:bg-white">
+              <a key={link.key} href={band[link.key] as string} target="_blank" rel="noopener noreferrer" className="artist-page-link-button flex min-h-12 items-center justify-between gap-3 border border-border bg-field px-4 text-sm font-semibold text-ink transition-all hover:border-edge hover:bg-surface">
                 <span className="flex min-w-0 items-center gap-3">
                   {'icon' in link ? <link.icon className="h-4 w-4 shrink-0 text-[var(--profile-accent)]" /> : (
                     // eslint-disable-next-line @next/next/no-img-element

@@ -17,11 +17,11 @@ interface VenueEditFormProps {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-[#E2E2E2] bg-[#F7F7F7] px-4 py-3 text-sm text-[#252525] placeholder-[#A3A3A3] transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FD6A2F]/15'
+  'w-full rounded-xl border border-border bg-field px-4 py-3 text-sm text-ink placeholder-placeholder transition-colors focus:border-brand focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/15'
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-[#626262]">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-text-secondary">
       {children}
     </label>
   )
@@ -29,7 +29,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNo
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-5 text-sm font-semibold text-[#252525]">
+    <h2 className="mb-5 text-sm font-semibold text-ink">
       {children}
     </h2>
   )
@@ -125,11 +125,11 @@ export function VenueEditForm({
     <form onSubmit={handleSubmit} className={className}>
       {loading && <ProcessingOverlay />}
       {showHeader && (
-        <div className="rounded-2xl border border-[#E6E6E6] bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl border border-border bg-white p-5 shadow-[0_14px_34px_rgba(20,20,20,0.04)] sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">Venue profile</p>
-            <h1 className="text-3xl font-bold tracking-tight text-[#181818]">{venue.name}</h1>
-            <p className="mt-2 text-sm text-[#777777]">Edit venue info and booking contact details. Availability now lives in Calendar Workspace.</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-text">Venue profile</p>
+            <h1 className="text-3xl font-bold tracking-tight text-ink-strong">{venue.name}</h1>
+            <p className="mt-2 text-sm text-text-secondary">Edit venue info and booking contact details. Availability now lives in Calendar Workspace.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {calendarHref && (
@@ -140,7 +140,7 @@ export function VenueEditForm({
             <button
             type="submit"
             disabled={loading}
-            className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#FD6A2F] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand px-5 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-dim disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Saving…' : 'Save changes'}
             </button>
@@ -277,8 +277,8 @@ export function VenueEditForm({
                 onClick={() => toggleGenre(genre.id)}
                 className={`text-sm px-3 py-1 rounded-full border transition-colors ${
                   selected
-                    ? 'bg-[#FD6A2F] border-[#FD6A2F] text-white font-medium'
-                    : 'border-[#E8E8E8] text-[#777777] hover:border-[#CCCCCC] hover:text-[#252525]'
+                    ? 'bg-brand border-brand text-white font-medium'
+                    : 'border-border text-text-secondary hover:border-border-strong hover:text-ink'
                 }`}
               >
                 {genre.name}
@@ -350,7 +350,7 @@ export function VenueEditForm({
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-6 py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-brand text-on-brand font-semibold rounded-lg px-6 py-2.5 text-sm hover:bg-brand-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Saving…' : 'Save changes'}
         </button>

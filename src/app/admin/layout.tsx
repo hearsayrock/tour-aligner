@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { EnvironmentBadge } from '@/components/layout/EnvironmentBadge'
 import { createClient } from '@/lib/supabase/server'
@@ -21,23 +22,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!profile?.is_admin) return redirect('/dashboard')
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
+    <div data-theme="cream" className="flex min-h-dvh flex-col bg-surface lg:h-dvh lg:flex-row lg:overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-48 shrink-0 bg-[#FFFFFF] border-r border-[#E8E8E8] flex flex-col">
-        <div className="px-4 py-4 border-b border-[#E8E8E8]">
+      <aside data-theme="cocoa" className="flex shrink-0 flex-col bg-page text-ink lg:w-60">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 lg:block lg:px-5 lg:py-6">
           <div className="flex items-center gap-2">
-            <p className="text-[10px] font-bold text-[#888888] uppercase tracking-widest">TourAligner</p>
+            <Image src="/touraligner/brand/touraligner-logo-light.svg" alt="TourAligner" width={128} height={35}/>
             {showStagingBadge && <EnvironmentBadge />}
           </div>
-          <p className="text-base font-bold text-[#252525] mt-0.5">Admin</p>
+          <p className="font-ds-display text-3xl font-bold uppercase text-ink lg:mt-4">Admin</p>
         </div>
 
         <AdminNav pendingClaims={(pendingClaimsCount ?? 0) > 0} />
 
-        <div className="px-2 py-4 border-t border-[#E8E8E8]">
+        <div className="border-t border-border px-2 lg:py-4">
           <Link
             href="/dashboard"
-            className="block px-3 py-2 rounded-lg text-sm text-[#888888] hover:bg-[#F5F5F5] hover:text-[#252525] transition-colors"
+            className="block px-3 py-2 rounded-lg text-sm text-muted hover:bg-surface-2 hover:text-ink transition-colors"
           >
             ← Dashboard
           </Link>
@@ -45,7 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 lg:overflow-y-auto">
         {children}
       </main>
     </div>

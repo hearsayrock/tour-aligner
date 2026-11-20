@@ -1,3 +1,4 @@
+import { mediaPattern } from '@/lib/studio/model'
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import { ExternalLink, ImageIcon, MessageSquareQuote, Minus, Ticket, Video } from 'lucide-react'
@@ -157,6 +158,7 @@ export function registryEntry(type: ProfilePageBlockType) {
 
 function safeUrl(value: unknown, label: string, optional = true): { value: string } | { error: string } {
   const trimmed = typeof value === 'string' ? value.trim().slice(0, 2048) : ''
+  if (mediaPattern.test(trimmed) && (label === 'Gallery image' || label === 'Custom block image')) return { value: trimmed }
   if (!trimmed && optional) return { value: '' }
   try {
     const url = new URL(trimmed)
@@ -219,7 +221,7 @@ export function normalizeProfilePageBlockDraft(value: unknown): { value: Profile
   return { value: { id: input.id, blockType, schemaVersion: 1, content, settings: { variant: registry.variants.some((variant) => variant.value === rawSettings.variant) ? rawSettings.variant! : registry.defaultVariant, alignment: rawSettings.alignment === 'center' ? 'center' : 'left', imagePosition: rawSettings.imagePosition === 'left' ? 'left' : 'right', ...(placement ? { placement } : {}) } } }
 }
 
-function videoEmbedUrl(value: string): string | null {
+export function videoEmbedUrl(value: string): string | null {
   try {
     const url = new URL(value)
     if (url.hostname.includes('youtube.com')) {
@@ -233,23 +235,23 @@ function videoEmbedUrl(value: string): string | null {
 }
 
 function BlockFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`h-full overflow-hidden rounded-[28px] border border-[#E6DFD3] bg-white shadow-[0_18px_42px_rgba(17,17,17,0.05)] ${className}`}>{children}</section>
+  return <section className={`h-full overflow-hidden rounded-[28px] border border-border bg-white shadow-[0_18px_42px_rgba(17,17,17,0.05)] ${className}`}>{children}</section>
 }
 
-export function ProfilePageBlockView({ block, bookingAction }: { block: ProfilePageBlockDraft; bookingAction?: ReactNode }) {
+export function ProfilePageBlockView({ block, bookingAction, onPhoto }: { block: ProfilePageBlockDraft; bookingAction?: ReactNode; onPhoto?: (photo: GalleryBlockContent['images'][number]) => void }) {
   const align = block.settings.alignment === 'center' ? 'text-center items-center' : 'text-left items-start'
   switch (block.blockType) {
     case 'custom': {
       const content = block.content as CustomBlockContent
       const split = block.settings.variant === 'split' && content.imageUrl
       return (
-        <BlockFrame className={block.settings.variant === 'spotlight' ? 'bg-[#1C1816] text-white' : ''}>
+        <BlockFrame className={block.settings.variant === 'spotlight' ? 'bg-cocoa text-white' : ''}>
           <div className={`grid h-full ${split ? 'md:grid-cols-2' : ''}`}>
-            {content.imageUrl && <div className={`${split && block.settings.imagePosition === 'right' ? 'md:order-2' : ''} relative min-h-56 bg-[#EEE8E1]`}><Image src={content.imageUrl} alt={content.imageAlt} fill unoptimized className="object-cover" /></div>}
+            {content.imageUrl && <div className={`${split && block.settings.imagePosition === 'right' ? 'md:order-2' : ''} relative min-h-56 bg-surface-2`}><Image src={content.imageUrl} alt={content.imageAlt} fill unoptimized className="object-cover" /></div>}
             <div className={`flex flex-col justify-center p-7 sm:p-9 ${align}`}>
               {content.eyebrow && <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--profile-accent)]">{content.eyebrow}</p>}
               <h2 className="mt-2 text-2xl font-semibold tracking-tight">{content.heading}</h2>
-              {content.body && <p className={`mt-4 whitespace-pre-wrap text-sm leading-7 ${block.settings.variant === 'spotlight' ? 'text-white/72' : 'text-[#5F5A56]'}`}>{content.body}</p>}
+              {content.body && <p className={`mt-4 whitespace-pre-wrap text-sm leading-7 ${block.settings.variant === 'spotlight' ? 'text-white/72' : 'text-text-secondary'}`}>{content.body}</p>}
               {content.buttonLabel && content.buttonUrl && <a href={content.buttonUrl} target="_blank" rel="noopener noreferrer" className="artist-page-link-button mt-6 inline-flex min-h-11 items-center gap-2 bg-[var(--profile-accent)] px-5 text-sm font-bold text-white">{content.buttonLabel}<ExternalLink className="h-4 w-4" /></a>}
             </div>
           </div>
@@ -259,25 +261,25 @@ export function ProfilePageBlockView({ block, bookingAction }: { block: ProfileP
     case 'gallery': {
       const content = block.content as GalleryBlockContent
       const images = content.images
-      return <BlockFrame className="p-6 sm:p-8"><h2 className={`text-2xl font-semibold ${block.settings.alignment === 'center' ? 'text-center' : ''}`}>{content.heading}</h2>{images.length ? <div className={`mt-6 grid gap-3 ${block.settings.variant === 'spotlight' ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>{images.map((image, index) => <div key={image.id} className={`relative overflow-hidden rounded-2xl bg-[#EEE8E1] ${block.settings.variant === 'spotlight' && index === 0 ? 'aspect-[16/8]' : block.settings.variant === 'mosaic' && index % 3 === 0 ? 'row-span-2 min-h-72' : 'aspect-square'}`}><Image src={image.url} alt={image.alt} fill unoptimized className="object-cover" /></div>)}</div> : <div className="mt-6 rounded-2xl border border-dashed border-[#DDD4CC] py-12 text-center text-sm text-[#888078]">Add photos to build this gallery.</div>}</BlockFrame>
+      return <BlockFrame className="p-6 sm:p-8"><h2 className={`text-2xl font-semibold ${block.settings.alignment === 'center' ? 'text-center' : ''}`}>{content.heading}</h2>{images.length ? <div className={`mt-6 grid gap-3 ${block.settings.variant === 'spotlight' ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>{images.map((image, index) => <div key={image.id} className={`relative overflow-hidden rounded-2xl bg-surface-2 ${block.settings.variant === 'spotlight' && index === 0 ? 'aspect-[16/8]' : block.settings.variant === 'mosaic' && index % 3 === 0 ? 'row-span-2 min-h-72' : 'aspect-square'}`}><Image src={image.url} alt={image.alt} fill unoptimized className="object-cover" />{onPhoto && <button className="absolute inset-0" aria-label={image.alt || `View photo ${index+1}`} onClick={()=>onPhoto(image)}/>}</div>)}</div> : <div className="mt-6 rounded-2xl border border-dashed border-border py-12 text-center text-sm text-text-subtle">Add photos to build this gallery.</div>}</BlockFrame>
     }
     case 'video': {
       const content = block.content as VideoBlockContent
       const embed = videoEmbedUrl(content.url)
-      return <BlockFrame className="p-6 sm:p-8"><h2 className={`text-2xl font-semibold ${block.settings.alignment === 'center' ? 'text-center' : ''}`}>{content.heading}</h2>{embed ? <iframe src={embed} title={content.heading} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="mt-6 aspect-video w-full rounded-2xl border-0" /> : <div className="mt-6 flex aspect-video items-center justify-center rounded-2xl bg-[#1C1816] text-white/70"><Video className="mr-2 h-5 w-5" /> Add a YouTube or Vimeo URL</div>}{content.caption && <p className="mt-4 text-sm leading-6 text-[#6F6862]">{content.caption}</p>}</BlockFrame>
+      return <BlockFrame className="p-6 sm:p-8"><h2 className={`text-2xl font-semibold ${block.settings.alignment === 'center' ? 'text-center' : ''}`}>{content.heading}</h2>{embed ? <iframe src={embed} title={content.heading} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="mt-6 aspect-video w-full rounded-2xl border-0" /> : <div className="mt-6 flex aspect-video items-center justify-center rounded-2xl bg-cocoa text-white/70"><Video className="mr-2 h-5 w-5" /> Add a YouTube or Vimeo URL</div>}{content.caption && <p className="mt-4 text-sm leading-6 text-text-secondary">{content.caption}</p>}</BlockFrame>
     }
     case 'quote': {
       const content = block.content as QuoteBlockContent
-      return <BlockFrame className={`${block.settings.variant === 'bold' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><MessageSquareQuote className={`h-8 w-8 ${block.settings.variant === 'bold' ? 'text-white/65' : 'text-[var(--profile-accent)]'}`} /><blockquote className="mt-5 text-xl font-semibold leading-8">“{content.quote}”</blockquote>{(content.attribution || content.source) && <p className={`mt-5 text-sm ${block.settings.variant === 'bold' ? 'text-white/72' : 'text-[#77706A]'}`}>{[content.attribution, content.source].filter(Boolean).join(', ')}</p>}</BlockFrame>
+      return <BlockFrame className={`${block.settings.variant === 'bold' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><MessageSquareQuote className={`h-8 w-8 ${block.settings.variant === 'bold' ? 'text-white/65' : 'text-[var(--profile-accent)]'}`} /><blockquote className="mt-5 text-xl font-semibold leading-8">“{content.quote}”</blockquote>{(content.attribution || content.source) && <p className={`mt-5 text-sm ${block.settings.variant === 'bold' ? 'text-white/72' : 'text-text-secondary'}`}>{[content.attribution, content.source].filter(Boolean).join(', ')}</p>}</BlockFrame>
     }
     case 'booking_cta': {
       const content = block.content as BookingCtaBlockContent
-      return <BlockFrame className={`${block.settings.variant === 'dark' ? 'bg-[#1C1816] text-white' : block.settings.variant === 'accent' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><div className={`flex h-full flex-col justify-center ${align}`}><Ticket className="h-7 w-7" /><h2 className="mt-4 text-2xl font-semibold">{content.heading}</h2>{content.body && <p className={`mt-3 text-sm leading-7 ${block.settings.variant === 'minimal' ? 'text-[#6F6862]' : 'text-white/75'}`}>{content.body}</p>}<div className="mt-6">{bookingAction ?? <span className={`artist-page-link-button inline-flex min-h-11 items-center justify-center px-5 text-sm font-bold ${block.settings.variant === 'minimal' ? 'bg-[#252525] text-white' : 'bg-white text-[#252525]'}`}>{content.buttonLabel}</span>}</div></div></BlockFrame>
+      return <BlockFrame className={`${block.settings.variant === 'dark' ? 'bg-cocoa text-white' : block.settings.variant === 'accent' ? 'bg-[var(--profile-accent)] text-white' : ''} p-7 sm:p-9`}><div className={`flex h-full flex-col justify-center ${align}`}><Ticket className="h-7 w-7" /><h2 className="mt-4 text-2xl font-semibold">{content.heading}</h2>{content.body && <p className={`mt-3 text-sm leading-7 ${block.settings.variant === 'minimal' ? 'text-text-secondary' : 'text-white/75'}`}>{content.body}</p>}<div className="mt-6">{bookingAction ?? <span className={`artist-page-link-button inline-flex min-h-11 items-center justify-center px-5 text-sm font-bold ${block.settings.variant === 'minimal' ? 'bg-cocoa text-white' : 'bg-white text-ink'}`}>{content.buttonLabel}</span>}</div></div></BlockFrame>
     }
     case 'divider': {
       const content = block.content as DividerBlockContent
       if (block.settings.variant === 'space') return <div className="h-20" />
-      return <div className="flex h-full min-h-16 items-center gap-4 px-2"><span className="h-px flex-1 bg-[#D8D0C8]" />{block.settings.variant === 'label' && content.label && <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#817870]">{content.label}</span>}<span className="h-px flex-1 bg-[#D8D0C8]" /></div>
+      return <div className="flex h-full min-h-16 items-center gap-4 px-2"><span className="h-px flex-1 bg-surface-2" />{block.settings.variant === 'label' && content.label && <span className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">{content.label}</span>}<span className="h-px flex-1 bg-surface-2" /></div>
     }
   }
 }

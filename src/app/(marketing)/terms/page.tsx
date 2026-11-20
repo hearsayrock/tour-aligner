@@ -5,20 +5,20 @@ export const metadata: Metadata = {
   description: 'Terms and Conditions for TourAligner.',
 }
 
-const sectionHeading = 'mt-10 text-xl font-semibold tracking-tight text-[#252525]'
-const subheading = 'mt-6 text-base font-semibold text-[#252525]'
-const paragraph = 'mt-4 leading-7 text-[#555555]'
-const list = 'mt-4 list-disc space-y-2 pl-6 leading-7 text-[#555555]'
+const sectionHeading = 'mt-10 text-xl font-semibold tracking-tight text-ink'
+const subheading = 'mt-6 text-base font-semibold text-ink'
+const paragraph = 'mt-4 leading-7 text-text-secondary'
+const list = 'mt-4 list-disc space-y-2 pl-6 leading-7 text-text-secondary'
 
 export function TermsDocument() {
   return (
-    <article className="rounded-2xl border border-[#E8E8E8] bg-white p-7 shadow-sm sm:p-12">
-        <p className="text-sm font-medium text-[#FD6A2F]">TourAligner</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#252525] sm:text-4xl">
+    <article className="rounded-2xl border border-border bg-white p-7 shadow-sm sm:p-12">
+        <p className="text-sm font-medium text-brand-text">TourAligner</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           Terms and Conditions
         </h1>
         <p className={paragraph}><strong>Effective Date:</strong> September 4, 2026</p>
-        <p className="mt-1 leading-7 text-[#555555]"><strong>Last Updated:</strong> September 4, 2026</p>
+        <p className="mt-1 leading-7 text-text-secondary"><strong>Last Updated:</strong> September 4, 2026</p>
 
         <h2 className={sectionHeading}>1. Introduction and Acceptance of Terms</h2>
         <p className={paragraph}>
@@ -109,9 +109,9 @@ export function TermsDocument() {
         <p className={paragraph}>If any provision of these Terms is found unenforceable, the remaining provisions will continue in full force. Our failure to enforce any provision does not waive our right to do so later. These Terms constitute the entire agreement between you and TourAligner regarding use of the Platform.</p>
 
         <h2 className={sectionHeading}>8. Contact</h2>
-        <p className={paragraph}>Questions about these Terms may be directed to <a href="mailto:nate@touraligner.com" className="text-[#FD6A2F] hover:underline">nate@touraligner.com</a>.</p>
+        <p className={paragraph}>Questions about these Terms may be directed to <a href="mailto:nate@touraligner.com" className="text-brand-text hover:underline">nate@touraligner.com</a>.</p>
 
-        <p className="mt-12 border-t border-[#E8E8E8] pt-6 text-sm italic leading-6 text-[#777777]">This document is a draft template and has not been reviewed by a licensed attorney. It should be reviewed by qualified legal counsel in your jurisdiction before publication, particularly regarding liability limitations, governing law, and compliance with applicable consumer protection or data privacy laws.</p>
+        <p className="mt-12 border-t border-border pt-6 text-sm italic leading-6 text-text-secondary">This document is a draft template and has not been reviewed by a licensed attorney. It should be reviewed by qualified legal counsel in your jurisdiction before publication, particularly regarding liability limitations, governing law, and compliance with applicable consumer protection or data privacy laws.</p>
     </article>
   )
 }

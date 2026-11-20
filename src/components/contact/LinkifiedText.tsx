@@ -21,7 +21,7 @@ export function LinkifiedText({ text, className, linkClassName }: Props) {
               href={part}
               target="_blank"
               rel="noopener noreferrer"
-              className={linkClassName ?? 'text-[#FD6A2F] hover:underline break-all'}
+              className={linkClassName ?? 'text-brand-text hover:underline break-all'}
             >
               {part}
             </a>

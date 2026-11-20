@@ -1,14 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import {localReturn} from '@/lib/studio/return-path'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
 import { ProcessingOverlay } from '@/components/ui/ProcessingOverlay'
 
-export default function SignupPage() {
+export default function SignupPage(){return <Suspense><SignupForm/></Suspense>}
+function SignupForm() {
+  const next=localReturn(useSearchParams().get('redirectTo'))
+  const login='/login'+(next?'?redirectTo='+encodeURIComponent(next):'')
   const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -36,7 +40,7 @@ export default function SignupPage() {
       options: {
         // Where the confirmation email's {{ .ConfirmationURL }} lands after Supabase verifies it.
         // Must be listed under Auth > URL Configuration > Redirect URLs, or Supabase falls back to the Site URL.
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: window.location.origin+login,
         data: {
           full_name: name,
         },
@@ -52,7 +56,7 @@ export default function SignupPage() {
     // Auto-confirmed (e.g. email confirmation disabled in Supabase)
     if (data.session) {
       localStorage.setItem('ta_last_auth_provider', 'email')
-      router.push('/onboarding')
+      router.push(next||'/onboarding')
       return
     }
 
@@ -66,15 +70,15 @@ export default function SignupPage() {
       <div className="w-full max-w-sm text-center">
         <div className="mb-8">
           <Link href="/">
-            <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+            <Image src="/touraligner/brand/touraligner-logo.svg" alt="TourAligner" width={160} height={44} priority className="mx-auto" />
           </Link>
         </div>
-        <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-8">
+        <div className="bg-surface border border-border rounded-xl p-8">
           <div className="text-4xl mb-4">📬</div>
           <h1 className="text-xl font-semibold mb-2">Check your email</h1>
-          <p className="text-sm text-[#888888] leading-relaxed">
+          <p className="text-sm text-muted leading-relaxed">
             We sent a confirmation link to{' '}
-            <span className="text-[#252525] font-medium">{email}</span>. Click it to activate
+            <span className="text-ink font-medium">{email}</span>. Click it to activate
             your account.
           </p>
         </div>
@@ -87,27 +91,27 @@ export default function SignupPage() {
       {loading && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
-          <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+          <Image src="/touraligner/brand/touraligner-logo.svg" alt="TourAligner" width={160} height={44} priority className="mx-auto" />
         </Link>
       </div>
 
-      <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-8">
+      <div className="bg-surface border border-border rounded-xl p-8">
         <h1 className="text-xl font-semibold mb-6">Create account</h1>
 
-        <OAuthButtons />
+        <OAuthButtons next={next??undefined} />
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[#E8E8E8]" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-[#AAAAAA]">or continue with email</span>
+            <span className="bg-surface px-3 text-xs text-sand-light">or continue with email</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm text-[#888888] mb-1.5">
+            <label htmlFor="name" className="block text-sm text-muted mb-1.5">
               Your name
             </label>
             <input
@@ -117,13 +121,13 @@ export default function SignupPage() {
               onChange={(e) => setName(e.target.value)}
               required
               autoComplete="name"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="Enter your name"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm text-[#888888] mb-1.5">
+            <label htmlFor="email" className="block text-sm text-muted mb-1.5">
               Email
             </label>
             <input
@@ -133,13 +137,13 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm text-[#888888] mb-1.5">
+            <label htmlFor="password" className="block text-sm text-muted mb-1.5">
               Password
             </label>
             <input
@@ -150,13 +154,13 @@ export default function SignupPage() {
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="Min. 8 characters"
             />
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="block text-sm text-[#888888] mb-1.5">
+            <label htmlFor="confirm-password" className="block text-sm text-muted mb-1.5">
               Confirm password
             </label>
             <input
@@ -167,26 +171,26 @@ export default function SignupPage() {
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="Repeat password"
             />
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-danger-text">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FD6A2F] text-white font-semibold rounded-lg py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full bg-brand text-on-brand font-semibold rounded-lg py-2.5 text-sm hover:bg-brand-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
       </div>
 
-      <p className="text-center text-sm text-[#888888] mt-6">
+      <p className="text-center text-sm text-muted mt-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-[#FD6A2F] hover:underline">
+        <Link href={login} className="text-brand-text hover:underline">
           Sign in
         </Link>
       </p>

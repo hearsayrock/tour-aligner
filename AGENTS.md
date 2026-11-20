@@ -10,6 +10,10 @@ This file contains repo-specific instructions for automated coding agents workin
 - Do not substitute a remembered summary for reading the skill. Small copy changes are not exempt. If the file cannot be read, stop before writing customer-facing copy and report the problem.
 - Read the relevant existing approved copy before drafting. Preserve human-authored wording outside the requested scope; the skill does not authorize a site-wide rewrite.
 
+## Visual design
+
+Before changing UI, read `.agents/skills/touraligner-design-system/SKILL.md` and use the shared tokens from `design-system/tokens.json`. Run `npm run ds:sync` after importing a new designer token export.
+
 ## Production branch safety
 
 - If the current branch is `main`, stop before making code, configuration, schema, or database changes. Warn the developer that they are on the production branch and continue only after explicit confirmation.

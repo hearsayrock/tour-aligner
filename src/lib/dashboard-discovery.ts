@@ -107,7 +107,7 @@ async function loadCandidates(
       if (location === 'city') query = query.eq('location_city', context.location_city!)
       return query.order('name').order('id').limit(location ? 12 : 3)
     }
-    let query = supabase.from('bands').select(ARTIST_SELECT).eq('is_active', true)
+    let query = supabase.from('bands').select(ARTIST_SELECT).eq('is_active', true).eq('page_published',true)
     if (location) query = query.eq('location_state', context.location_state!)
     if (location === 'city') query = query.eq('location_city', context.location_city!)
     return query.order('name').order('id').limit(18)
@@ -125,7 +125,7 @@ async function loadCandidates(
       : supabase.from('band_genres')
         .select(`band_id, bands!inner(${ARTIST_SELECT})`)
         .in('genre_id', context.genres.map((genre) => genre.id))
-        .eq('bands.is_active', true).order('band_id').limit(36)) : { data: [], error: null },
+        .eq('bands.is_active', true).eq('bands.page_published',true).order('band_id').limit(36)) : { data: [], error: null },
   ])
   for (const result of [fallback, local, city, genreMatches]) if (result.error) throw new Error(result.error.message)
   const joined = (genreMatches.data ?? []) as unknown as Array<{ venues?: DiscoveryProfile | DiscoveryProfile[] | null; bands?: DiscoveryProfile | DiscoveryProfile[] | null }>

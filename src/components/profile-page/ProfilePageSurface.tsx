@@ -129,7 +129,7 @@ export function ProfilePageSurface<SectionId extends string>({ items, mobile = f
         } : item.sectionId === 'lyrics' && item.desktop?.height !== undefined ? { height: Math.max(item.desktop.height, heights[item.sectionId] ?? 0) } : undefined)
       })}
       {freeform && guides.map((guide, index) => <div key={`${guide.axis}:${index}`} aria-hidden="true"
-        className="pointer-events-none absolute z-40 bg-[#FD6A2F]"
+        className="pointer-events-none absolute z-40 bg-brand"
         style={guide.axis === 'x' ? { top: 0, bottom: 0, left: guide.position, width: 1 }
           : { left: 0, right: 0, top: guide.position, height: 1 }} />)}
     </div>

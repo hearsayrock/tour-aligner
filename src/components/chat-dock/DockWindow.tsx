@@ -208,7 +208,7 @@ export function DockWindow({
   const header = (
     <div
       data-chat-drag-handle
-      className="flex h-14 shrink-0 items-center gap-1 border-b border-[#ECEAE5] px-2.5 md:cursor-grab"
+      className="flex h-14 shrink-0 items-center gap-1 border-b border-border px-2.5 md:cursor-grab"
     >
       <button
         type="button"
@@ -216,7 +216,7 @@ export function DockWindow({
         data-chat-window-title
         title={title}
         aria-expanded={!chatWindow.minimized}
-        className="h-full min-w-0 flex-1 truncate px-2 text-left text-[13px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+        className="h-full min-w-0 flex-1 truncate px-2 text-left text-[13px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
       >
         {title}
       </button>
@@ -286,7 +286,7 @@ export function DockWindow({
               }
             : { zIndex: 90 + chatWindow.z }
       }
-      className={`chat-popout pointer-events-auto shrink-0 overflow-hidden border border-[#E5E2DC] bg-white text-[#252525] shadow-[0_4px_28px_rgba(35,28,18,0.14)] outline-none ${mobile ? (selected && !chatWindow.minimized ? 'fixed inset-0 flex w-full flex-col' : 'hidden') : `relative flex flex-col ${chatWindow.minimized ? 'w-[240px] rounded-t-xl' : 'h-[560px] max-h-[calc(100dvh-24px)] w-[360px] rounded-t-2xl'}`} ${chatWindow.position && !mobile ? '!rounded-2xl' : ''} ${dragging ? 'select-none ring-2 ring-[#FD6A2F]/40' : ''}`}
+      className={`chat-popout pointer-events-auto shrink-0 overflow-hidden border border-border bg-white text-ink shadow-[0_4px_28px_rgba(35,28,18,0.14)] outline-none ${mobile ? (selected && !chatWindow.minimized ? 'fixed inset-0 flex w-full flex-col' : 'hidden') : `relative flex flex-col ${chatWindow.minimized ? 'w-[240px] rounded-t-xl' : 'h-[560px] max-h-[calc(100dvh-24px)] w-[360px] rounded-t-2xl'}`} ${chatWindow.position && !mobile ? '!rounded-2xl' : ''} ${dragging ? 'select-none ring-2 ring-brand/40' : ''}`}
     >
       {chatWindow.minimized && header}
       <div className={chatWindow.minimized ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>

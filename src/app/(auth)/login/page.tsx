@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import {localReturn} from '@/lib/studio/return-path'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
@@ -20,7 +21,7 @@ function LoginForm() {
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [resendError, setResendError] = useState<string | null>(null)
 
-  const redirectTo = searchParams.get('redirectTo')
+  const redirectTo = localReturn(searchParams.get('redirectTo'))
   const oauthError = searchParams.get('error') === 'oauth'
   // Signup confirmation links land here: Supabase appends `code` when the email was
   // confirmed, or `error_description` when the link was invalid or expired.
@@ -36,7 +37,7 @@ function LoginForm() {
     const { error } = await createClient().auth.resend({
       type: 'signup',
       email: unconfirmedEmail,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
+      options: { emailRedirectTo: window.location.origin+'/login'+(redirectTo?'?redirectTo='+encodeURIComponent(redirectTo):'') },
     })
 
     if (error) {
@@ -118,39 +119,39 @@ function LoginForm() {
       {signInPhase === 'authenticating' && <ProcessingOverlay />}
       <div className="text-center mb-8">
         <Link href="/">
-          <Image src="/logo-v2.png" alt="TourAligner" width={160} height={40} priority className="mx-auto" />
+          <Image src="/touraligner/brand/touraligner-logo.svg" alt="TourAligner" width={160} height={44} priority className="mx-auto" />
         </Link>
       </div>
 
-      <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl p-8">
+      <div className="bg-surface border border-border rounded-xl p-8">
         <h1 className="text-xl font-semibold mb-6">Sign in</h1>
 
         {oauthError && (
-          <p className="text-sm text-red-400 mb-4">Something went wrong with social login. Please try again.</p>
+          <p className="text-sm text-danger-text mb-4">Something went wrong with social login. Please try again.</p>
         )}
 
         {emailConfirmed && (
-          <p className="text-sm text-[#14584E] mb-4">Email confirmed. Sign in to continue.</p>
+          <p className="text-sm text-success-text mb-4">Email confirmed. Sign in to continue.</p>
         )}
 
         {confirmationError && (
-          <p className="text-sm text-red-400 mb-4">{confirmationError}</p>
+          <p className="text-sm text-danger-text mb-4">{confirmationError}</p>
         )}
 
         <OAuthButtons next={redirectTo ?? undefined} />
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[#E8E8E8]" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-[#AAAAAA]">or continue with email</span>
+            <span className="bg-surface px-3 text-xs text-sand-light">or continue with email</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-[#888888] mb-1.5">
+            <label htmlFor="email" className="block text-sm text-muted mb-1.5">
               Email
             </label>
             <input
@@ -160,17 +161,17 @@ function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="password" className="text-sm text-[#888888]">
+              <label htmlFor="password" className="text-sm text-muted">
                 Password
               </label>
-              <Link href="/forgot-password" className="text-xs text-[#FD6A2F] hover:underline">
+              <Link href="/forgot-password" className="text-xs text-brand-text hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -181,16 +182,16 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-danger-text">{error}</p>}
 
           {unconfirmedEmail && (
             resendStatus === 'sent' ? (
-              <p className="text-sm text-[#14584E]">
+              <p className="text-sm text-success-text">
                 Confirmation email sent to {unconfirmedEmail}. Use the link in the newest email.
               </p>
             ) : (
@@ -198,19 +199,19 @@ function LoginForm() {
                 type="button"
                 onClick={handleResend}
                 disabled={resendStatus === 'sending'}
-                className="text-sm text-[#FD6A2F] hover:underline disabled:opacity-50"
+                className="text-sm text-brand-text hover:underline disabled:opacity-50"
               >
                 {resendStatus === 'sending' ? 'Sending…' : 'Resend confirmation email'}
               </button>
             )
           )}
 
-          {resendError && <p className="text-sm text-red-400">{resendError}</p>}
+          {resendError && <p className="text-sm text-danger-text">{resendError}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#FD6A2F] text-white font-semibold rounded-lg py-2.5 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full bg-brand text-on-brand font-semibold rounded-lg py-2.5 text-sm hover:bg-brand-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {signInPhase === 'authenticating'
               ? 'Signing in…'
@@ -221,9 +222,9 @@ function LoginForm() {
         </form>
       </div>
 
-      <p className="text-center text-sm text-[#888888] mt-6">
+      <p className="text-center text-sm text-muted mt-6">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="text-[#FD6A2F] hover:underline">
+        <Link href={redirectTo?'/signup?redirectTo='+encodeURIComponent(redirectTo):'/signup'} className="text-brand-text hover:underline">
           Sign up
         </Link>
       </p>

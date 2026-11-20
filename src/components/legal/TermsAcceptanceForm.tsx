@@ -55,22 +55,22 @@ export function TermsAcceptanceForm() {
   return (
     <section
       aria-labelledby="terms-acceptance-title"
-      className="mt-6 rounded-2xl border border-[#F7C6B2] bg-[#FFFAF7] p-7 sm:p-8"
+      className="mt-6 rounded-2xl border border-danger-border bg-surface p-7 sm:p-8"
     >
-      <h2 id="terms-acceptance-title" className="text-2xl font-semibold tracking-tight text-[#252525]">
+      <h2 id="terms-acceptance-title" className="text-2xl font-semibold tracking-tight text-ink">
         Accept the current Terms
       </h2>
-      <p className="mt-3 leading-7 text-[#555555]">
+      <p className="mt-3 leading-7 text-text-secondary">
         To continue using TourAligner, confirm that you have read and agree to these Terms and Conditions.
       </p>
 
       <form onSubmit={submit} className="mt-6">
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8E8E8] bg-white p-4 leading-6 text-[#555555]">
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white p-4 leading-6 text-text-secondary">
           <input
             type="checkbox"
             checked={accepted}
             onChange={(event) => setAccepted(event.target.checked)}
-            className="mt-1 h-4 w-4 shrink-0 rounded border-[#CCCCCC] text-[#FD6A2F] focus:ring-[#FD6A2F]"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-border-strong text-brand-text focus:ring-brand"
           />
           <span>I have read and agree to the Terms and Conditions.</span>
         </label>
@@ -80,7 +80,7 @@ export function TermsAcceptanceForm() {
         <button
           type="submit"
           disabled={!accepted || loading || loggingOut}
-          className="mt-6 w-full rounded-lg bg-[#FD6A2F] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 w-full rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-dim disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? 'Saving acceptance…' : 'Accept and continue'}
         </button>
@@ -88,7 +88,7 @@ export function TermsAcceptanceForm() {
           type="button"
           onClick={logout}
           disabled={loading || loggingOut}
-          className="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-[#666666] transition-colors hover:bg-[#F5F5F5] hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loggingOut ? 'Logging out…' : 'Logout'}
         </button>

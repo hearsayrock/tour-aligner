@@ -21,6 +21,7 @@ export type EventMembershipSummary = EventArtistMembership & {
     name: string
     slug: string
     user_id: string
+    page_published?: boolean
   } | null
 }
 

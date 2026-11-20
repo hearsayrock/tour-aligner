@@ -1,17 +1,11 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans:   var(--font-inter);
-  --font-barlow: var(--font-barlow);
+@import "../../design-system/tokens.app.css";
+@import "./workspace.css";
 
-  /* Brand palette */
-  --color-brand:        #FD6A2F;   /* orange — primary accent */
-  --color-brand-dim:    #E55A22;   /* hover state */
-  --color-brand-2:      #00bba5;   /* teal — secondary accent */
-  --color-surface:      #FFFFFF;   /* card / panel background */
-  --color-surface-2:    #F5F5F5;   /* elevated surface / input bg */
-  --color-border:       #E8E8E8;   /* subtle borders */
-  --color-muted:        #888888;   /* secondary text */
+@theme inline {
+  --font-sans: var(--font-figtree), var(--tads-font-sans);
+  --font-barlow: var(--font-barlow-condensed), var(--tads-font-display);
 }
 
 *, *::before, *::after {
@@ -23,8 +17,9 @@ html {
 }
 
 body {
-  background-color: #FAFAFA;
-  color: #252525;
+  --font-barlow: var(--font-barlow-condensed), var(--tads-font-display);
+  background-color: var(--tads-page);
+  color: var(--tads-ink);
 }
 
 /* The quiet dashboard owns event creation when its starting card is visible.
@@ -43,7 +38,7 @@ textarea {
 
 .app-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #D6D6D6 transparent;
+  scrollbar-color: var(--tads-border-strong) transparent;
 }
 
 .app-scrollbar::-webkit-scrollbar {
@@ -52,7 +47,7 @@ textarea {
 }
 
 .app-scrollbar::-webkit-scrollbar-thumb {
-  background: #D6D6D6;
+  background: var(--tads-border-strong);
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: content-box;
@@ -102,6 +97,8 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-scroll-dot { animation: none; }
   .animate-processing-spin,
   .animate-route-progress {
     animation: none;
@@ -114,8 +111,8 @@ textarea {
 
 /* Focus ring consistent with brand */
 :focus-visible {
-  outline: 2px solid #FD6A2F;
-  outline-offset: 2px;
+  outline: 3px solid var(--tads-edge);
+  outline-offset: 4px;
 }
 
 /* Shared public-profile canvas. Layout data remains simple enough to render as
@@ -232,7 +229,10 @@ textarea {
 }
  .profile-lyrics-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #c9c1b8 transparent;
+  scrollbar-color: var(--tads-sand) transparent;
  }
  .profile-lyrics-scroll::-webkit-scrollbar { width: 6px; }
- .profile-lyrics-scroll::-webkit-scrollbar-thumb { background: #c9c1b8; border-radius: 999px; }
+ .profile-lyrics-scroll::-webkit-scrollbar-thumb { background: var(--tads-sand); border-radius: 999px; }
+.auth-page h1 {font: 800 2.4rem/1 var(--font-barlow-condensed); text-transform: uppercase;}
+.auth-page > div > div:has(form) {border: 1px solid var(--tads-edge); border-radius: var(--tads-radius-2xl); box-shadow: var(--tads-shadow-hard);}
+@media (prefers-reduced-motion: reduce) { .app-shell-main {transition: none !important;} }

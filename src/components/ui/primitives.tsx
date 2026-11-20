@@ -3,23 +3,23 @@ import Link from 'next/link'
 type Tone = 'default' | 'muted' | 'brand' | 'success' | 'warning' | 'danger' | 'info'
 type ButtonTone = 'primary' | 'secondary' | 'ghost' | 'dark' | 'success' | 'danger'
 
-const toneClass: Record<Tone, string> = {
-  default: 'border-[#E2E2E2] bg-white text-[#2A2A2A]',
-  muted: 'border-[#E8E8E8] bg-[#F6F6F6] text-[#666666]',
-  brand: 'border-[#FFD5C4] bg-[#FFF3EE] text-[#A84216]',
-  success: 'border-[#CBEAE2] bg-[#F3FBF8] text-[#14584E]',
-  warning: 'border-[#F2D7A6] bg-[#FFF7E8] text-[#8A5A12]',
-  danger: 'border-[#F3C6C6] bg-[#FFF1F1] text-[#9D2020]',
-  info: 'border-[#BFE7EF] bg-[#F1FBFD] text-[#0E6275]',
+export const badgeToneClass: Record<Tone, string> = {
+  default: 'border-border bg-surface text-ink',
+  muted: 'border-border bg-surface-2 text-text-secondary',
+  brand: 'border-brand-tint-border bg-brand-tint text-brand-tint-text',
+  success: 'border-success-border bg-success-tint text-success-text',
+  warning: 'border-warning-border bg-warning-tint text-warning-text',
+  danger: 'border-danger-border bg-danger-tint text-danger-text',
+  info: 'border-info-border bg-info-tint text-info-text',
 }
 
 const buttonToneClass: Record<ButtonTone, string> = {
-  primary: 'border-[#FD6A2F] bg-[#FD6A2F] text-white hover:border-[#E55A22] hover:bg-[#E55A22]',
-  secondary: 'border-[#E2E2E2] bg-white text-[#252525] hover:border-[#CFCFCF] hover:bg-[#F6F6F6]',
-  ghost: 'border-transparent bg-transparent text-[#666666] hover:bg-[#F1F1F1] hover:text-[#252525]',
-  dark: 'border-[#252525] bg-[#252525] text-white hover:border-black hover:bg-black',
-  success: 'border-[#0C7C71] bg-[#0C7C71] text-white hover:border-[#0A695F] hover:bg-[#0A695F]',
-  danger: 'border-[#D94848] bg-[#D94848] text-white hover:border-[#B93636] hover:bg-[#B93636]',
+  primary: 'border-edge bg-brand text-on-brand hover:bg-brand-dim',
+  secondary: 'border-edge bg-surface text-ink hover:bg-surface-2',
+  ghost: 'border-transparent text-ink hover:border-edge hover:bg-surface-2',
+  dark: 'border-edge bg-ink text-page',
+  success: 'border-edge bg-success-tint text-success-text',
+  danger: 'border-edge bg-danger text-on-danger hover:bg-danger-hover',
 }
 
 export function cx(...classes: Array<string | false | null | undefined>) {
@@ -46,8 +46,8 @@ export function ButtonLink({
 
 export function buttonBaseClass(tone: ButtonTone = 'primary') {
   return cx(
-    'inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+    'inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-[1.5px] px-5 py-2 font-ds-display text-base leading-none font-extrabold tracking-wide uppercase motion-safe:transition-[transform,box-shadow,background-color] motion-safe:hover:-translate-x-0.5 motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-hard-sm',
+    'focus-visible:outline-edge focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50',
     buttonToneClass[tone]
   )
 }
@@ -62,7 +62,7 @@ export function Card({
   as?: 'section' | 'div' | 'article'
 }) {
   return (
-    <Component className={cx('rounded-2xl border border-[#E6E6E6] bg-white shadow-[0_14px_34px_rgba(20,20,20,0.04)]', className)}>
+    <Component className={cx('rounded-ds-2xl border border-border bg-surface text-ink', className)}>
       {children}
     </Component>
   )
@@ -78,7 +78,7 @@ export function Badge({
   className?: string
 }) {
   return (
-    <span className={cx('inline-flex min-h-6 items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold', toneClass[tone], className)}>
+    <span className={cx('inline-flex min-h-6 items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold', badgeToneClass[tone], className)}>
       {children}
     </span>
   )
@@ -100,17 +100,17 @@ export function PageHeader({
   backLabel?: string
 }) {
   return (
-    <div className="mb-8">
+    <div className="workspace-page-header mb-8">
       {backHref && (
-        <Link href={backHref} className="mb-4 inline-flex min-h-9 items-center text-sm font-medium text-[#777777] transition-colors hover:text-[#252525]">
+        <Link href={backHref} className="mb-4 inline-flex min-h-9 items-center text-sm font-medium text-text-secondary transition-colors hover:text-ink">
           {backLabel}
         </Link>
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {eyebrow && <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#A24A22]">{eyebrow}</p>}
-          <h1 className="text-3xl font-bold tracking-tight text-[#181818] sm:text-4xl">{title}</h1>
-          {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6F6F6F]">{description}</p>}
+          {eyebrow && <p className="mb-2 font-ds-mono text-xs font-medium uppercase tracking-widest text-brand-text">{eyebrow}</p>}
+          <h1 className="font-ds-display text-4xl leading-none font-extrabold uppercase text-ink-strong sm:text-5xl">{title}</h1>
+          {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
@@ -128,10 +128,10 @@ export function SectionHeading({
   action?: React.ReactNode
 }) {
   return (
-    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div className="section-heading mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h2 className="text-base font-semibold text-[#252525]">{title}</h2>
-        {description && <p className="mt-1 text-sm text-[#777777]">{description}</p>}
+        <h2 className="text-base font-semibold text-ink">{title}</h2>
+        {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
       </div>
       {action}
     </div>
@@ -151,14 +151,14 @@ export function EmptyState({
 }) {
   return (
     <Card className={cx('px-6 py-10 text-center', className)}>
-      <h2 className="text-lg font-semibold text-[#252525]">{title}</h2>
-      {description && <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#777777]">{description}</p>}
+      <h2 className="text-lg font-semibold text-ink">{title}</h2>
+      {description && <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-text-secondary">{description}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </Card>
   )
 }
 
 export const inputClass =
-  'w-full rounded-xl border border-[#E2E2E2] bg-[#F7F7F7] px-4 py-3 text-sm text-[#252525] placeholder-[#A3A3A3] transition-colors focus:border-[#FD6A2F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FD6A2F]/15'
+  'w-full rounded-ds-lg border border-border-strong bg-field px-4 py-3 text-sm text-ink placeholder:text-text-subtle focus:border-edge focus:bg-surface'
 
-export const labelClass = 'mb-1.5 block text-sm font-medium text-[#626262]'
+export const labelClass = 'mb-1.5 block text-sm font-medium text-text-secondary'

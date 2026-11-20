@@ -29,13 +29,13 @@ const DEFAULT_RECURRENCE_COUNT = '12'
 const MAX_PREVIEW_DATES = 104
 
 const EVENT_PILL_STYLES = {
-  default: 'border-[#E2DDD6] bg-white/90 text-[#2A2A2A]',
-  muted: 'border-[#E8E8E8] bg-[#F6F6F6]/90 text-[#666666]',
-  brand: 'border-[#FFD5C4] bg-[#FFF3EE]/95 text-[#A84216]',
-  success: 'border-[#CBEAE2] bg-[#F3FBF8]/95 text-[#14584E]',
-  warning: 'border-[#F2D7A6] bg-[#FFF7E8]/95 text-[#8A5A12]',
-  danger: 'border-[#F3C6C6] bg-[#FFF1F1]/95 text-[#9D2020]',
-  info: 'border-[#BFE7EF] bg-[#F1FBFD]/95 text-[#0E6275]',
+  default: 'border-border bg-white/90 text-ink',
+  muted: 'border-border bg-surface/90 text-text-secondary',
+  brand: 'border-brand-tint-border bg-brand-tint/95 text-brand-tint-text',
+  success: 'border-success-border bg-success-tint/95 text-success-text',
+  warning: 'border-warning-border bg-warning-tint/95 text-warning-text',
+  danger: 'border-danger-border bg-danger-tint/95 text-danger-text',
+  info: 'border-info-border bg-info-tint/95 text-info-text',
 }
 
 type CalendarCell = {
@@ -224,11 +224,11 @@ function DayCell({
 }) {
   const isUnavailable = !!unavailableDate
   const selectionStyles = isSelected
-    ? 'border-[#252525] ring-2 ring-[#252525]/70 shadow-[0_22px_38px_rgba(17,17,17,0.14)]'
+    ? 'border-edge ring-2 ring-edge/70 shadow-[0_22px_38px_rgba(17,17,17,0.14)]'
     : isEventDraftSelected
-      ? 'border-[#FD6A2F] ring-2 ring-[#FD6A2F]/35 shadow-[0_18px_30px_rgba(253,106,47,0.1)]'
+      ? 'border-brand ring-2 ring-brand/35 shadow-[0_18px_30px_rgba(253,106,47,0.1)]'
     : day.isToday
-      ? 'border-[#252525]/65 ring-1 ring-[#252525]/45 shadow-[0_18px_30px_rgba(17,17,17,0.08)]'
+      ? 'border-edge/65 ring-1 ring-edge/45 shadow-[0_18px_30px_rgba(17,17,17,0.08)]'
       : 'shadow-[0_14px_28px_rgba(17,17,17,0.05)]'
 
   return (
@@ -237,30 +237,23 @@ function DayCell({
       onClick={(event) => onSelect(day.date, event)}
       className={`relative w-full overflow-hidden rounded-[24px] border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_40px_rgba(17,17,17,0.1)] sm:min-h-[136px] sm:p-3.5 ${
         isUnavailable
-          ? 'border-[#DCDCDC] bg-[linear-gradient(180deg,#F8F8F8_0%,#F1F1F1_100%)] text-[#666666]'
-          : 'border-[#E9E0D6] bg-[linear-gradient(180deg,#FFFDFB_0%,#FFFFFF_100%)] text-[#231F1B]'
+          ? 'border-border bg-surface-2 text-text-secondary'
+          : 'border-border bg-surface text-ink'
       } ${
         day.inCurrentMonth ? '' : 'opacity-45'
       } ${selectionStyles}`}
       aria-pressed={isSelected}
     >
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(255,255,255,0.85),rgba(255,255,255,0))] ${
-          day.inCurrentMonth ? 'opacity-100' : 'opacity-70'
-        }`}
-      />
-
       <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-2">
-          <span className={`text-base font-semibold leading-none sm:text-lg ${day.isToday ? 'text-[#A24A22]' : ''}`}>
+          <span className={`text-base font-semibold leading-none sm:text-lg ${day.isToday ? 'text-brand-text' : ''}`}>
             {day.dayOfMonth}
           </span>
         </div>
 
         {isUnavailable && (
           <div className="-mx-2 mt-3 sm:-mx-2.5">
-            <span className="flex min-h-6 w-full items-center justify-center rounded-md border border-[#D2D2D2] bg-white/75 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#666666] sm:text-[10px]">
+            <span className="flex min-h-6 w-full items-center justify-center rounded-md border border-border-strong bg-white/75 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-text-secondary sm:text-[10px]">
               Unavailable
             </span>
           </div>
@@ -272,7 +265,7 @@ function DayCell({
               <EventSummaryPill key={event.id} event={event} />
             ))}
             {events.length > 2 && (
-              <span className="flex w-full rounded-md border border-[#E8E0D7] bg-white/80 px-1 py-0.5 text-[9px] font-semibold text-[#6E655D] sm:text-[10px]">
+              <span className="flex w-full rounded-md border border-border bg-white/80 px-1 py-0.5 text-[9px] font-semibold text-text-secondary sm:text-[10px]">
                 +{events.length - 2} more
               </span>
             )}
@@ -337,10 +330,10 @@ function MarkUnavailableForm({
 
   if (selectedUnavailableDate) {
     return (
-      <div className="rounded-[24px] border border-[#DCDCDC] bg-[#F7F7F7] p-4">
-        <p className="text-sm font-semibold text-[#252525]">This date is unavailable.</p>
+      <div className="rounded-[24px] border border-border bg-field p-4">
+        <p className="text-sm font-semibold text-ink">This date is unavailable.</p>
         {selectedUnavailableDate.reason && (
-          <p className="mt-2 text-sm leading-6 text-[#666666]">{selectedUnavailableDate.reason}</p>
+          <p className="mt-2 text-sm leading-6 text-text-secondary">{selectedUnavailableDate.reason}</p>
         )}
         <button
           type="button"
@@ -365,13 +358,13 @@ function MarkUnavailableForm({
           {isPending ? 'Updating...' : 'Mark this date available'}
         </button>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-        {message && <p className="mt-2 text-sm text-[#0C7C71]">{message}</p>}
+        {message && <p className="mt-2 text-sm text-success">{message}</p>}
       </div>
     )
   }
 
   return (
-    <div className="rounded-[24px] border border-[#E8E0D7] bg-white/85 p-4">
+    <div className="rounded-[24px] border border-border bg-white/85 p-4">
       <div className="space-y-4">
         <label className="block">
           <span className={labelClass}>Reason</span>
@@ -383,7 +376,7 @@ function MarkUnavailableForm({
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-2xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-sm font-semibold text-[#252525]">
+        <label className="flex items-center gap-3 rounded-2xl border border-border bg-page px-4 py-3 text-sm font-semibold text-ink">
           <input
             type="checkbox"
             checked={recurrenceEnabled}
@@ -407,8 +400,8 @@ function MarkUnavailableForm({
                       title={weekday.label}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         selected
-                          ? 'border-[#666666] bg-[#F1F1F1] text-[#252525]'
-                          : 'border-[#E8E8E8] bg-white text-[#777777] hover:border-[#CCCCCC]'
+                          ? 'border-text-secondary bg-surface-2 text-ink'
+                          : 'border-border bg-white text-text-secondary hover:border-border-strong'
                       }`}
                     >
                       {weekday.short}
@@ -458,18 +451,18 @@ function MarkUnavailableForm({
         )}
 
         {previewDates.length > 0 && (
-          <div className="rounded-2xl border border-[#EAE1D7] bg-[#FAFAFA] p-3 text-xs text-[#666666]">
-            <p className="font-semibold text-[#252525]">
+          <div className="rounded-2xl border border-border bg-page p-3 text-xs text-text-secondary">
+            <p className="font-semibold text-ink">
               {previewDates.length} date{previewDates.length === 1 ? '' : 's'}: {previewDates.slice(0, 8).map(formatShortDate).join(', ')}
               {previewDates.length > 8 ? `, +${previewDates.length - 8} more` : ''}
             </p>
             {eventConflicts.length > 0 && (
-              <p className="mt-2 text-[#A84216]">
+              <p className="mt-2 text-brand-tint-text">
                 {eventConflicts.length} selected date{eventConflicts.length === 1 ? '' : 's'} already have Events.
               </p>
             )}
             {alreadyUnavailableCount > 0 && (
-              <p className="mt-2 text-[#666666]">
+              <p className="mt-2 text-text-secondary">
                 {alreadyUnavailableCount} selected date{alreadyUnavailableCount === 1 ? ' is' : 's are'} already unavailable.
               </p>
             )}
@@ -511,7 +504,7 @@ function MarkUnavailableForm({
           {isPending ? 'Marking...' : recurrenceEnabled ? 'Mark dates unavailable' : 'Mark date unavailable'}
         </button>
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {message && <p className="text-sm text-[#0C7C71]">{message}</p>}
+        {message && <p className="text-sm text-success">{message}</p>}
       </div>
     </div>
   )
@@ -610,14 +603,14 @@ export function VenueEventCalendarWorkspace({
 
   return (
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="rounded-[28px] border border-[#E6DED3] bg-[linear-gradient(180deg,#FFF8F2_0%,#FAFAF8_38%,#FFFFFF_100%)] p-3 shadow-[0_24px_60px_rgba(17,17,17,0.06)] sm:p-4">
+      <div className="rounded-ds-3xl border border-border bg-surface p-3 shadow-[0_24px_60px_rgba(17,17,17,0.06)] sm:p-4">
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A24A22] shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text shadow-[0_10px_22px_rgba(17,17,17,0.04)]">
               <CalendarDays className="h-3.5 w-3.5" />
               Event Calendar
             </div>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6E655D]">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary">
               Events and Backstages drive this calendar. Artist cap, genres, status, and application settings live on each Event.
             </p>
           </div>
@@ -634,30 +627,30 @@ export function VenueEventCalendarWorkspace({
               <button
                 type="button"
                 onClick={jumpToToday}
-                className="rounded-full border border-[#E6DED3] bg-white px-3 py-1.5 text-xs font-semibold text-[#252525] shadow-[0_10px_20px_rgba(17,17,17,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#D8CCBD] hover:bg-[#FFF8F2]"
+                className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-[0_10px_20px_rgba(17,17,17,0.04)] transition-all hover:-translate-y-0.5 hover:border-border hover:bg-surface"
               >
                 Today
               </button>
-              <div className="flex items-center gap-1 rounded-full border border-[#ECE4DA] bg-[#FBF7F2] p-1">
+              <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1">
                 <button
                   type="button"
                   onClick={() => setVisibleMonthIndex((current) => Math.max(0, current - 1))}
                   disabled={visibleMonthIndex === 0}
                   aria-label="Previous month"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#666666] transition-colors hover:bg-white hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <div className="min-w-[10rem] px-3 text-center">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#9B8F82]">Showing</p>
-                  <h3 className="mt-1 text-base font-semibold tracking-tight text-[#252525]">{visibleMonth.label}</h3>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-text-subtle">Showing</p>
+                  <h3 className="mt-1 text-base font-semibold tracking-tight text-ink">{visibleMonth.label}</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setVisibleMonthIndex((current) => Math.min(months.length - 1, current + 1))}
                   disabled={visibleMonthIndex === months.length - 1}
                   aria-label="Next month"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#666666] transition-colors hover:bg-white hover:text-[#252525] disabled:cursor-not-allowed disabled:opacity-35"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-white hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -666,7 +659,7 @@ export function VenueEventCalendarWorkspace({
 
             <div className="mb-3 grid grid-cols-7 gap-2 sm:gap-3">
               {WEEKDAYS.map((weekday) => (
-                <div key={weekday} className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-[#AA9D90] sm:px-2 sm:text-[11px]">
+                <div key={weekday} className="px-1 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-sand-light sm:px-2 sm:text-[11px]">
                   {weekday}
                 </div>
               ))}
@@ -690,14 +683,14 @@ export function VenueEventCalendarWorkspace({
 
       <aside className="space-y-4 xl:sticky xl:top-8 xl:self-start">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#E8DED2] bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8C7D6F]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-subtle">
             Selected date
           </div>
-          <h3 className="mt-4 text-xl font-semibold tracking-tight text-[#252525]">{formatSelectedDate(selectedDate)}</h3>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-ink">{formatSelectedDate(selectedDate)}</h3>
         </div>
 
         <div>
-          <p className="mb-3 text-sm font-semibold text-[#252525]">Events</p>
+          <p className="mb-3 text-sm font-semibold text-ink">Events</p>
           <CalendarActivityList
             items={selectedActivities}
             emptyMessage="No Events are attached to this date yet."
@@ -705,7 +698,7 @@ export function VenueEventCalendarWorkspace({
         </div>
 
         <div>
-          <p className="mb-3 text-sm font-semibold text-[#252525]">Actions</p>
+          <p className="mb-3 text-sm font-semibold text-ink">Actions</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
@@ -713,9 +706,9 @@ export function VenueEventCalendarWorkspace({
               onClick={toggleEventAction}
               className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
                 activeAction === 'event'
-                  ? 'border-[#FD6A2F] bg-[#FFF3EE] text-[#A84216]'
-                  : 'border-[#E8E0D7] bg-white text-[#252525] hover:border-[#D8CCBD]'
-              } disabled:cursor-not-allowed disabled:bg-[#F4F4F4] disabled:text-[#999999]`}
+                  ? 'border-brand bg-brand-tint text-brand-tint-text'
+                  : 'border-border bg-white text-ink hover:border-border'
+              } disabled:cursor-not-allowed disabled:bg-surface disabled:text-text-subtle`}
             >
               Create Event
             </button>
@@ -724,15 +717,15 @@ export function VenueEventCalendarWorkspace({
               onClick={() => setActiveAction((current) => (current === 'unavailable' ? null : 'unavailable'))}
               className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
                 activeAction === 'unavailable'
-                  ? 'border-[#D2D2D2] bg-[#F1F1F1] text-[#252525]'
-                  : 'border-[#E8E0D7] bg-white text-[#252525] hover:border-[#D8CCBD]'
+                  ? 'border-border-strong bg-surface-2 text-ink'
+                  : 'border-border bg-white text-ink hover:border-border'
               }`}
             >
               {selectedUnavailableDate ? 'Edit Availability' : 'Mark Unavailable'}
             </button>
           </div>
           {selectedUnavailableDate && (
-            <p className="mt-2 rounded-2xl border border-[#DCDCDC] bg-[#F7F7F7] px-3 py-2 text-xs font-medium text-[#666666]">
+            <p className="mt-2 rounded-2xl border border-border bg-field px-3 py-2 text-xs font-medium text-text-secondary">
               This date is unavailable. Events cannot be created until it is marked available.
             </p>
           )}

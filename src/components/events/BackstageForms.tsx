@@ -121,7 +121,7 @@ export function BackstageSettingsForm({
               key={genre.id}
               type="button"
               onClick={() => toggleGenre(genre.id)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${selected ? 'border-[#FD6A2F] bg-[#FFF3EE]' : 'border-[#E8E8E8] bg-white text-[#777777]'}`}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${selected ? 'border-brand bg-brand-tint' : 'border-border bg-white text-text-secondary'}`}
             >
               {genre.name}
             </button>
@@ -135,18 +135,18 @@ export function BackstageSettingsForm({
       </label>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="flex items-center gap-2 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-2.5 text-sm">
+        <label className="flex items-center gap-2 rounded-xl border border-border bg-page px-3 py-2.5 text-sm">
           <input type="checkbox" checked={isAcceptingArtists} onChange={(event) => setIsAcceptingArtists(event.target.checked)} />
           Accepting artists
         </label>
-        <label className="flex items-center gap-2 rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-2.5 text-sm">
+        <label className="flex items-center gap-2 rounded-xl border border-border bg-page px-3 py-2.5 text-sm">
           <input type="checkbox" checked={lineupPublished} onChange={(event) => setLineupPublished(event.target.checked)} />
           Publish lineup
         </label>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
-      {saved && <p className="text-sm text-[#0C7C71]">Event saved.</p>}
+      {saved && <p className="text-sm text-success">Event saved.</p>}
       <button type="submit" disabled={isPending} className={buttonBaseClass('primary')}>
         {isPending ? 'Saving...' : 'Save event'}
       </button>
@@ -217,7 +217,7 @@ export function BackstageLogisticsForm({ eventId, logistics }: { eventId: string
         </label>
       ))}
       {error && <p className="text-sm text-red-500">{error}</p>}
-      {saved && <p className="text-sm text-[#0C7C71]">Logistics saved.</p>}
+      {saved && <p className="text-sm text-success">Logistics saved.</p>}
       <button type="submit" disabled={isPending} className={buttonBaseClass('dark')}>
         {isPending ? 'Saving...' : 'Save logistics'}
       </button>
@@ -295,16 +295,16 @@ export function MembershipActionButton({
             onClick={() => setIsConfirming(false)}
             className="absolute inset-0 bg-black/40"
           />
-          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-[#E8E8E8] bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-[#252525]">{confirmation.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-[#777777]">{confirmation.body}</p>
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-ink">{confirmation.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">{confirmation.body}</p>
             {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsConfirming(false)}
                 disabled={isPending}
-                className="rounded-lg px-3 py-2 text-sm text-[#777777] transition-colors hover:text-[#252525] disabled:opacity-50"
+                className="rounded-lg px-3 py-2 text-sm text-text-secondary transition-colors hover:text-ink disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -356,7 +356,7 @@ export function InviteArtistForm({
   }
 
   if (bands.length === 0) {
-    return <p className="text-sm text-[#888888]">No artists are available to invite.</p>
+    return <p className="text-sm text-muted">No artists are available to invite.</p>
   }
 
   return (
@@ -368,7 +368,7 @@ export function InviteArtistForm({
       </select>
       <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="Optional invite note" className={`${inputClass} resize-y`} />
       {error && <p className="text-sm text-red-500">{error}</p>}
-      {sent && <p className="text-sm text-[#0C7C71]">Invite sent.</p>}
+      {sent && <p className="text-sm text-success">Invite sent.</p>}
       <button type="submit" disabled={isPending || !bandId} className={buttonBaseClass('primary')}>
         {isPending ? 'Sending...' : 'Invite artist'}
       </button>

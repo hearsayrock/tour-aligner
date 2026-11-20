@@ -24,6 +24,7 @@ export type PrivateChatProfileSummary = {
 }
 
 export type PrivateChatBandLookupRow = {
+  page_published?: boolean
   id: string
   name: string
   slug: string
@@ -74,7 +75,7 @@ export function createPrivateChatProfileLookup({
       kind: 'band',
       id: band.id,
       name: band.name,
-      href: `/bands/${band.slug}`,
+      href: band.page_published === false ? null : `/bands/${band.slug}`,
       meta: 'Artist profile',
       ownerUserId: band.user_id,
     })

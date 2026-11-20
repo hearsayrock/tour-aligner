@@ -1,19 +1,24 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { Inter, Barlow_Condensed } from 'next/font/google'
+import { Figtree, Barlow_Condensed, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { NavigationProcessingOverlay } from '@/components/ui/NavigationProcessingOverlay'
 import { ChatDockHost } from '@/components/chat-dock/ChatDockHost'
 
-const inter = Inter({
+const figtree = Figtree({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-figtree',
+})
+
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
 })
 
 const barlowCondensed = Barlow_Condensed({
   weight: ['600', '700', '800', '900'],
   subsets: ['latin'],
-  variable: '--font-barlow',
+  variable: '--font-barlow-condensed',
 })
 
 export const metadata: Metadata = {
@@ -36,7 +41,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${barlowCondensed.variable} font-sans antialiased bg-[#FAFAFA] text-[#252525]`}>
+      <body className={`${figtree.variable} ${mono.variable} ${barlowCondensed.variable} font-sans antialiased bg-page text-ink`}>
         <Suspense fallback={null}>
           <NavigationProcessingOverlay />
         </Suspense>

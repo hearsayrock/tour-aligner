@@ -50,7 +50,7 @@ export default async function AdminSearchPage({
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
-      <h1 className="text-xl font-bold text-[#252525] mb-6">Search</h1>
+      <h1 className="text-xl font-bold text-ink mb-6">Search</h1>
 
       <form method="GET">
         <div className="flex gap-2">
@@ -59,11 +59,11 @@ export default async function AdminSearchPage({
             defaultValue={query}
             placeholder="Search users, bands, venues, legacy inquiries…"
             autoFocus
-            className="flex-1 bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-4 py-2.5 text-sm text-[#252525] placeholder-[#888888] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+            className="flex-1 bg-surface-2 border border-border rounded-lg px-4 py-2.5 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand transition-colors"
           />
           <button
             type="submit"
-            className="bg-[#FD6A2F] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#E55A22] transition-colors"
+            className="bg-brand text-on-brand text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-brand-dim transition-colors"
           >
             Search
           </button>
@@ -71,7 +71,7 @@ export default async function AdminSearchPage({
       </form>
 
       {query && !hasResults && (
-        <p className="mt-8 text-sm text-[#888888]">No results for &ldquo;{query}&rdquo;</p>
+        <p className="mt-8 text-sm text-muted">No results for &ldquo;{query}&rdquo;</p>
       )}
 
       {query && hasResults && (
@@ -79,21 +79,21 @@ export default async function AdminSearchPage({
           {/* Users */}
           {(users.data?.length ?? 0) > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
                 Users ({users.data!.length})
               </h2>
-              <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden">
                 {users.data!.map((u, i) => (
                   <Link
                     key={u.id}
                     href={`/admin/users/${u.id}`}
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-[#F5F5F5] transition-colors ${
-                      i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors ${
+                      i > 0 ? 'border-t border-border' : ''
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-medium text-[#252525]">{u.email ?? '—'}</p>
-                      <p className="text-xs text-[#888888]">{u.full_name ?? 'No name'} · {fmtDate(u.created_at)}</p>
+                      <p className="text-sm font-medium text-ink">{u.email ?? '—'}</p>
+                      <p className="text-xs text-muted">{u.full_name ?? 'No name'} · {fmtDate(u.created_at)}</p>
                     </div>
                     {u.is_suspended && (
                       <span className="text-xs px-2 py-0.5 rounded border bg-red-50 text-red-500 border-red-200">
@@ -109,24 +109,24 @@ export default async function AdminSearchPage({
           {/* Bands */}
           {(bands.data?.length ?? 0) > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
                 Bands ({bands.data!.length})
               </h2>
-              <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden">
                 {bands.data!.map((b, i) => (
                   <Link
                     key={b.id}
                     href={`/admin/bands/${b.id}`}
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-[#F5F5F5] transition-colors ${
-                      i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors ${
+                      i > 0 ? 'border-t border-border' : ''
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-medium text-[#252525]">{b.name}</p>
-                      <p className="text-xs text-[#888888]">{fmtDate(b.created_at)}</p>
+                      <p className="text-sm font-medium text-ink">{b.name}</p>
+                      <p className="text-xs text-muted">{fmtDate(b.created_at)}</p>
                     </div>
                     {!b.is_active && (
-                      <span className="text-xs px-2 py-0.5 rounded border bg-[#F5F5F5] text-[#888888] border-[#E8E8E8]">
+                      <span className="text-xs px-2 py-0.5 rounded border bg-surface-2 text-muted border-border">
                         Inactive
                       </span>
                     )}
@@ -139,27 +139,27 @@ export default async function AdminSearchPage({
           {/* Venues */}
           {(venues.data?.length ?? 0) > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
                 Venues ({venues.data!.length})
               </h2>
-              <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden">
                 {venues.data!.map((v, i) => (
                   <Link
                     key={v.id}
                     href={`/admin/venues/${v.id}`}
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-[#F5F5F5] transition-colors ${
-                      i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors ${
+                      i > 0 ? 'border-t border-border' : ''
                     }`}
                   >
                     <div>
-                      <p className="text-sm font-medium text-[#252525]">{v.name}</p>
-                      <p className="text-xs text-[#888888]">
+                      <p className="text-sm font-medium text-ink">{v.name}</p>
+                      <p className="text-xs text-muted">
                         {v.location_city}, {v.location_state} ·{' '}
                         {v.claimed_by_user_id ? 'Claimed' : 'Unclaimed'}
                       </p>
                     </div>
                     {!v.is_active && (
-                      <span className="text-xs px-2 py-0.5 rounded border bg-[#F5F5F5] text-[#888888] border-[#E8E8E8]">
+                      <span className="text-xs px-2 py-0.5 rounded border bg-surface-2 text-muted border-border">
                         Inactive
                       </span>
                     )}
@@ -172,10 +172,10 @@ export default async function AdminSearchPage({
           {/* Legacy inquiries */}
           {(inquiries.data?.length ?? 0) > 0 && (
             <section>
-              <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
                 Legacy Inquiries ({inquiries.data!.length})
               </h2>
-              <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden">
                 {inquiries.data!.map((inq, i) => {
                   const row = inq as typeof inq & {
                     bands: { name: string } | null
@@ -185,17 +185,17 @@ export default async function AdminSearchPage({
                     <Link
                       key={row.id}
                       href={`/admin/inquiries/${row.id}`}
-                      className={`flex items-center justify-between px-4 py-3 hover:bg-[#F5F5F5] transition-colors ${
-                        i > 0 ? 'border-t border-[#E8E8E8]' : ''
+                      className={`flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors ${
+                        i > 0 ? 'border-t border-border' : ''
                       }`}
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-[#252525]">
+                        <p className="text-sm font-medium text-ink">
                           {row.bands?.name ?? '—'} → {row.venues?.name ?? '—'}
                         </p>
-                        <p className="text-xs text-[#888888] truncate">{row.message}</p>
+                        <p className="text-xs text-muted truncate">{row.message}</p>
                       </div>
-                      <span className="ml-3 shrink-0 text-xs text-[#888888] capitalize">{row.status}</span>
+                      <span className="ml-3 shrink-0 text-xs text-muted capitalize">{row.status}</span>
                     </Link>
                   )
                 })}

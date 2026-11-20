@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "ds:sync": "node scripts/sync-design-system.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

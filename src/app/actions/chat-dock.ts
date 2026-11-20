@@ -87,6 +87,7 @@ export async function searchDockProfiles(
       supabase
         .from('bands')
         .select('id, name, slug, profile_photo_url, location_city, location_state')
+        .eq('page_published', true)
         .eq('is_active', true)
         .ilike('name', `%${term}%`)
         .order('name')

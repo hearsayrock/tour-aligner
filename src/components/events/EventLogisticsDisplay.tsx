@@ -26,9 +26,9 @@ export function EventLogisticsDisplay({ logistics }: { logistics: EventLogistics
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {rows.map(([label, value]) => (
-        <div key={label} className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#888888]">{label}</p>
-          <LinkifiedText text={value ?? ''} className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#252525]" />
+        <div key={label} className="rounded-2xl border border-border bg-surface px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
+          <LinkifiedText text={value ?? ''} className="mt-2 whitespace-pre-wrap text-sm leading-6 text-ink" />
         </div>
       ))}
     </div>

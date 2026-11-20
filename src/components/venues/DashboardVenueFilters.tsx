@@ -52,11 +52,11 @@ function CustomSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg px-3 py-2.5 pr-8 text-sm text-[#252525] focus:outline-none focus:border-[#FD6A2F] transition-colors cursor-pointer"
+        className="w-full appearance-none bg-white border border-border rounded-lg px-3 py-2.5 pr-8 text-sm text-ink focus:outline-none focus:border-brand transition-colors cursor-pointer"
       >
         {children}
       </select>
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#888888] text-[9px]">
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted text-[9px]">
         ▼
       </span>
     </div>
@@ -90,7 +90,7 @@ function LocationFilterInput({
 
   return (
     <div className="relative col-span-2 sm:col-span-1">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB] z-10">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-sand-light z-10">
         {geoLoading ? (
           <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -106,13 +106,13 @@ function LocationFilterInput({
         value={locationValue}
         onChange={(e) => handleChange(e.target.value)}
         placeholder="City or state..."
-        className="w-full appearance-none bg-white border border-[#E8E8E8] rounded-lg pl-8 pr-8 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors"
+        className="w-full appearance-none bg-white border border-border rounded-lg pl-8 pr-8 py-2.5 text-sm text-ink placeholder-sand-light focus:outline-none focus:border-brand transition-colors"
       />
       {locationValue ? (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#888888] text-base leading-none"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sand-light hover:text-muted text-base leading-none"
           aria-label="Clear"
         >&times;</button>
       ) : (
@@ -120,7 +120,7 @@ function LocationFilterInput({
           type="button"
           onClick={onUseLocation}
           disabled={geoLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-[#FD6A2F] hover:text-[#E55A22] disabled:opacity-40 transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-text hover:text-brand-text disabled:opacity-40 transition-colors"
           aria-label="Use my location"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -193,14 +193,14 @@ export function DashboardVenueFilters({
   }
 
   return (
-    <div className="bg-white border border-[#E8E8E8] rounded-xl p-5 mb-6 shadow-sm">
-      <p className="text-xs font-semibold text-[#888888] uppercase tracking-widest mb-3">
+    <div className="bg-white border border-border rounded-xl p-5 mb-6 shadow-sm">
+      <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
         Book your tour
       </p>
 
       {/* Search */}
       <div className="relative mb-3">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#BBBBBB]">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-sand-light">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
@@ -210,7 +210,7 @@ export function DashboardVenueFilters({
           placeholder="Search venues…"
           defaultValue={searchParams.get('q') ?? ''}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full bg-[#F5F5F5] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#252525] placeholder-[#AAAAAA] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#FD6A2F]/20 focus:border-[#FD6A2F] border border-transparent transition-all"
+          className="w-full bg-surface-2 rounded-lg pl-10 pr-4 py-2.5 text-sm text-ink placeholder-sand-light focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/20 focus:border-brand border border-transparent transition-all"
         />
       </div>
 

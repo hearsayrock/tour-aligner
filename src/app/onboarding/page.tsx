@@ -1,20 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import OnboardingWizard from './OnboardingWizard'
+import { ArtistSetup } from '@/components/studio/ArtistSetup'
+import { inquiryReturn } from '@/lib/studio/return-path'
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({searchParams}:{searchParams:Promise<{redirectTo?:string}>}) {
+  const returnTo=inquiryReturn((await searchParams).redirectTo)
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
   const userId = session?.user.id
 
   if (!userId) redirect('/login')
 
-  const [profileResult, bandsResult, venuesResult] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', userId)
-      .single(),
+  const [bandsResult, venuesResult] = await Promise.all([
     supabase
       .from('bands')
       .select('id')
@@ -27,16 +24,10 @@ export default async function OnboardingPage() {
       .limit(1),
   ])
 
-  const profile = profileResult.data
   const hasManagedProfile = Boolean(bandsResult.data?.length || venuesResult.data?.length)
 
   // Already onboarded — skip ahead
-  if (hasManagedProfile) redirect('/dashboard')
+  if (hasManagedProfile) redirect(returnTo||'/dashboard')
 
-  return (
-    <OnboardingWizard
-      userId={userId}
-      userName={profile?.full_name ?? ''}
-    />
-  )
+  return <ArtistSetup returnTo={returnTo}/>
 }

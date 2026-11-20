@@ -109,6 +109,11 @@ export interface Database {
           slug?: string
         }
       }
+      studio_drafts: {
+        Row: { kind: string; entity_id: string; revision: number; changes: Json; updated_at: string }
+        Insert: never
+        Update: never
+      }
       bands: {
         Row: {
           id: string
@@ -138,6 +143,7 @@ export interface Database {
           featured_track_url: string | null
           artist_type: 'solo' | 'band' | null
           set_length_min: number | null
+          page_published: boolean
           is_active: boolean
           created_at: string
           updated_at: string
@@ -170,6 +176,7 @@ export interface Database {
           featured_track_url?: string | null
           artist_type?: 'solo' | 'band' | null
           set_length_min?: number | null
+          page_published?: boolean
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -200,6 +207,7 @@ export interface Database {
           featured_track_url?: string | null
           artist_type?: 'solo' | 'band' | null
           set_length_min?: number | null
+          page_published?: boolean
           is_active?: boolean
           updated_at?: string
         }
@@ -1125,6 +1133,9 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      create_studio_artist: { Args: { entity: string; artist_name: string; payload: Json }; Returns: string }
+      write_studio: { Args: { k: string; entity: string; expected: number; operation: string; payload?: Json }; Returns: number }
+      studio_owner: { Args: { k: string; entity: string }; Returns: boolean }
       search_artist_directory: {
         Args: {
           p_artist_id?: string | null

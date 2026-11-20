@@ -521,23 +521,24 @@ export function ChatDock({
         onFocusCapture={() => {
           if (!mobile) setActiveWindow(null)
         }}
-        className={`chat-dock pointer-events-auto relative z-[85] flex shrink-0 flex-col overflow-hidden border border-[#E5E2DC] bg-white text-[#252525] shadow-[0_4px_36px_rgba(35,28,18,0.15)] outline-none ${mobile && activeWindow ? '!hidden' : ''} ${expanded ? 'max-md:fixed max-md:inset-0 md:h-[560px] md:max-h-[calc(100dvh-24px)] md:w-[340px] xl:w-[380px] md:rounded-t-2xl' : 'max-md:fixed max-md:bottom-[max(12px,env(safe-area-inset-bottom))] max-md:right-3 w-56 rounded-2xl md:w-80 md:rounded-b-none'}`}
+        data-collapsed={!expanded}
+        className={`chat-dock pointer-events-auto relative z-[85] flex shrink-0 flex-col overflow-hidden border border-border bg-white text-ink shadow-[0_4px_36px_rgba(35,28,18,0.15)] outline-none ${mobile && activeWindow ? '!hidden' : ''} ${expanded ? 'max-md:fixed max-md:inset-0 md:h-[560px] md:max-h-[calc(100dvh-24px)] md:w-[340px] xl:w-[380px] md:rounded-t-2xl' : 'max-md:fixed max-md:bottom-[max(12px,env(safe-area-inset-bottom))] max-md:right-3 w-56 rounded-2xl md:w-80 md:rounded-b-none'}`}
       >
-        <div className="flex h-14 shrink-0 items-center gap-1 border-b border-[#ECEAE5] bg-white px-2.5">
+        <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border bg-white px-2.5">
           <button
             ref={launcherRef}
             type="button"
             onClick={() => setExpanded(!expanded)}
             aria-expanded={expanded}
             aria-controls="chat-dock-content"
-            className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+            className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
           >
-            <MessageSquare className="size-[18px] shrink-0 text-[#FD6A2F]" />
+            <MessageSquare className="size-[18px] shrink-0 text-brand-text" />
             <span className="truncate text-[13px] font-semibold tracking-tight">Chats</span>
             {unread > 0 && (
               <span
                 aria-label={`${unread} unread conversations`}
-                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FD6A2F] px-1.5 text-[10px] font-bold text-white"
+                className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-on-brand"
               >
                 {unread > 99 ? '99+' : unread}
               </span>
@@ -553,7 +554,7 @@ export function ChatDock({
               onClick={() => setPicker(!picker)}
             >
               <PanelsTopLeft className="size-4" />
-              <span className="absolute -right-0.5 top-0.5 rounded-full bg-[#F0EEE9] px-1 text-[9px]">
+              <span className="absolute -right-0.5 top-0.5 rounded-full bg-surface-2 px-1 text-[9px]">
                 {windows.length}
               </span>
             </button>
@@ -581,14 +582,14 @@ export function ChatDock({
         <div id="chat-dock-content" className={expanded ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
           {
             <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-3">
-              <span className="size-1.5 shrink-0 rounded-full bg-[#FD6A2F]" />
+              <span className="size-1.5 shrink-0 rounded-full bg-brand" />
               {identities.length > 1 ? (
                 <select
                   aria-label="Chat as profile"
                   value={scope ?? ''}
                   disabled={switching}
                   onChange={(event) => void switchProfile(event.target.value)}
-                  className="h-8 min-w-0 flex-1 bg-transparent text-xs font-semibold text-[#625D54] outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+                  className="h-8 min-w-0 flex-1 bg-transparent text-xs font-semibold text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   {!identity && (
                     <option value="" disabled>
@@ -602,11 +603,11 @@ export function ChatDock({
                   ))}
                 </select>
               ) : (
-                <span className="truncate text-xs font-semibold text-[#625D54]">
+                <span className="truncate text-xs font-semibold text-text-secondary">
                   {identity?.name ?? 'Select a profile'}
                 </span>
               )}
-              {switching && <LoaderCircle className="size-3.5 animate-spin text-[#928B81]" />}
+              {switching && <LoaderCircle className="size-3.5 animate-spin text-text-subtle" />}
             </div>
           }
           {!identity ? (
@@ -616,21 +617,21 @@ export function ChatDock({
           ) : (
             <>
               <div className="shrink-0 px-3 pb-3">
-                <label className="flex h-9 items-center gap-2 rounded-lg border border-transparent bg-[#F5F4F1] px-3 focus-within:border-[#E7A082]">
-                  <Search className="size-3.5 shrink-0 text-[#958D81]" />
+                <label className="flex h-9 items-center gap-2 rounded-lg border border-transparent bg-surface px-3 focus-within:border-peach">
+                  <Search className="size-3.5 shrink-0 text-text-subtle" />
                   <input
                     aria-label="Search conversations"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search conversations"
-                    className="w-full bg-transparent text-xs outline-none placeholder:text-[#979086]"
+                    className="w-full bg-transparent text-xs outline-none placeholder:text-text-subtle"
                   />
                 </label>
               </div>
               <div
                 role="tablist"
                 aria-label="Conversation type"
-                className="flex shrink-0 border-b border-[#ECEAE5] px-3"
+                className="flex shrink-0 border-b border-border px-3"
               >
                 {(['chats', 'booking'] as const).map((value) => (
                   <button
@@ -657,11 +658,11 @@ export function ChatDock({
                       }
                     }}
                     onClick={() => setTab(value)}
-                    className={`relative flex h-10 flex-1 items-center justify-center gap-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F] ${tab === value ? 'text-[#B7491D] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#FD6A2F]' : 'text-[#81786B] hover:text-[#252525]'}`}
+                    className={`relative flex h-10 flex-1 items-center justify-center gap-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand ${tab === value ? 'text-rust after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand' : 'text-text-secondary hover:text-ink'}`}
                   >
                     {value === 'chats' ? 'Chats' : 'Booking'}
                     {(value === 'chats' ? unreadChats : unreadBooking) > 0 && (
-                      <span className="rounded-full bg-[#FFF0E6] px-1.5 py-0.5 text-[9px] text-[#A84420]">
+                      <span className="rounded-full bg-surface px-1.5 py-0.5 text-[9px] text-rust">
                         {value === 'chats' ? unreadChats : unreadBooking}
                       </span>
                     )}
@@ -669,15 +670,15 @@ export function ChatDock({
                 ))}
               </div>
               {tab === 'chats' && (
-                <div className="flex h-9 shrink-0 items-center justify-between border-b border-[#F3F1EC] px-4">
-                  <span className="text-[10px] font-medium text-[#999083]">
+                <div className="flex h-9 shrink-0 items-center justify-between border-b border-border px-4">
+                  <span className="text-[10px] font-medium text-text-subtle">
                     {archived ? 'Archived conversations' : 'Recent conversations'}
                   </span>
                   <select
                     aria-label="Chat view"
                     value={archived ? 'archived' : 'active'}
                     onChange={(event) => setArchived(event.target.value === 'archived')}
-                    className="bg-transparent text-[10px] text-[#81786B] outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+                    className="bg-transparent text-[10px] text-text-secondary outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   >
                     <option value="active">Active</option>
                     <option value="archived">Archived</option>
@@ -709,7 +710,7 @@ export function ChatDock({
                         onClick={() => openPrivate(chat.thread.id)}
                         onPointerEnter={() => prefetch({ kind: 'private', id: chat.thread.id })}
                         onFocus={() => prefetch({ kind: 'private', id: chat.thread.id })}
-                        className="flex w-full shrink-0 items-center gap-3 border-b border-[#F3F1ED] px-4 py-3 text-left transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+                        className="flex w-full shrink-0 items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
                       >
                         <DockAvatar name={chat.partner.name} photo={chat.partner.photo} />
                         <span className="min-w-0 flex-1">
@@ -719,13 +720,13 @@ export function ChatDock({
                             >
                               {chat.partner.name}
                             </span>
-                            <span className="shrink-0 text-[9px] text-[#A0978B]">
+                            <span className="shrink-0 text-[9px] text-text-subtle">
                               {shortDate(chat.thread.last_message_at)}
                             </span>
                           </span>
                           <span className="mt-1 flex items-center gap-2">
                             <span
-                              className={`flex-1 truncate text-[11px] leading-relaxed ${chat.unread ? 'font-medium text-[#554C40]' : 'text-[#92887B]'}`}
+                              className={`flex-1 truncate text-[11px] leading-relaxed ${chat.unread ? 'font-medium text-text-secondary' : 'text-text-subtle'}`}
                             >
                               {chat.thread.status === 'pending'
                                 ? chat.thread.requested_by_kind === identity.kind &&
@@ -739,7 +740,7 @@ export function ChatDock({
                             {chat.unread && (
                               <span
                                 aria-label="Unread"
-                                className="size-1.5 shrink-0 rounded-full bg-[#FD6A2F]"
+                                className="size-1.5 shrink-0 rounded-full bg-brand"
                               />
                             )}
                           </span>
@@ -761,7 +762,7 @@ export function ChatDock({
                   )
                 ) : rooms.length ? (
                   rooms.map((room) => (
-                    <div key={room.id} className="relative shrink-0 border-b border-[#F3F1ED]">
+                    <div key={room.id} className="relative shrink-0 border-b border-border">
                       <button
                         type="button"
                         onPointerEnter={() => prefetch({ kind: 'backstage', id: room.id })}
@@ -774,21 +775,21 @@ export function ChatDock({
                           }
                           openConversation({ kind: 'backstage', id: room.id }, room.title)
                         }}
-                        className="flex w-full items-center gap-3 px-4 pb-9 pt-3 text-left transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]"
+                        className="flex w-full items-center gap-3 px-4 pb-9 pt-3 text-left transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
                       >
                         <DockAvatar name={room.title} photo={room.photo} room />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center justify-between gap-2">
                             <span className="truncate text-[13px] font-semibold">{room.title}</span>
-                            <span className="shrink-0 text-[9px] text-[#A0978B]">
+                            <span className="shrink-0 text-[9px] text-text-subtle">
                               {shortDate(room.lastMessageAt ?? `${room.date}T12:00:00`)}
                             </span>
                           </span>
-                          <span className="mt-0.5 block truncate text-[10px] text-[#A0978B]">
+                          <span className="mt-0.5 block truncate text-[10px] text-text-subtle">
                             {room.venueName}
                           </span>
                           <span className="mt-1 flex items-center gap-2">
-                            <span className="flex-1 truncate text-[11px] text-[#817668]">
+                            <span className="flex-1 truncate text-[11px] text-text-secondary">
                               {room.membershipStatus === 'invited'
                                 ? 'You’re invited. Open the event to respond.'
                                 : room.preview || 'Open Backstage chat'}
@@ -796,7 +797,7 @@ export function ChatDock({
                             {room.unread && (
                               <span
                                 aria-label="Unread"
-                                className="size-1.5 shrink-0 rounded-full bg-[#FD6A2F]"
+                                className="size-1.5 shrink-0 rounded-full bg-brand"
                               />
                             )}
                           </span>
@@ -806,7 +807,7 @@ export function ChatDock({
                         href={'/events/' + room.slug + (room.membershipStatus === 'invited' ? '?invite=1' : '')}
                         onClick={showBackstagePage}
                         aria-label={`View event for ${room.title}`}
-                        className="absolute bottom-2.5 right-4 inline-flex items-center gap-1 rounded text-[11px] font-semibold text-[#B7491D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD6A2F]"
+                        className="absolute bottom-2.5 right-4 inline-flex items-center gap-1 rounded text-[11px] font-semibold text-rust hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                       >
                         View event
                         <ExternalLink className="size-3" />
@@ -826,9 +827,9 @@ export function ChatDock({
       {picker && (
         <div
           ref={pickerRef}
-          className="pointer-events-auto fixed bottom-16 right-3 z-[200] flex max-h-[min(420px,70dvh)] w-80 flex-col overflow-hidden rounded-2xl border border-[#E5E2DC] bg-white shadow-xl md:right-6"
+          className="pointer-events-auto fixed bottom-16 right-3 z-[200] flex max-h-[min(420px,70dvh)] w-80 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-xl md:right-6"
         >
-          <div className="flex items-center justify-between border-b border-[#ECEAE5] px-4 py-2">
+          <div className="flex items-center justify-between border-b border-border px-4 py-2">
             <p className="text-xs font-semibold">Open conversations</p>
             <button
               type="button"
@@ -841,13 +842,13 @@ export function ChatDock({
           </div>
           <div className="app-scrollbar overflow-y-auto">
             {windows.map((window) => (
-              <div key={window.id} className="flex items-center gap-1 border-b border-[#F3F1ED] px-2">
+              <div key={window.id} className="flex items-center gap-1 border-b border-border px-2">
                 <button
                   type="button"
                   onClick={() => focusWindow(window.id)}
-                  className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-left text-xs hover:bg-[#FAF8F4]"
+                  className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-left text-xs hover:bg-surface"
                 >
-                  <MessageSquare className="size-3.5 shrink-0 text-[#FD6A2F]" />
+                  <MessageSquare className="size-3.5 shrink-0 text-brand-text" />
                   <span className="truncate">{windowTitle(window)}</span>
                 </button>
                 <button

@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import { ArrowRight, Eye, Mic2, Sparkles } from 'lucide-react'
+import { ArrowRight, Eye, Mic2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getServerTimingStart, logServerTiming } from '@/lib/performance'
-import { Badge, ButtonLink, Card, EmptyState, PageHeader } from '@/components/ui/primitives'
+import { Badge, ButtonLink, EmptyState, PageHeader } from '@/components/ui/primitives'
 
 export const metadata = { title: 'Manage Profiles' }
 
@@ -15,6 +15,7 @@ type ManagedArtist = {
   location_city: string | null
   location_state: string | null
   profile_photo_url: string | null
+  page_published: boolean
   updated_at: string
 }
 
@@ -33,30 +34,47 @@ function ProfileRow({
   title: string
   detail: string
   studioHref: string
-  publicPageHref: string
+  publicPageHref: string | null
 }) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#F0E5DF] bg-white shadow-[0_8px_24px_rgba(73,35,17,0.04)] transition-all hover:-translate-y-0.5 hover:border-[#FFB795] hover:shadow-[0_18px_38px_rgba(234,95,36,0.12)] sm:flex-row sm:items-stretch">
-      <Link href={studioHref} className="flex min-h-[104px] min-w-0 flex-1 items-center gap-4 px-5 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F]">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#FFD8C6] bg-gradient-to-br from-[#FFF6F1] to-[#FFE5D8] text-[#E95D2C] shadow-sm">
+    <div className="group flex flex-col overflow-hidden rounded-ds-2xl border border-border bg-page transition-colors hover:border-border-strong sm:flex-row sm:items-stretch">
+      <Link
+        href={studioHref}
+        className="flex min-h-[104px] min-w-0 flex-1 items-center gap-4 px-5 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
+      >
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-brand-tint-border bg-cream text-brand-dim shadow-sm">
           {profilePhotoUrl ? (
-            <Image src={profilePhotoUrl} alt={`${title} profile photo`} width={56} height={56} className="h-full w-full object-cover" unoptimized />
+            <Image
+              src={profilePhotoUrl}
+              alt={`${title} profile photo`}
+              width={56}
+              height={56}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
           ) : (
             <Mic2 className="h-6 w-6" />
           )}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-base font-bold text-[#252525]">{title}</p>
-          <p className="mt-0.5 text-sm text-[#777777]">{detail}</p>
-          <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#D95525] opacity-80 transition-opacity group-hover:opacity-100">
+          <p className="break-words text-xl font-bold leading-tight text-ink">{title}</p>
+          <p className="mt-0.5 text-sm text-text-secondary">{detail}</p>
+          <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-brand-text group-hover:underline">
             Edit public page <ArrowRight className="h-3.5 w-3.5" />
           </span>
         </div>
       </Link>
-        <Link href={publicPageHref} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 border-t border-[#E8D4C9] bg-[#FFF9F6] px-6 py-3 text-sm font-semibold text-[#6A3928] transition-colors hover:bg-[#FFF0E9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FD6A2F] sm:border-l sm:border-t-0">
+      {publicPageHref && (
+        <Link
+          href={publicPageHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 border-t border-border bg-surface px-6 py-3 text-sm font-semibold text-cocoa-2 transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand sm:border-l sm:border-t-0"
+        >
           <Eye className="h-4 w-4" />
           View public page
         </Link>
+      )}
     </div>
   )
 }
@@ -64,77 +82,113 @@ function ProfileRow({
 export default async function ManageProfilesPage() {
   const startedAt = getServerTimingStart()
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
   const userId = session?.user.id
   if (!userId) return redirect('/login')
 
-  const { data: rawBands } = await supabase
-    .from('bands')
-    .select('id, name, slug, location_city, location_state, profile_photo_url, updated_at')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .order('name')
+  const [{ data: rawBands }, { data: venues }] = await Promise.all([
+    supabase
+      .from('bands')
+      .select(
+        'id, name, slug, location_city, location_state, profile_photo_url, updated_at, page_published'
+      )
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('venues')
+      .select('id, name, slug, profile_photo_url, location_city, location_state')
+      .eq('claimed_by_user_id', userId)
+      .eq('is_active', true)
+      .eq('is_unlisted', false)
+      .order('name'),
+  ])
   logServerTiming('manage profiles page', { total: getServerTimingStart() - startedAt })
 
   const artists = (rawBands ?? []) as ManagedArtist[]
-  const hasAnyProfiles = artists.length > 0
+  const hasAnyProfiles = artists.length > 0 || !!venues?.length
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div className="workspace-page">
       <PageHeader
-        eyebrow="Profiles"
-        title="Your artists are ready for the spotlight."
-        description="Shape the public profiles that introduce your music to venues and fans."
-        actions={<ButtonLink href="/dashboard/bands/new"><Mic2 className="h-4 w-4" />Add Artist</ButtonLink>}
+        title="Your Studios"
+        description="Open a Studio to edit your page and review your private draft."
+        actions={
+          <ButtonLink href="/dashboard/bands/new">
+            <Mic2 className="h-4 w-4" />
+            Add Artist
+          </ButtonLink>
+        }
       />
 
       {!hasAnyProfiles ? (
         <EmptyState
           title="No managed profiles yet"
           description="Create an artist profile to start sharing your music and story."
-          action={<ButtonLink href="/dashboard/bands/new"><Mic2 className="h-4 w-4" />Add Artist</ButtonLink>}
+          action={
+            <ButtonLink href="/dashboard/bands/new">
+              <Mic2 className="h-4 w-4" />
+              Add Artist
+            </ButtonLink>
+          }
         />
       ) : (
         <div className="grid gap-6">
-          <section className="relative overflow-hidden rounded-3xl bg-[#262321] px-6 py-7 text-white shadow-[0_20px_46px_rgba(45,29,20,0.16)] sm:px-8 sm:py-8">
-            <div className="absolute -right-16 -top-24 h-56 w-56 rounded-full border-[32px] border-[#FE7440]/25" />
-            <div className="absolute bottom-0 right-28 h-20 w-20 rounded-full bg-[#FFC6AC]/10 blur-2xl" />
-            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="max-w-2xl">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.13em] text-[#FFD4C1]">
-                  <Sparkles className="h-3.5 w-3.5" /> Public page editor
-                </span>
-                <h2 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Make every first impression count.</h2>
-                <p className="mt-2 text-sm leading-6 text-[#D9D0CC] sm:text-base">Edit content, imagery, layout, and custom blocks directly on the page your audience sees.</p>
+          {artists.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between gap-3 px-1">
+                <div>
+                  <h2 className="font-ds-display text-3xl font-bold text-ink">Your Artist Lineup</h2>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Select an artist to edit their public page.
+                  </p>
+                </div>
+                <Badge tone="brand">
+                  {artists.length} {artists.length === 1 ? 'artist' : 'artists'}
+                </Badge>
               </div>
-              <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                <span className="text-3xl font-bold text-[#FF895D]">{artists.length}</span>
-                <span className="text-sm font-medium leading-5 text-[#F4EFEC]">artist {artists.length === 1 ? 'profile' : 'profiles'}<br />in your lineup</span>
+              <div className="grid gap-3 2xl:grid-cols-2">
+                {artists.map((artist) => (
+                  <ProfileRow
+                    key={artist.id}
+                    profilePhotoUrl={
+                      artist.profile_photo_url
+                        ? `${artist.profile_photo_url}${artist.profile_photo_url.includes('?') ? '&' : '?'}v=${encodeURIComponent(artist.updated_at)}`
+                        : null
+                    }
+                    title={artist.name}
+                    detail={
+                      artist.page_published
+                        ? locationLabel(artist.location_city, artist.location_state)
+                        : 'Unpublished artist'
+                    }
+                    studioHref={`/bands/${artist.slug}?edit=1`}
+                    publicPageHref={artist.page_published ? `/bands/${artist.slug}` : null}
+                  />
+                ))}
               </div>
-            </div>
-          </section>
-
-          <Card className="overflow-hidden p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3 px-1">
-              <div>
-                <h2 className="font-bold text-[#252525]">Your Artist Lineup</h2>
-                <p className="mt-1 text-sm text-[#777777]">Select an artist to edit their public page.</p>
-              </div>
-              <Badge tone="brand">{artists.length} {artists.length === 1 ? 'artist' : 'artists'}</Badge>
-            </div>
-            <div className="grid gap-3">
-              {artists.map((artist) => (
+            </section>
+          )}
+          {!!venues?.length && (
+            <section className="space-y-4">
+              <h2 className="font-ds-display text-3xl font-bold uppercase">Venue Studio</h2>
+              {venues.map((v) => (
                 <ProfileRow
-                  key={artist.id}
-                  profilePhotoUrl={artist.profile_photo_url ? `${artist.profile_photo_url}${artist.profile_photo_url.includes('?') ? '&' : '?'}v=${encodeURIComponent(artist.updated_at)}` : null}
-                  title={artist.name}
-                  detail={locationLabel(artist.location_city, artist.location_state)}
-                  studioHref={`/bands/${artist.slug}?edit=1`}
-                  publicPageHref={`/bands/${artist.slug}`}
+                  key={v.id}
+                  title={v.name}
+                  detail={locationLabel(v.location_city, v.location_state)}
+                  profilePhotoUrl={v.profile_photo_url}
+                  studioHref={`/venues/${v.slug}?edit=1`}
+                  publicPageHref={`/venues/${v.slug}`}
                 />
               ))}
-            </div>
-          </Card>
+              <ButtonLink href="/dashboard/backstage" tone="secondary">
+                Manage events
+              </ButtonLink>
+            </section>
+          )}
         </div>
       )}
     </div>

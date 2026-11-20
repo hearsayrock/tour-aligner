@@ -15,7 +15,7 @@ const LINKS = [
 export function AdminNav({ pendingClaims = false }: { pendingClaims?: boolean }) {
   const pathname = usePathname()
   return (
-    <nav className="flex-1 py-3 px-2 space-y-0.5">
+    <nav aria-label="Admin navigation" className="flex gap-1 overflow-x-auto p-2 lg:flex-1 lg:flex-col lg:px-3 lg:py-5">
       {LINKS.map(({ href, label }) => {
         const active = pathname.startsWith(href)
         const hasDot = href === '/admin/claims' && pendingClaims
@@ -23,14 +23,15 @@ export function AdminNav({ pendingClaims = false }: { pendingClaims?: boolean })
           <Link
             key={href}
             href={href}
-            className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            aria-current={active ? 'page' : undefined}
+            className={`flex items-center min-h-10 shrink-0 justify-between gap-2 px-3 py-2 rounded-ds-lg text-sm font-medium transition-colors ${
               active
-                ? 'bg-[#FD6A2F]/10 text-[#FD6A2F]'
-                : 'text-[#252525] hover:bg-[#F5F5F5]'
+                ? 'bg-cream text-cocoa'
+                : 'text-ink hover:bg-surface-2'
             }`}
           >
             {label}
-            {hasDot && <span className="w-2 h-2 bg-red-500 rounded-full shrink-0" />}
+            {hasDot && <span className="w-2 h-2 bg-brand rounded-full shrink-0" />}
           </Link>
         )
       })}

@@ -13,9 +13,9 @@ const PUBLIC_PATHS = new Set([
   '/terms',
 ])
 
-function isPublicArtistProfile(pathname: string) {
+function isPublicProfile(pathname: string) {
   const parts = pathname.split('/').filter(Boolean)
-  return parts.length === 2 && parts[0] === 'bands'
+  return parts.length === 2 && (parts[0] === 'bands' || parts[0] === 'venues')
 }
 
 function redirectWithSession(request: NextRequest, response: NextResponse, pathname: string) {
@@ -68,7 +68,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname.startsWith('/auth/') || pathname === '/terms' || isPublicArtistProfile(pathname)) {
+  if (process.env.NODE_ENV === 'development' && pathname === '/design-review/calendar') return response
+
+  if (pathname.startsWith('/auth/') || pathname === '/terms' || isPublicProfile(pathname)) {
     log('public')
     return response
   }
@@ -187,6 +189,9 @@ export async function middleware(request: NextRequest) {
     log('events', accessMs)
     return response
   }
+
+  // Each managed calendar and venue editor resolves its owner again at the route.
+  if (pathname === '/dashboard/calendar' || (access?.venues?.length && /^\/dashboard\/venues\/[^/]+\/edit$/.test(pathname))) return response
 
   if (isArtistWorkspacePath(pathname)) {
     log('artist-workspace', accessMs)

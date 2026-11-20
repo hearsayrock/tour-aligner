@@ -37,7 +37,7 @@ export function ApplyEventForm({
 
   if (existingMembership?.status === 'applied') {
     return (
-      <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-5 text-sm text-[#8A5A12]">
+      <div className="rounded-2xl border border-warning-border bg-warning-tint p-5 text-sm text-warning-text">
         Your application is waiting for the venue.
       </div>
     )
@@ -64,10 +64,10 @@ export function ApplyEventForm({
     }
 
     return (
-      <div className="rounded-2xl border border-[#F2D7A6] bg-[#FFF7E8] p-4">
-        <p className="text-sm text-[#755021]">This venue invited you to Backstage. Chat opens once you accept.</p>
+      <div className="rounded-2xl border border-warning-border bg-warning-tint p-4">
+        <p className="text-sm text-warning-text">This venue invited you to Backstage. Chat opens once you accept.</p>
         {existingMembership.invitation_note && (
-          <LinkifiedText text={existingMembership.invitation_note} className="mt-3 whitespace-pre-wrap break-words text-sm text-[#252525]" />
+          <LinkifiedText text={existingMembership.invitation_note} className="mt-3 whitespace-pre-wrap break-words text-sm text-ink" />
         )}
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => respond('accepted')} disabled={isPending} className={buttonBaseClass('primary')}>
@@ -84,7 +84,7 @@ export function ApplyEventForm({
 
   if (existingMembership?.status === 'declined') {
     return (
-      <p className="text-sm text-[#666666]">
+      <p className="text-sm text-text-secondary">
         {existingMembership.source === 'invitation' ? 'Invitation declined.' : 'Application declined.'}
       </p>
     )
@@ -92,9 +92,9 @@ export function ApplyEventForm({
 
   if (bands.length === 0) {
     return (
-      <p className="text-sm text-[#888888]">
+      <p className="text-sm text-muted">
         Create an artist profile before applying.{' '}
-        <Link href="/dashboard/bands/new" className="text-[#FD6A2F] hover:underline">
+        <Link href="/dashboard/bands/new" className="text-brand-text hover:underline">
           Add artist
         </Link>
       </p>
@@ -121,12 +121,12 @@ export function ApplyEventForm({
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="mb-1.5 block text-sm text-[#777777]">Application note</label>
-        <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} required placeholder="Tell the venue why this artist fits the event." className="w-full resize-none rounded-xl border border-[#E8E8E8] bg-[#F5F5F5] px-3 py-2.5 text-sm focus:outline-none focus:border-[#FD6A2F]" />
+        <label className="mb-1.5 block text-sm text-text-secondary">Application note</label>
+        <textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} required placeholder="Tell the venue why this artist fits the event." className="w-full resize-none rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm focus:outline-none focus:border-brand" />
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}
-      {sent && <p className="text-sm text-[#0C7C71]">Application sent.</p>}
-      <button type="submit" disabled={isPending || !bandId} className="w-full rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+      {sent && <p className="text-sm text-success">Application sent.</p>}
+      <button type="submit" disabled={isPending || !bandId} className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand disabled:opacity-50">
         {isPending ? 'Applying...' : 'Apply to Event'}
       </button>
     </form>

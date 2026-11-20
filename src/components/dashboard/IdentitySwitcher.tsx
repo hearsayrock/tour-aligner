@@ -32,9 +32,20 @@ export function IdentitySwitcher({
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape' && open) {
+        event.preventDefault()
+        setOpen(false)
+        ref.current?.querySelector('button')?.focus()
+      }
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [open])
 
   if (identities.length < 2) return null
 
@@ -53,17 +64,18 @@ export function IdentitySwitcher({
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={isPending}
-        className={`flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-[#E6E6E6] bg-white px-3 text-sm font-semibold transition-colors disabled:opacity-50 ${
-          open ? 'text-[#252525]' : 'text-[#555555] hover:border-[#CCCCCC] hover:text-[#252525]'
+        aria-expanded={open}
+        className={`flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 text-sm font-semibold transition-colors disabled:opacity-50 ${
+          open ? 'text-ink' : 'text-text-secondary hover:border-border-strong hover:text-ink'
         }`}
       >
         <span className="flex min-w-0 items-center gap-2">
           {activeIdentity.kind === 'all' ? (
-            <Users className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+            <Users className="h-4 w-4 shrink-0 text-brand-text" />
           ) : activeIdentity.kind === 'band' ? (
-            <Mic2 className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+            <Mic2 className="h-4 w-4 shrink-0 text-brand-text" />
           ) : (
-            <MapPin className="h-4 w-4 shrink-0 text-[#FD6A2F]" />
+            <MapPin className="h-4 w-4 shrink-0 text-brand-text" />
           )}
           <span className="max-w-[150px] truncate">{activeLabel(activeIdentity, allowAll)}</span>
         </span>
@@ -71,15 +83,15 @@ export function IdentitySwitcher({
       </button>
 
       {open && (
-        <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-56 overflow-hidden rounded-xl border border-[#E8E8E8] bg-white shadow-lg">
+        <div data-theme="light" className="absolute top-[calc(100%+6px)] right-0 z-50 w-56 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
           <div className="py-1">
             {allowAll && (
               <button
                 type="button"
                 onClick={() => select('all')}
-                className="flex min-h-10 w-full items-center gap-2 px-4 text-left text-sm text-[#333333] transition-colors hover:bg-[#F5F5F5]"
+                className="flex min-h-10 w-full items-center gap-2 px-4 text-left text-sm text-ink transition-colors hover:bg-surface-2"
               >
-                <Users className="h-4 w-4 text-[#888888]" />
+                <Users className="h-4 w-4 text-muted" />
                 All profiles
               </button>
             )}
@@ -88,11 +100,11 @@ export function IdentitySwitcher({
                 key={`${identity.kind}:${identity.id}`}
                 type="button"
                 onClick={() => select(identityValue(identity))}
-                className="flex min-h-10 w-full items-center gap-2 px-4 text-left text-sm text-[#333333] transition-colors hover:bg-[#F5F5F5]"
+                className="flex min-h-10 w-full items-center gap-2 px-4 text-left text-sm text-ink transition-colors hover:bg-surface-2"
               >
-                {identity.kind === 'band' ? <Mic2 className="h-4 w-4 text-[#888888]" /> : <MapPin className="h-4 w-4 text-[#888888]" />}
+                {identity.kind === 'band' ? <Mic2 className="h-4 w-4 text-muted" /> : <MapPin className="h-4 w-4 text-muted" />}
                 <span className="min-w-0 flex-1 truncate">{identity.name}</span>
-                <span className="text-xs text-[#AAAAAA]">{identity.kind === 'band' ? 'Artist' : 'Venue'}</span>
+                <span className="text-xs text-text-secondary">{identity.kind === 'band' ? 'Artist' : 'Venue'}</span>
               </button>
             ))}
           </div>

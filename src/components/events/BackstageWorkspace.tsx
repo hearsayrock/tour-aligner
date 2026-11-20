@@ -75,10 +75,10 @@ export async function BackstageWorkspace({
 
   return (
     <section aria-labelledby="backstage-title" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E8E8E8] bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-white p-5">
         <div>
-          <h2 id="backstage-title" className="text-xl font-bold text-[#252525]">Backstage</h2>
-          <p className="mt-1 text-sm text-[#666666]">{formatEventDateLong(event)}</p>
+          <h2 id="backstage-title" className="text-xl font-bold text-ink">Backstage</h2>
+          <p className="mt-1 text-sm text-text-secondary">{formatEventDateLong(event)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {!isVenueLeader && (
@@ -111,12 +111,12 @@ export async function BackstageWorkspace({
             />
             <div className="mt-4 space-y-3">
               {lineupMemberships.length === 0 ? (
-                <p className="text-sm text-[#888888]">{isVenueLeader ? 'No artists yet.' : 'No confirmed artists yet.'}</p>
+                <p className="text-sm text-muted">{isVenueLeader ? 'No artists yet.' : 'No confirmed artists yet.'}</p>
               ) : (
                 lineupMemberships.map((membership) => (
-                  <div key={membership.id} className="rounded-2xl border border-[#E8E8E8] bg-[#FCFCFC] px-4 py-3">
+                  <div key={membership.id} className="rounded-2xl border border-border bg-surface px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-[#252525]">{membership.bands?.name ?? 'Unknown artist'}</p>
+                      <p className="text-sm font-semibold text-ink">{membership.bands?.name ?? 'Unknown artist'}</p>
                       <Badge tone={membershipTone(membership.status)}>
                         {MEMBERSHIP_STATUS_LABELS[membership.status]}
                       </Badge>
@@ -188,7 +188,7 @@ export async function BackstageWorkspace({
                       )}
                     </div>
                     {isVenueLeader && membership.status === 'invited' && membership.invitation_note && (
-                      <LinkifiedText text={membership.invitation_note} className="mt-2 whitespace-pre-wrap break-words text-sm text-[#666666]" />
+                      <LinkifiedText text={membership.invitation_note} className="mt-2 whitespace-pre-wrap break-words text-sm text-text-secondary" />
                     )}
                   </div>
                 ))
@@ -205,14 +205,14 @@ export async function BackstageWorkspace({
 
               <Card className="overflow-hidden">
                 <details>
-                  <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525]">
+                  <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-ink">
                     <span className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-[#FD6A2F]" />
+                      <Settings className="h-4 w-4 text-brand-text" />
                       Event settings
                     </span>
-                    <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+                    <SlidersHorizontal className="h-4 w-4 text-muted" />
                   </summary>
-                  <div className="border-t border-[#EEEEEE] p-5">
+                  <div className="border-t border-border p-5">
                     <BackstageSettingsForm event={event} genres={allGenres ?? []} selectedGenreIds={selectedGenreIds} />
                   </div>
                 </details>
@@ -220,14 +220,14 @@ export async function BackstageWorkspace({
 
               <Card className="overflow-hidden">
                 <details>
-                  <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-[#252525]">
+                  <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 text-sm font-semibold text-ink">
                     <span className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-[#FD6A2F]" />
+                      <ClipboardList className="h-4 w-4 text-brand-text" />
                       Edit logistics
                     </span>
-                    <SlidersHorizontal className="h-4 w-4 text-[#888888]" />
+                    <SlidersHorizontal className="h-4 w-4 text-muted" />
                   </summary>
-                  <div className="border-t border-[#EEEEEE] p-5">
+                  <div className="border-t border-border p-5">
                     <BackstageLogisticsForm eventId={event.id} logistics={logistics} />
                   </div>
                 </details>

@@ -67,12 +67,12 @@ export function ImageCropModal({ src, aspect, onComplete, onCancel }: ImageCropM
       {/* Modal */}
       <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-[#F0F0F0] flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#252525]">Crop photo</h2>
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-base font-semibold text-ink">Crop photo</h2>
           <button
             type="button"
             onClick={onCancel}
-            className="text-[#AAAAAA] hover:text-[#555555] transition-colors text-xl leading-none"
+            className="text-sand-light hover:text-text-secondary transition-colors text-xl leading-none"
             aria-label="Close"
           >
             ×
@@ -80,7 +80,7 @@ export function ImageCropModal({ src, aspect, onComplete, onCancel }: ImageCropM
         </div>
 
         {/* Crop area */}
-        <div className="relative bg-[#111111]" style={{ height: aspect >= 2 ? 220 : 340 }}>
+        <div className="relative bg-cocoa" style={{ height: aspect >= 2 ? 220 : 340 }}>
           <Cropper
             image={src}
             crop={crop}
@@ -119,14 +119,14 @@ export function ImageCropModal({ src, aspect, onComplete, onCancel }: ImageCropM
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
         </div>
-        <p className="text-center text-xs text-[#AAAAAA] pb-3">Pinch or scroll to zoom · Drag to reposition</p>
+        <p className="text-center text-xs text-sand-light pb-3">Pinch or scroll to zoom · Drag to reposition</p>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-[#F0F0F0] flex justify-end gap-3">
+        <div className="px-5 py-4 border-t border-border flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="text-sm font-medium text-[#555555] hover:text-[#252525] transition-colors px-4 py-2"
+            className="text-sm font-medium text-text-secondary hover:text-ink transition-colors px-4 py-2"
           >
             Cancel
           </button>
@@ -134,7 +134,7 @@ export function ImageCropModal({ src, aspect, onComplete, onCancel }: ImageCropM
             type="button"
             onClick={handleApply}
             disabled={applying}
-            className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50"
+            className="bg-brand text-on-brand font-semibold rounded-lg px-5 py-2 text-sm hover:bg-brand-dim transition-colors disabled:opacity-50"
           >
             {applying ? 'Applying…' : 'Apply'}
           </button>

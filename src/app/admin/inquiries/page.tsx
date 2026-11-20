@@ -6,9 +6,9 @@ export const metadata = { title: 'Admin — Legacy Inquiries' }
 
 const STATUS_BADGE: Record<InquiryStatus, { label: string; className: string }> = {
   pending:   { label: 'Pending',   className: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
-  accepted:  { label: 'Accepted',  className: 'text-[#00bba5] bg-[#00bba5]/10 border-[#00bba5]/20' },
+  accepted:  { label: 'Accepted',  className: 'text-brand-2 bg-brand-2/10 border-brand-2/20' },
   declined:  { label: 'Declined',  className: 'text-red-500 bg-red-50 border-red-200' },
-  cancelled: { label: 'Cancelled', className: 'text-[#888888] bg-[#F5F5F5] border-[#E8E8E8]' },
+  cancelled: { label: 'Cancelled', className: 'text-muted bg-surface-2 border-border' },
 }
 
 function fmtDate(s: string) {
@@ -39,12 +39,12 @@ export default async function AdminInquiriesPage({
   return (
     <div className="px-6 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#252525]">Legacy Inquiries</h1>
-        <span className="text-sm text-[#888888]">{inquiries?.length ?? 0} shown</span>
+        <h1 className="text-xl font-bold text-ink">Legacy Inquiries</h1>
+        <span className="text-sm text-muted">{inquiries?.length ?? 0} shown</span>
       </div>
 
-      <div className="mb-5 rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] px-4 py-3">
-        <p className="text-sm text-[#666666]">
+      <div className="mb-5 rounded-xl border border-border bg-surface px-4 py-3">
+        <p className="text-sm text-text-secondary">
           These are archived inquiry records. Current conversations are in Chats, and booking details are in Backstage.
         </p>
       </div>
@@ -55,8 +55,8 @@ export default async function AdminInquiriesPage({
           href="/admin/inquiries"
           className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
             !status
-              ? 'bg-[#252525] text-white border-[#252525]'
-              : 'text-[#888888] border-[#E8E8E8] hover:border-[#CCCCCC]'
+              ? 'bg-cocoa text-white border-edge'
+              : 'text-muted border-border hover:border-border-strong'
           }`}
         >
           All
@@ -67,8 +67,8 @@ export default async function AdminInquiriesPage({
             href={`/admin/inquiries?status=${s}`}
             className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
               status === s
-                ? 'bg-[#252525] text-white border-[#252525]'
-                : 'text-[#888888] border-[#E8E8E8] hover:border-[#CCCCCC]'
+                ? 'bg-cocoa text-white border-edge'
+                : 'text-muted border-border hover:border-border-strong'
             }`}
           >
             {s}
@@ -76,15 +76,15 @@ export default async function AdminInquiriesPage({
         ))}
       </div>
 
-      <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[#E8E8E8]">
-              <th className="text-left text-xs font-semibold text-[#888888] uppercase tracking-wider px-4 py-3">Band</th>
-              <th className="text-left text-xs font-semibold text-[#888888] uppercase tracking-wider px-4 py-3">Venue</th>
-              <th className="text-left text-xs font-semibold text-[#888888] uppercase tracking-wider px-4 py-3">Date</th>
-              <th className="text-left text-xs font-semibold text-[#888888] uppercase tracking-wider px-4 py-3">Status</th>
-              <th className="text-left text-xs font-semibold text-[#888888] uppercase tracking-wider px-4 py-3">Submitted</th>
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-4 py-3">Band</th>
+              <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-4 py-3">Venue</th>
+              <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-4 py-3">Date</th>
+              <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-4 py-3">Status</th>
+              <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-4 py-3">Submitted</th>
             </tr>
           </thead>
           <tbody>
@@ -95,29 +95,29 @@ export default async function AdminInquiriesPage({
               }
               const badge = STATUS_BADGE[row.status]
               return (
-                <tr key={row.id} className="border-b border-[#E8E8E8] last:border-0 hover:bg-[#F5F5F5] transition-colors">
+                <tr key={row.id} className="border-b border-border last:border-0 hover:bg-surface-2 transition-colors">
                   <td className="px-4 py-3">
                     {row.bands ? (
-                      <Link href={`/admin/bands/${row.bands.id}`} className="text-sm text-[#FD6A2F] hover:underline">
+                      <Link href={`/admin/bands/${row.bands.id}`} className="text-sm text-brand-text hover:underline">
                         {row.bands.name}
                       </Link>
-                    ) : <span className="text-sm text-[#888888]">—</span>}
+                    ) : <span className="text-sm text-muted">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     {row.venues ? (
-                      <Link href={`/admin/venues/${row.venues.id}`} className="text-sm text-[#FD6A2F] hover:underline">
+                      <Link href={`/admin/venues/${row.venues.id}`} className="text-sm text-brand-text hover:underline">
                         {row.venues.name}
                       </Link>
-                    ) : <span className="text-sm text-[#888888]">—</span>}
+                    ) : <span className="text-sm text-muted">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-sm text-[#888888]">{fmtDate(row.requested_date)}</td>
+                  <td className="px-4 py-3 text-sm text-muted">{fmtDate(row.requested_date)}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded border ${badge.className}`}>
                       {badge.label}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/admin/inquiries/${row.id}`} className="text-sm text-[#888888] hover:text-[#252525] transition-colors">
+                    <Link href={`/admin/inquiries/${row.id}`} className="text-sm text-muted hover:text-ink transition-colors">
                       {fmtDate(row.created_at)}
                     </Link>
                   </td>
@@ -127,7 +127,7 @@ export default async function AdminInquiriesPage({
           </tbody>
         </table>
         {(inquiries ?? []).length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-[#888888]">No legacy inquiries found.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted">No legacy inquiries found.</p>
         )}
       </div>
     </div>

@@ -74,7 +74,7 @@ const audiences = [
 
 function Hero() {
   return (
-    <section className="relative flex min-h-screen items-end overflow-hidden border-b border-[#2A2A2A] pt-24 sm:pt-28 lg:items-start lg:pt-[clamp(8rem,calc(100svh-36rem),23rem)]">
+    <section className="relative isolate flex min-h-[88svh] items-end overflow-hidden bg-cocoa pt-24">
       <Image
         src="/landing-hero-crowd.jpg"
         alt="Concert crowd raising their hands toward a lit stage"
@@ -83,12 +83,11 @@ function Hero() {
         className="object-cover object-center"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,8,0.34)_0%,rgba(8,8,8,0.56)_42%,rgba(8,8,8,0.84)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(253,106,47,0.18),_transparent_28%),radial-gradient(circle_at_82%_22%,_rgba(14,116,144,0.16),_transparent_24%)]" />
+      <div className="absolute inset-0 bg-cocoa/65" />
 
       <div className="relative mx-auto w-full max-w-[clamp(80rem,64vw,144rem)] px-6 pb-10 sm:pb-12 lg:px-8 lg:pb-[clamp(3.5rem,5svh,6rem)]">
-        <div className="rounded-[28px] border border-white/10 bg-black/28 p-6 text-white backdrop-blur-md sm:p-8 lg:rounded-[clamp(1.75rem,1.5vw,2.5rem)] lg:p-[clamp(2.25rem,min(1.8vw,3.4svh),3.5rem)]">
-          <h1 className="font-[var(--font-barlow)] text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-6xl lg:text-[clamp(5.1rem,min(4.25vw,7.5svh),7.5rem)]">
+        <div className="max-w-6xl py-5 text-cream sm:py-8">
+          <h1 className="font-ds-display text-[clamp(4rem,9vw,9rem)] font-extrabold uppercase leading-[0.86] tracking-tight text-cream">
             Create your profile 
             <br/>
             Get ready for tour
@@ -114,9 +113,9 @@ function Hero() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-sm leading-6 text-white/86 shadow-[0_12px_28px_rgba(0,0,0,0.14)] backdrop-blur-sm lg:rounded-[clamp(1rem,1vw,1.5rem)] lg:p-[clamp(1rem,min(1vw,1.9svh),1.5rem)] lg:text-[clamp(0.875rem,min(0.75vw,1.3svh),1.125rem)] lg:leading-[1.7]"
+                className="flex items-center gap-3 border-t border-cream/50 py-3 font-semibold text-cream"
               >
-                <div className="mb-2 flex items-center gap-2 text-[#FD6A2F]">
+                <div className="flex items-center gap-2 text-brand-text">
                   <CheckCircle2 size={15} />
                 </div>
                 {item}
@@ -131,13 +130,13 @@ function Hero() {
 
 function Pillars() {
   return (
-    <section id="product" className="bg-white py-20 sm:py-24">
+    <section id="product" className="bg-page py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#A24A22]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">
             Why it works
           </p>
-          <h2 className="mt-4 max-w-5xl text-2xl font-semibold tracking-tight text-[#111111] sm:text-4xl">
+          <h2 className="mt-4 max-w-5xl font-ds-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-6xl">
             Independent artists are doing more than making music. They’re chasing replies, sharing links, proving they belong on the bill, and trying to turn momentum into booked dates.
           </h2>
         </div>
@@ -146,13 +145,13 @@ function Pillars() {
           {pillars.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="rounded-[24px] border border-[#ECE7DE] bg-[#FBFAF7] p-6 shadow-[0_16px_36px_rgba(17,17,17,0.04)]"
+              className="rounded-ds-2xl border border-border bg-surface p-6 shadow-card"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#c4682f] text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-ds-xl bg-sage-light text-cocoa">
                 <Icon size={19} />
               </div>
-              <h3 className="mt-5 text-xl font-semibold text-[#111111]">{title}</h3>
-              <p className="mt-3 text-sm leading-6 text-[#5E656C]">{body}</p>
+              <h3 className="mt-5 text-xl font-semibold text-ink-black">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-text-secondary">{body}</p>
             </div>
           ))}
         </div>
@@ -165,12 +164,12 @@ function WorkflowSection() {
   return (
     <section
       id="workflow"
-      className="border-y border-[#1E1E1E] bg-[linear-gradient(180deg,#111111_0%,#181818_100%)] py-20 text-white sm:py-24"
+      className="border-y border-edge bg-cocoa py-20 text-white sm:py-24"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
         <div className="max-w-xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F6B293]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-warning-border">
             How it works
           </p>
           <h2 className="mt-4 font-[var(--font-barlow)] text-4xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white sm:text-5xl">
@@ -185,9 +184,9 @@ function WorkflowSection() {
             {workflow.map((item, index) => (
               <div
                 key={item.step}
-                className="rounded-[24px] border border-white/10 bg-white/5 p-5 shadow-[0_18px_36px_rgba(0,0,0,0.18)]"
+                className="border-t border-sand/40 py-5"
               >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8DDAEF]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-info-border">
                   0{index + 1}
                 </div>
                 <h3 className="mt-3 text-xl font-semibold text-white">{item.step}</h3>
@@ -203,13 +202,13 @@ function WorkflowSection() {
 
 function AudienceSection() {
   return (
-    <section id="audiences" className="bg-[#F7F4EE] py-20 sm:py-24">
+    <section id="audiences" className="bg-surface py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#A24A22]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">
             Who it&apos;s for
           </p>
-          <h2 className="mt-4 max-w-5xl text-3xl font-semibold tracking-tight text-[#111111] sm:text-5xl">
+          <h2 className="mt-4 max-w-5xl font-ds-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-6xl">
             Built first for artists getting ready to move.
           </h2>
         </div>
@@ -218,12 +217,12 @@ function AudienceSection() {
           {audiences.map((audience) => (
             <div
               key={audience.title}
-              className="rounded-[26px] border border-[#E6DFD3] bg-white p-7 shadow-[0_18px_40px_rgba(17,17,17,0.05)]"
+              className="rounded-ds-2xl border border-border bg-page p-7"
             >
-              <h3 className="text-2xl font-semibold tracking-tight text-[#111111]">
+              <h3 className="text-2xl font-semibold tracking-tight text-ink-black">
                 {audience.title}
               </h3>
-              <p className="mt-4 text-sm leading-7 text-[#5E656C]">{audience.body}</p>
+              <p className="mt-4 text-sm leading-7 text-text-secondary">{audience.body}</p>
             </div>
           ))}
         </div>
@@ -236,8 +235,7 @@ function FinalCta() {
   return (
     <section className="bg-white pb-24 pt-20 sm:pb-28 sm:pt-16">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-[32px] border border-[#2A2A2A] bg-[#111111] px-6 py-12 text-white shadow-[0_28px_80px_rgba(17,17,17,0.14)] sm:px-10 sm:py-14">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(253,106,47,0.22),_transparent_28%),radial-gradient(circle_at_85%_15%,_rgba(14,116,144,0.16),_transparent_22%)]" />
+        <div className="relative overflow-hidden rounded-ds-3xl border border-edge bg-cocoa px-6 py-12 text-white shadow-[0_28px_80px_rgba(17,17,17,0.14)] sm:px-10 sm:py-14">
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               

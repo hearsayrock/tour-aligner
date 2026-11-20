@@ -4,17 +4,17 @@ import { cookies } from 'next/headers'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { loadArtistFollowState } from '@/lib/artist-network-data'
-import {
-  ArtistPageCanvas,
-  type ArtistPageLyric,
-  type ArtistPageShow,
-} from '@/components/profile-page/artist/ArtistPageCanvas'
-import type { Band, Event, Genre } from '@/types/database'
+import { StudioPage } from '@/components/studio/StudioPage'
+import { ArtistConnectionActions } from '@/components/bands/ArtistConnectionActions'
+import { initialDocument } from '@/lib/studio/model'
+import { loadDraft } from '@/lib/studio/server'
+import type { Band, Event } from '@/types/database'
 import type { ProfilePageBlock } from '@/types/database'
 import { parseProfilePageBlock } from '@/components/profile-page/blocks/profile-page-blocks'
 import {
   ACTIVE_IDENTITY_COOKIE,
   resolveActiveIdentity,
+  identityValue,
   type ManagedIdentity,
 } from '@/lib/managed-identity'
 
@@ -25,42 +25,12 @@ export async function generateStaticParams() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  const { data } = await supabase.from('bands').select('slug').eq('is_active', true)
+  const { data } = await supabase
+    .from('bands')
+    .select('slug')
+    .eq('page_published', true)
+    .eq('is_active', true)
   return (data ?? []).map(({ slug }) => ({ slug }))
-}
-
-type ArtistPreviewDraft = Partial<Pick<Band,
-  | 'name'
-  | 'tagline'
-  | 'description'
-  | 'location_city'
-  | 'location_state'
-  | 'touring_radius'
-  | 'artist_type'
-  | 'set_length_min'
-  | 'featured_track_url'
-  | 'profile_theme'
-  | 'website_url'
-  | 'instagram_url'
-  | 'spotify_url'
-  | 'youtube_url'
-  | 'bandcamp_url'
-  | 'apple_music_url'
-  | 'tiktok_url'
-  | 'soundcloud_url'
-  | 'facebook_url'
-  | 'twitter_url'
->> & { genre_names?: string[] }
-
-function parsePreviewDraft(value: string | undefined): ArtistPreviewDraft {
-  if (!value) return {}
-  try {
-    const draft = JSON.parse(value) as unknown
-    if (!draft || Array.isArray(draft) || typeof draft !== 'object') return {}
-    return draft as ArtistPreviewDraft
-  } catch {
-    return {}
-  }
 }
 
 export async function generateMetadata({
@@ -73,6 +43,7 @@ export async function generateMetadata({
   const { data } = await supabase
     .from('bands')
     .select('name, tagline')
+    .eq('page_published', true)
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -85,14 +56,18 @@ export default async function BandProfilePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ draft?: string; edit?: string }>
+  searchParams: Promise<{ inquire?: string; date?: string; edit?: string }>
 }) {
   const { slug } = await params
-  const { draft, edit } = await searchParams
+  const { inquire, date, edit } = await searchParams
   const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: rawBand }, { data: { user } }] = await Promise.all([
+  const [
+    { data: rawBand },
+    {
+      data: { user },
+    },
+  ] = await Promise.all([
     supabase.from('bands').select('*').eq('slug', slug).eq('is_active', true).single(),
     supabase.auth.getUser(),
   ])
@@ -100,20 +75,17 @@ export default async function BandProfilePage({
   const band = rawBand as Band | null
   if (!band) return notFound()
   const isOwner = user?.id === band.user_id
-  const previewDraft = parsePreviewDraft(draft)
-  const displayBand = structuredClone({
-    ...band,
-    ...previewDraft,
-  }) as Band
-
-  const [{ data: bandGenres }, { data: rawShows }, { data: rawLyrics }, { data: rawGenres }, { data: rawBlocks }] = await Promise.all([
+  if (!isOwner && !band.page_published) notFound()
+  const editing = isOwner && (edit === '1' || !band.page_published)
+  const collectionResults = await Promise.all([
     supabase.from('band_genres').select('genre_id, genres(name)').eq('band_id', band.id),
     supabase
       .from('bookings')
-      .select('id, show_date, event_id, venues(name, location_city, location_state), events(is_public, lineup_published, status)')
+      .select(
+        'id, show_date, event_id, venues(name, location_city, location_state), events(is_public, lineup_published, status)'
+      )
       .eq('band_id', band.id)
       .in('status', ['confirmed', 'cancellation_requested'])
-      .gte('show_date', today)
       .order('show_date'),
     supabase
       .from('band_lyrics')
@@ -121,68 +93,134 @@ export default async function BandProfilePage({
       .eq('band_id', band.id)
       .order('sort_order')
       .order('created_at'),
-    isOwner && edit === '1'
-      ? supabase.from('genres').select('id, name').order('name')
-      : Promise.resolve({ data: [] as Pick<Genre, 'id' | 'name'>[] }),
+    supabase.from('genres').select('id, name').order('name'),
     supabase.from('profile_page_blocks').select('*').eq('band_id', band.id).order('created_at'),
+    supabase.from('band_show_dates').select('*').eq('band_id', band.id).order('show_date'),
   ])
-
-  let genreNames = (
-    (bandGenres ?? []) as unknown as { genres: { name: string } | null }[]
-  )
-    .map((bandGenre) => bandGenre.genres?.name)
-    .filter(Boolean) as string[]
-  if (Array.isArray(previewDraft.genre_names)) {
-    genreNames = previewDraft.genre_names.filter((genre): genre is string => typeof genre === 'string' && genre.trim().length > 0)
-  }
+  if (editing && collectionResults.some((result) => result.error))
+    throw new Error('Could not load all profile content for editing.')
+  const [
+    { data: bandGenres },
+    { data: rawShows },
+    { data: rawLyrics },
+    { data: rawGenres },
+    { data: rawBlocks },
+    { data: manualShows },
+  ] = collectionResults
 
   const blocks = (structuredClone(rawBlocks ?? []) as ProfilePageBlock[]).flatMap((block) => {
     const parsed = parseProfilePageBlock(block)
     return parsed ? [parsed] : []
   })
   let contactIdentity: ManagedIdentity | null = null
-  let contactNeedsIdentitySelection = false
+  let identities: ManagedIdentity[] = []
   if (user) {
     const [{ data: ownedBands }, { data: ownedVenues }] = await Promise.all([
       supabase.from('bands').select('id, name').eq('user_id', user.id).eq('is_active', true),
       supabase.from('venues').select('id, name').eq('claimed_by_user_id', user.id).eq('is_active', true),
     ])
-    const identities: ManagedIdentity[] = [
-      ...(ownedBands ?? []).map((ownedBand) => ({ kind: 'band' as const, id: ownedBand.id, name: ownedBand.name, href: `/dashboard/bands/${ownedBand.id}/edit` })),
-      ...(ownedVenues ?? []).map((venue) => ({ kind: 'venue' as const, id: venue.id, name: venue.name, href: `/dashboard/venues/${venue.id}/edit` })),
+    identities = [
+      ...(ownedBands ?? []).map((ownedBand) => ({
+        kind: 'band' as const,
+        id: ownedBand.id,
+        name: ownedBand.name,
+        href: `/dashboard/bands/${ownedBand.id}/edit`,
+      })),
+      ...(ownedVenues ?? []).map((venue) => ({
+        kind: 'venue' as const,
+        id: venue.id,
+        name: venue.name,
+        href: `/dashboard/venues/${venue.id}/edit`,
+      })),
     ]
     const cookieStore = await cookies()
-    const activeIdentity = resolveActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
+    const activeIdentity = resolveActiveIdentity(
+      cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value,
+      identities
+    )
     contactIdentity = activeIdentity.kind === 'all' ? null : activeIdentity
-    contactNeedsIdentitySelection = identities.length > 0 && activeIdentity.kind === 'all'
   }
 
-  const connections = contactIdentity?.kind === 'band' && !isOwner
-    ? await loadArtistFollowState(supabase, contactIdentity.id, [band.id])
-    : { following: new Set<string>(), followers: new Set<string>(), available: true }
+  const connections =
+    contactIdentity?.kind === 'band' && !isOwner
+      ? await loadArtistFollowState(supabase, contactIdentity.id, [band.id])
+      : { following: new Set<string>(), followers: new Set<string>(), available: true }
 
+  const dates = (rawShows ?? []).flatMap((show) => {
+    const event = show.events as unknown as Pick<
+      Event,
+      'is_public' | 'lineup_published' | 'status'
+    > | null
+    if (
+      show.event_id &&
+      !(
+        event?.is_public &&
+        event.lineup_published &&
+        ['draft', 'active', 'completed'].includes(event.status)
+      )
+    )
+      return []
+    const venue = show.venues as unknown as {
+      name: string
+      location_city: string
+      location_state: string
+    } | null
+    return [
+      {
+        id: show.id,
+        date: show.show_date,
+        venue: venue?.name ?? 'TBA',
+        city: venue?.location_city ?? '',
+        state: venue?.location_state ?? '',
+        url: '',
+      },
+    ]
+  })
+  const base = initialDocument('artist', band, {
+    genres: (bandGenres ?? []).map((g) => g.genre_id),
+    blocks,
+    lyrics: (rawLyrics ?? []).map(({ id, title, body }) => ({ id, title, body })),
+    shows: (manualShows ?? []).map((s) => ({
+      id: s.id,
+      date: s.show_date,
+      venue: s.venue_name,
+      city: s.city,
+      state: s.state,
+      url: s.ticket_url ?? '',
+    })),
+  })
   return (
-    <ArtistPageCanvas
-      band={displayBand}
-      genreNames={genreNames}
-      selectedGenreIds={(bandGenres ?? []).map((bandGenre) => bandGenre.genre_id)}
-      availableGenres={structuredClone(rawGenres ?? []) as Pick<Genre, 'id' | 'name'>[]}
-      blocks={blocks}
-      contactIdentity={contactIdentity}
-      contactNeedsIdentitySelection={contactNeedsIdentitySelection}
-      following={connections.following.has(band.id)}
-      followsYou={connections.followers.has(band.id)}
-      followAvailable={connections.available}
-      shows={structuredClone(rawShows ?? []).filter((show) => {
-        // Owners and visitors see the same public schedule. Legacy bookings without
-        // an event retain their existing visibility.
-        const event = show.events as unknown as Pick<Event, 'is_public' | 'lineup_published' | 'status'> | null
-        return !show.event_id || (event?.is_public && event.lineup_published && ['draft', 'active'].includes(event.status))
-      }).slice(0, 8) as unknown as ArtistPageShow[]}
-      lyrics={structuredClone(rawLyrics ?? []) as ArtistPageLyric[]}
-      isOwner={isOwner}
-      isEditing={isOwner && edit === '1'}
-      hasViewer={!!user}
+    <StudioPage
+      key={band.id + String(editing)}
+      kind="artist"
+      id={band.id}
+      name={band.name}
+      href={'/bands/' + band.slug}
+      base={base}
+      dates={dates}
+      genres={rawGenres ?? []}
+      owner={isOwner}
+      published={band.page_published}
+      draft={editing ? await loadDraft('artist', band.id) : undefined}
+      inquiry={{
+        signedIn: !!user,
+        profiles: identities,
+        active: contactIdentity ? identityValue(contactIdentity) : 'all',
+        open: inquire === '1',
+        date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '',
+      }}
+      actions={
+        !isOwner && contactIdentity ? (
+          <ArtistConnectionActions
+            identity={contactIdentity}
+            targetId={band.id}
+            targetName={band.name}
+            following={connections.following.has(band.id)}
+            followsYou={connections.followers.has(band.id)}
+            followAvailable={connections.available}
+          />
+        ) : null
+      }
     />
   )
 }

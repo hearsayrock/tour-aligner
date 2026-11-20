@@ -23,7 +23,7 @@ type Tab = 'personal' | 'settings'
 // ── Shared input style ───────────────────────────────────────
 
 const inputClass =
-  'w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm placeholder-[#AAAAAA] focus:outline-none focus:border-[#FD6A2F] transition-colors'
+  'w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm placeholder-sand-light focus:outline-none focus:border-brand transition-colors'
 
 // ── Toggle ───────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none ${
-        checked ? 'bg-[#FD6A2F]' : 'bg-[#DDDDDD]'
+        checked ? 'bg-brand' : 'bg-surface-2'
       }`}
     >
       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
@@ -49,9 +49,9 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white border border-[#E8E8E8] rounded-xl divide-y divide-[#F0F0F0]">
+    <section className="bg-white border border-border rounded-xl divide-y divide-border">
       <div className="px-6 py-4">
-        <h2 className="text-xs font-semibold text-[#888888] uppercase tracking-widest">{title}</h2>
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-widest">{title}</h2>
       </div>
       {children}
     </section>
@@ -68,8 +68,8 @@ function SettingRow({ label, description, children }: {
   return (
     <div className="flex items-center justify-between gap-6 px-6 py-4">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-[#252525]">{label}</p>
-        {description && <p className="text-xs text-[#888888] mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-ink">{label}</p>
+        {description && <p className="text-xs text-muted mt-0.5">{description}</p>}
       </div>
       {children}
     </div>
@@ -103,40 +103,39 @@ export function AccountPage({ profile, email, userId, hasManagedProfile, isAdmin
   const [personalSaving, setPersonalSaving] = useState(false)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-      <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <div className="workspace-page">
+      <div className="workspace-page-header flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#D95B2B]">Your TourAligner account</p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#252525] sm:text-4xl">Keep your details tour-ready.</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#817671] sm:text-base">Set up the personal details that travel with you through every artist profile.</p>
+          <h1>Account</h1>
+          <p className="mt-2 max-w-2xl text-sm text-text-secondary sm:text-base">Set up the personal details that travel with you through every artist profile.</p>
         </div>
         <div className="flex w-fit flex-wrap items-center justify-end gap-3">
           {activeTab === 'personal' && (
             <>
               {personalSaveFlash.saved && (
-                <span className="text-sm font-medium text-[#00A891]">Changes saved</span>
+                <span className="text-sm font-medium text-brand-2">Changes saved</span>
               )}
               <button
                 type="submit"
                 form="personal-info-form"
                 disabled={personalSaving}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#FD6A2F] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#E55A22] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand shadow-sm transition-colors hover:bg-brand-dim disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {personalSaving ? 'Saving…' : 'Save changes'}
               </button>
             </>
           )}
           <Link
-            href={hasManagedProfile ? '/dashboard/profiles' : '/onboarding'}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#DCD7D3] bg-white px-4 py-2.5 text-sm font-semibold text-[#252525] shadow-sm transition-colors hover:border-[#AAA19B] hover:bg-[#FFFCFA]"
+            href={hasManagedProfile ? (isAdmin ? '/dashboard' : '/dashboard/profiles') : '/onboarding'}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition-colors hover:border-border-strong hover:bg-surface"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
-            {hasManagedProfile ? 'Back to dashboard' : 'Continue artist setup'}
+            {hasManagedProfile ? (isAdmin ? 'Back to dashboard' : 'Your Studios') : 'Continue artist setup'}
           </Link>
         </div>
       </div>
 
-      <div className="mb-8 flex gap-1 border-b border-[#E8E8E8]">
+      <div className="mb-8 flex gap-1 border-b border-border">
         {([
           { id: 'personal', label: 'Personal Info' },
           { id: 'settings', label: 'Account Settings' },
@@ -147,8 +146,8 @@ export function AccountPage({ profile, email, userId, hasManagedProfile, isAdmin
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
               activeTab === tab.id
-                ? 'border-[#FD6A2F] text-[#252525]'
-                : 'border-transparent text-[#888888] hover:text-[#252525]'
+                ? 'border-brand text-ink'
+                : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {tab.label}
@@ -278,12 +277,12 @@ function PersonalInfoTab({
           <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 lg:col-span-2">{error}</p>
         )}
 
-        <aside className="relative min-h-[360px] overflow-hidden rounded-3xl bg-[#252525] p-7 text-white shadow-[0_20px_50px_rgba(37,37,37,0.16)] sm:p-8">
-          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[26px] border-[#FD6A2F]/50" />
-          <div className="absolute bottom-12 right-14 h-3 w-3 rounded-full bg-[#FD6A2F]" />
-          <div className="absolute bottom-20 right-24 h-2 w-2 rounded-full bg-[#F5B092]" />
+        <aside className="relative min-h-[360px] overflow-hidden rounded-3xl bg-cocoa p-7 text-white shadow-[0_20px_50px_rgba(37,37,37,0.16)] sm:p-8">
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border-[26px] border-brand/50" />
+          <div className="absolute bottom-12 right-14 h-3 w-3 rounded-full bg-brand" />
+          <div className="absolute bottom-20 right-24 h-2 w-2 rounded-full bg-warning-border" />
           <div className="relative flex h-full flex-col">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#FDB091]">Account identity</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-warning-border">Account identity</p>
             <div className="mt-7 flex items-center gap-5">
             <div
               className="group relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-full border-4 border-white/20 bg-white/10"
@@ -299,7 +298,7 @@ function PersonalInfoTab({
                   </div>
                 </>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-white/55 group-hover:text-[#FDB091] transition-colors">
+                <div className="absolute inset-0 flex items-center justify-center text-white/55 group-hover:text-warning-border transition-colors">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                   </svg>
@@ -310,7 +309,7 @@ function PersonalInfoTab({
             <div>
               <h2 className="text-xl font-bold tracking-tight">{fullName || 'Your account'}</h2>
               <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="mt-1 text-sm font-semibold text-[#FDB091] transition-colors hover:text-white">
+                className="mt-1 text-sm font-semibold text-warning-border transition-colors hover:text-white">
                 {displayAvatar ? 'Change photo' : 'Upload photo'}
               </button>
               {displayAvatar && (
@@ -324,51 +323,51 @@ function PersonalInfoTab({
           </div>
             <p className="mt-7 max-w-sm text-sm leading-relaxed text-white/65">A recognizable photo and clear details help collaborators know who&apos;s behind the artist profile.</p>
             <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#FDB091]">Artist presence</p>
+              <p className="text-xs font-bold uppercase tracking-[0.13em] text-warning-border">Artist presence</p>
               <p className="mt-1 text-sm font-medium text-white">Keep every profile feeling ready.</p>
               <p className="mt-1 text-xs leading-relaxed text-white/60">Your account details support every artist profile you build and share.</p>
             </div>
           </div>
         </aside>
 
-        <section className="overflow-hidden rounded-3xl border border-[#E8E3E0] bg-white shadow-[0_16px_40px_rgba(76,61,53,0.06)]">
-          <div className="border-b border-[#F0E9E5] px-6 py-5 sm:px-8">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#D95B2B]">The essentials</p>
-            <h2 className="mt-1 text-xl font-bold text-[#252525]">Personal information</h2>
-            <p className="mt-1 text-sm text-[#817671]">Keep your contact details current for the people you work with.</p>
+        <section className="overflow-hidden rounded-3xl border border-border bg-white shadow-[0_16px_40px_rgba(76,61,53,0.06)]">
+          <div className="border-b border-border px-6 py-5 sm:px-8">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand-dim">The essentials</p>
+            <h2 className="mt-1 text-xl font-bold text-ink">Personal information</h2>
+            <p className="mt-1 text-sm text-text-secondary">Keep your contact details current for the people you work with.</p>
           </div>
           <div className="grid gap-5 p-6 sm:grid-cols-2 sm:p-8">
             <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Full name</label>
+              <label className="block text-sm text-text-secondary mb-1.5">Full name</label>
               <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
                 className={inputClass} placeholder="Your name" />
             </div>
             <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Email</label>
+              <label className="block text-sm text-text-secondary mb-1.5">Email</label>
               <input type="email" value={email} readOnly
-                className="w-full bg-[#F5F5F5] border border-[#E8E8E8] rounded-lg px-3 py-2.5 text-sm text-[#AAAAAA] cursor-not-allowed" />
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm text-sand-light cursor-not-allowed" />
             </div>
             <div>
-              <label className="block text-sm text-[#777777] mb-1.5">Phone <span className="text-[#AAAAAA]">(optional)</span></label>
+              <label className="block text-sm text-text-secondary mb-1.5">Phone <span className="text-sand-light">(optional)</span></label>
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
                 className={inputClass} placeholder="+1 (555) 000-0000" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-[#777777] mb-1.5">City</label>
+                <label className="block text-sm text-text-secondary mb-1.5">City</label>
                 <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
                   className={inputClass} placeholder="Salt Lake City" />
               </div>
               <div>
-                <label className="block text-sm text-[#777777] mb-1.5">State</label>
+                <label className="block text-sm text-text-secondary mb-1.5">State</label>
                 <input type="text" value={state} onChange={(e) => setState(e.target.value)}
                   className={inputClass} placeholder="UT" maxLength={2} />
               </div>
             </div>
             <div className="sm:col-span-2">
               <div className="mb-2 flex items-baseline justify-between gap-4">
-                <label className="block text-sm text-[#777777]">How do you use TourAligner?</label>
-                <span className="text-xs text-[#AAAAAA]">{isAdmin ? 'You can update this anytime' : 'Venue access is coming soon'}</span>
+                <label className="block text-sm text-text-secondary">How do you use TourAligner?</label>
+                <span className="text-xs text-sand-light">{isAdmin ? 'You can update this anytime' : 'Venue access is coming soon'}</span>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
             {ROLE_OPTIONS.map((opt) => {
@@ -381,26 +380,26 @@ function PersonalInfoTab({
                     disabled={isComingSoon}
                     className={`relative w-full text-left rounded-xl border px-4 py-3 transition-all ${
                       isComingSoon
-                        ? 'cursor-not-allowed border-[#EAE7E5] bg-[#F8F7F6] text-[#A59E99]'
+                        ? 'cursor-not-allowed border-border bg-surface text-text-subtle'
                         : role === opt.value
-                          ? 'border-[#FD6A2F] bg-[#FD6A2F]/5'
-                          : 'border-[#E8E8E8] hover:border-[#CCCCCC]'
+                          ? 'border-brand bg-brand/5'
+                          : 'border-border hover:border-border-strong'
                     }`}
                   >
                     {isComingSoon && (
-                      <span className="absolute right-3 top-3 rounded-full bg-[#EAE7E5] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#98908B]">Coming soon</span>
+                      <span className="absolute right-3 top-3 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-text-subtle">Coming soon</span>
                     )}
-                    <span className={`block text-sm font-medium ${isComingSoon ? 'text-[#A59E99]' : role === opt.value ? 'text-[#FD6A2F]' : 'text-[#252525]'}`}>
+                    <span className={`block text-sm font-medium ${isComingSoon ? 'text-text-subtle' : role === opt.value ? 'text-brand-text' : 'text-ink'}`}>
                       {opt.label}
                     </span>
-                    <span className={isComingSoon ? 'text-xs text-[#B5AFAA]' : 'text-xs text-[#888888]'}>{opt.desc}</span>
+                    <span className={isComingSoon ? 'text-xs text-sand-light' : 'text-xs text-muted'}>{opt.desc}</span>
                   </button>
                 )
             })}
               </div>
             </div>
           </div>
-          <p className="border-t border-[#F0E9E5] bg-[#FFFCFA] px-6 py-4 text-xs text-[#A0958F] sm:px-8">To change your email, contact support.</p>
+          <p className="border-t border-border bg-surface px-6 py-4 text-xs text-text-subtle sm:px-8">To change your email, contact support.</p>
         </section>
       </form>
     </>
@@ -491,7 +490,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
         </SettingRow>
         {notifFlash.saved && (
           <div className="px-6 pb-3">
-            <p className="text-xs text-[#00bba5]">Saved</p>
+            <p className="text-xs text-brand-2">Saved</p>
           </div>
         )}
       </Section>
@@ -502,7 +501,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
           label="Preferred contact method"
           description="How venues and artists should reach you"
         >
-          <div className="flex rounded-lg overflow-hidden border border-[#E8E8E8] shrink-0">
+          <div className="flex rounded-lg overflow-hidden border border-border shrink-0">
             {(['email', 'phone'] as const).map((opt) => (
               <button
                 key={opt}
@@ -510,8 +509,8 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
                 onClick={() => savePreferredContact(opt)}
                 className={`text-sm px-3 py-1.5 capitalize transition-colors ${
                   preferredContact === opt
-                    ? 'bg-[#FD6A2F] text-white font-medium'
-                    : 'bg-[#F5F5F5] text-[#777777] hover:text-[#252525]'
+                    ? 'bg-brand text-on-brand font-medium'
+                    : 'bg-surface-2 text-text-secondary hover:text-ink'
                 }`}
               >
                 {opt}
@@ -521,7 +520,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
         </SettingRow>
         {commFlash.saved && (
           <div className="px-6 pb-3">
-            <p className="text-xs text-[#00bba5]">Saved</p>
+            <p className="text-xs text-brand-2">Saved</p>
           </div>
         )}
       </Section>
@@ -532,10 +531,10 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
       <Section title="Billing & Subscription">
         <div className="px-6 py-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#252525]">Free plan</p>
-            <p className="text-xs text-[#888888] mt-0.5">Billing and paid plans coming soon.</p>
+            <p className="text-sm font-medium text-ink">Free plan</p>
+            <p className="text-xs text-muted mt-0.5">Billing and paid plans coming soon.</p>
           </div>
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#F5F5F5] border border-[#E8E8E8] text-[#888888] shrink-0">
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-surface-2 border border-border text-muted shrink-0">
             Free
           </span>
         </div>
@@ -545,7 +544,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
       <Section title="Password">
         <form onSubmit={handlePasswordSubmit} className="px-6 py-5 space-y-3">
           <div>
-            <label className="block text-sm text-[#777777] mb-1.5">New password</label>
+            <label className="block text-sm text-text-secondary mb-1.5">New password</label>
             <input
               type="password"
               value={newPassword}
@@ -556,7 +555,7 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
             />
           </div>
           <div>
-            <label className="block text-sm text-[#777777] mb-1.5">Confirm new password</label>
+            <label className="block text-sm text-text-secondary mb-1.5">Confirm new password</label>
             <input
               type="password"
               value={confirmPassword}
@@ -567,12 +566,12 @@ function AccountSettingsTab({ profile, userId }: { profile: Profile; userId: str
             />
           </div>
           {passwordError && <p className="text-xs text-red-400">{passwordError}</p>}
-          {passwordSuccess && <p className="text-xs text-[#00bba5]">Password updated successfully.</p>}
+          {passwordSuccess && <p className="text-xs text-brand-2">Password updated successfully.</p>}
           <div className="flex justify-end pt-1">
             <button
               type="submit"
               disabled={passwordLoading || !newPassword}
-              className="bg-[#FD6A2F] text-white font-semibold rounded-lg px-5 py-2 text-sm hover:bg-[#E55A22] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-brand text-on-brand font-semibold rounded-lg px-5 py-2 text-sm hover:bg-brand-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {passwordLoading ? 'Updating…' : 'Update password'}
             </button>

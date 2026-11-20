@@ -101,14 +101,14 @@ export function PublicVenueBookingPanel({
 
   return (
     <>
-      <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+      <section className="rounded-[28px] border border-border bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">Availability</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Booking calendar</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-text">Availability</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink-black">Booking calendar</h2>
           </div>
-          <div className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 text-xs font-semibold text-[#666666]">
-            <CalendarDays className="h-4 w-4 text-[#FD6A2F]" />
+          <div className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-page px-3 text-xs font-semibold text-text-secondary">
+            <CalendarDays className="h-4 w-4 text-brand-text" />
             Next six months
           </div>
         </div>
@@ -126,40 +126,40 @@ export function PublicVenueBookingPanel({
           monthCount={6}
         />
 
-        <div className="mt-6 border-t border-[#EEEEEE] pt-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#888888]">
+        <div className="mt-6 border-t border-border pt-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted">
             Selected date
           </p>
           <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-[#252525]">
+              <h3 className="text-lg font-semibold text-ink">
                 {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
                   day: 'numeric',
                 })}
               </h3>
-              <p className="mt-1 text-sm text-[#666666]">{selectedHeadline}</p>
+              <p className="mt-1 text-sm text-text-secondary">{selectedHeadline}</p>
             </div>
             {selectedStatus !== 'unavailable' && (
-              <div className="rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-sm text-[#252525]">
+              <div className="rounded-xl border border-border bg-page px-4 py-3 text-sm text-ink">
                 <p>
                   {selectedCount}/{selectedBillCap} filled
                 </p>
               </div>
             )}
           </div>
-          <p className="mt-3 text-sm text-[#777777]">{selectedDescription}</p>
+          <p className="mt-3 text-sm text-text-secondary">{selectedDescription}</p>
 
           {(selectedShowType || selectedGenreFocus) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {selectedShowType && (
-                <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#555555]">
+                <span className="rounded-full border border-border bg-page px-3 py-1 text-xs font-medium text-text-secondary">
                   {selectedShowType}
                 </span>
               )}
               {selectedGenreFocus && (
-                <span className="rounded-full border border-[#E8E8E8] bg-[#FAFAFA] px-3 py-1 text-xs font-medium text-[#555555]">
+                <span className="rounded-full border border-border bg-page px-3 py-1 text-xs font-medium text-text-secondary">
                   {selectedGenreFocus}
                 </span>
               )}
@@ -167,56 +167,56 @@ export function PublicVenueBookingPanel({
           )}
 
           {selectedStatus !== 'full' && selectedStatus !== 'unavailable' && (
-            <p className="mt-4 text-sm text-[#666666]">
+            <p className="mt-4 text-sm text-text-secondary">
               Message the venue below and mention the date you have in mind.
             </p>
           )}
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-[#E6DFD3] bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
+      <section className="rounded-[28px] border border-border bg-white p-6 shadow-[0_18px_42px_rgba(17,17,17,0.05)] sm:p-8">
         <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A24A22]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-text">
             Private chat
           </p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#111111]">Start the booking conversation</h2>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-ink-black">Start the booking conversation</h2>
         </div>
 
         {isSignedIn && existingBooking && (
-          <div className="mb-4 rounded-xl border border-[#CBEAE2] bg-[#F3FBF8] px-4 py-4">
-            <p className="flex items-center gap-2 text-sm font-semibold text-[#14584E]">
+          <div className="mb-4 rounded-xl border border-success-border bg-success-tint px-4 py-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-success-text">
               <CheckCircle2 className="h-4 w-4" />
               {activeBandName} is playing here on {formatDateShort(existingBooking.showDate)}
             </p>
-            <Link href={`/dashboard/backstage/${existingBooking.eventId}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0C7C71] hover:underline">
+            <Link href={`/dashboard/backstage/${existingBooking.eventId}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-success hover:underline">
               Open backstage<ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         )}
         {isSignedIn && identityNotice ? (
-          <div className="rounded-xl border border-[#F2D7A6] bg-[#FFF7E8] px-4 py-3 text-sm">
-            <p className="font-semibold text-[#8A5A12]">{identityNotice.title}</p>
-            <p className="mt-1 text-[#8A5A12]/85">{identityNotice.body}</p>
+          <div className="rounded-xl border border-warning-border bg-warning-tint px-4 py-3 text-sm">
+            <p className="font-semibold text-warning-text">{identityNotice.title}</p>
+            <p className="mt-1 text-warning-text/85">{identityNotice.body}</p>
           </div>
         ) : isSignedIn && userBands.length > 0 ? (
           <div className="space-y-3">
-            <p className="text-sm text-[#777777]">Discuss dates in a private chat. Confirmed show details and lineup changes are managed in Backstage.</p>
+            <p className="text-sm text-text-secondary">Discuss dates in a private chat. Confirmed show details and lineup changes are managed in Backstage.</p>
             <PrivateChatRequestButton
               senderIdentity={{ kind: 'band', id: userBands[0].id, name: userBands[0].name, href: `/dashboard/bands/${userBands[0].id}/edit` }}
               targetKind="venue" targetId={venueId} targetName={venueName} buttonLabel="Message venue"
             />
           </div>
         ) : isSignedIn && userBands.length === 0 ? (
-          <p className="text-sm text-[#888888]">
+          <p className="text-sm text-muted">
             You need an artist profile to message this venue.{' '}
-            <Link href="/dashboard/bands/new" className="text-[#FD6A2F] hover:underline">
+            <Link href="/dashboard/bands/new" className="text-brand-text hover:underline">
               Create one
             </Link>
             .
           </p>
         ) : (
-          <p className="text-sm text-[#888888]">
-            <Link href={`/login?redirectTo=/venues/${venueSlug}`} className="text-[#FD6A2F] hover:underline">
+          <p className="text-sm text-muted">
+            <Link href={`/login?redirectTo=/venues/${venueSlug}`} className="text-brand-text hover:underline">
               Sign in
             </Link>{' '}
             to message this venue.

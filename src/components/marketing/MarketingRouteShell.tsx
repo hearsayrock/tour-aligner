@@ -7,7 +7,6 @@ function usesAuthenticatedAppShell(pathname: string) {
   return (
     pathname === '/events' ||
     pathname === '/venues' ||
-    pathname.startsWith('/venues/') ||
     pathname === '/bands'
   )
 }
@@ -27,19 +26,19 @@ export function MarketingRouteShell({
 }) {
   const pathname = usePathname()
   const useAppShell = isSignedIn && usesAuthenticatedAppShell(pathname)
-  const isStandalonePage = pathname.startsWith('/bands/') || pathname.startsWith('/events/')
-  const showFooter = !isSignedIn || !isStandalonePage
+  const isStandalonePage = pathname.startsWith('/bands/') || pathname.startsWith('/events/') || pathname.startsWith('/venues/')
+  const showFooter = !isStandalonePage
 
   return (
-    <div className={cx(useAppShell && 'app-shell-layout')}>
+    <div data-theme="cream" className={cx(useAppShell && 'app-shell-layout')}>
       {!isStandalonePage && (
         <div className={useAppShell ? 'hidden' : undefined}>{marketingNav}</div>
       )}
-      <div className={useAppShell ? undefined : 'hidden'}>{appNav}</div>
+      <div className={useAppShell ? 'contents' : 'hidden'}>{appNav}</div>
       <main className={cx(useAppShell && 'app-shell-main min-h-screen pb-24 lg:pb-0')}>
         {children}
       </main>
-      <div className={showFooter ? undefined : 'hidden'}>{footer}</div>
+      <div className={cx(!showFooter && 'hidden', useAppShell && 'app-shell-main')}>{footer}</div>
     </div>
   )
 }

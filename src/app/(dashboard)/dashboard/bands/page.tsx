@@ -48,7 +48,7 @@ export default async function DashboardBandsPage({ searchParams }: { searchParam
   const requiredIdentity = resolveRequiredActiveIdentity(cookieStore.get(ACTIVE_IDENTITY_COOKIE)?.value, identities)
   if (requiredIdentity.requiresSelection) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="workspace-page">
         <ProfileSelectionModal title="Select a profile to browse Artists" body="Choose the profile you want to use to browse artists and start private chats." identities={identities} />
       </div>
     )
@@ -84,7 +84,7 @@ export default async function DashboardBandsPage({ searchParams }: { searchParam
   const matches = result.data ?? []
   const ids = matches.map((match) => match.band_id)
   const [bandResult, genreResult, connections] = await Promise.all([
-    ids.length ? supabase.from('bands').select('*').in('id', ids).eq('is_active', true) : Promise.resolve({ data: [], error: null }),
+    ids.length ? supabase.from('bands').select('*').in('id', ids).eq('is_active', true).eq('page_published',true) : Promise.resolve({ data: [], error: null }),
     ids.length ? supabase.from('band_genres').select('band_id, genre_id').in('band_id', ids) : Promise.resolve({ data: [], error: null }),
     artistId ? loadArtistFollowState(supabase, artistId, ids) : Promise.resolve({ following: new Set<string>(), followers: new Set<string>(), available: true }),
   ])
@@ -100,23 +100,23 @@ export default async function DashboardBandsPage({ searchParams }: { searchParam
         : 'Try another name, city, genre, or touring range.'
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="workspace-page">
       <PageHeader title="Artists" description="Find artists for your next bill. Browse their music, follow them, and start a private chat." />
       {artistId && (
         <nav aria-label="Artist directory views" className="mb-6 flex flex-wrap gap-2">
           {VIEWS.map((entry) => (
-            <Link key={entry.value} href={directoryHref(filters, { tab: entry.value, page: undefined })} aria-current={view === entry.value ? 'page' : undefined} className={cx('rounded-xl border px-4 py-2 text-sm font-semibold', view === entry.value ? 'border-[#252525] bg-[#252525] text-white' : 'border-[#E8E8E8] bg-white text-[#666666] hover:border-[#CCCCCC]')}>
+            <Link key={entry.value} href={directoryHref(filters, { tab: entry.value, page: undefined })} aria-current={view === entry.value ? 'page' : undefined} className={cx('rounded-full border px-4 py-2 text-sm font-semibold', view === entry.value ? 'border-edge bg-cocoa text-cream' : 'border-border bg-white text-text-secondary hover:border-border-strong')}>
               {entry.label}
             </Link>
           ))}
         </nav>
       )}
       <Suspense><DashboardBandFilters genres={genres ?? []} /></Suspense>
-      {view === 'similar' && <p className="mb-4 text-sm text-[#777777]">Artists with genres in common with {identity?.name}. More shared genres appear first.</p>}
-      {view === 'following' && <p className="mb-4 text-sm text-[#777777]">Select Following on an artist to unfollow them.</p>}
+      {view === 'similar' && <p className="mb-4 text-sm text-text-secondary">Artists with genres in common with {identity?.name}. More shared genres appear first.</p>}
+      {view === 'following' && <p className="mb-4 text-sm text-text-secondary">Select Following on an artist to unfollow them.</p>}
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-[#888888]">{result.count ?? 0} artist{result.count === 1 ? '' : 's'}</p>
-        <Link href={directoryHref({ tab: view }, {})} className="text-sm text-[#777777] hover:text-[#FD6A2F]">Clear filters</Link>
+        <p className="text-sm text-muted">{result.count ?? 0} artist{result.count === 1 ? '' : 's'}</p>
+        <Link href={directoryHref({ tab: view }, {})} className="text-sm text-text-secondary hover:text-brand-text">Clear filters</Link>
       </div>
 
       {hasError ? (
@@ -124,31 +124,31 @@ export default async function DashboardBandsPage({ searchParams }: { searchParam
       ) : matches.length === 0 ? (
         <EmptyState title="No artists found" description={emptyDescription} action={
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/dashboard/bands" className="text-sm font-semibold text-[#FD6A2F]">Browse all artists</Link>
-            {view === 'similar' && identity && <Link href={identity.href} className="text-sm font-semibold text-[#FD6A2F]">Edit your genres</Link>}
+            <Link href="/dashboard/bands" className="text-sm font-semibold text-brand-text">Browse all artists</Link>
+            {view === 'similar' && identity && <Link href={identity.href} className="text-sm font-semibold text-brand-text">Edit your genres</Link>}
           </div>
         } />
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4 2xl:grid-cols-2">
           {matches.map((match) => {
             const band = bandsById.get(match.band_id)
             if (!band) return null
             const bandGenreNames = (genreResult.data ?? []).filter((row) => row.band_id === band.id).map((row) => genreNames.get(row.genre_id)).filter(Boolean)
             return (
-              <article key={band.id} className="flex flex-col gap-4 rounded-2xl border border-[#E8E8E8] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+              <article key={band.id} className="flex flex-col gap-4 rounded-ds-2xl border border-border bg-page p-5 sm:flex-row sm:items-center sm:justify-between">
                 <Link href={`/bands/${band.slug}`} className="flex min-w-0 flex-1 items-start gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8E8E8] bg-[#F5F5F5]">
-                    {band.profile_photo_url ? <Image src={band.profile_photo_url} alt={band.name} width={56} height={56} className="h-full w-full object-cover" unoptimized /> : <span className="text-lg font-bold text-[#BBBBBB]">{band.name.charAt(0).toUpperCase()}</span>}
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2">
+                    {band.profile_photo_url ? <Image src={band.profile_photo_url} alt={band.name} width={56} height={56} className="h-full w-full object-cover" unoptimized /> : <span className="text-lg font-bold text-cocoa-2">{band.name.charAt(0).toUpperCase()}</span>}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate font-bold text-[#252525]">{band.name}</h2>
-                    <p className="mt-1 text-sm text-[#888888]">{[band.location_city, band.location_state].filter(Boolean).join(', ')}</p>
-                    {band.tagline && <p className="mt-1 text-sm text-[#777777]">{band.tagline}</p>}
+                    <h2 className="break-words text-xl font-bold leading-tight text-ink">{band.name}</h2>
+                    <p className="mt-1 text-sm text-muted">{[band.location_city, band.location_state].filter(Boolean).join(', ')}</p>
+                    {band.tagline && <p className="mt-1 text-sm text-text-secondary">{band.tagline}</p>}
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {band.artist_type && <span className="rounded-md bg-[#F5F5F5] px-2 py-1 text-xs text-[#777777]">{band.artist_type === 'solo' ? 'Solo' : 'Band'}</span>}
-                      {band.touring_radius && <span className="rounded-md bg-[#F5F5F5] px-2 py-1 text-xs text-[#777777]">{RADIUS_LABELS[band.touring_radius]}</span>}
-                      {bandGenreNames.map((name) => <span key={name} className="rounded-md bg-[#F5F5F5] px-2 py-1 text-xs text-[#777777]">{name}</span>)}
-                      {match.shared_genre_count > 0 && <span className="rounded-md bg-[#FFF3EE] px-2 py-1 text-xs text-[#A84216]">{match.shared_genre_count} shared genre{match.shared_genre_count === 1 ? '' : 's'}</span>}
+                      {band.artist_type && <span className="rounded-md bg-surface-2 px-2 py-1 text-xs text-text-secondary">{band.artist_type === 'solo' ? 'Solo' : 'Band'}</span>}
+                      {band.touring_radius && <span className="rounded-md bg-surface-2 px-2 py-1 text-xs text-text-secondary">{RADIUS_LABELS[band.touring_radius]}</span>}
+                      {bandGenreNames.map((name) => <span key={name} className="rounded-md bg-surface-2 px-2 py-1 text-xs text-text-secondary">{name}</span>)}
+                      {match.shared_genre_count > 0 && <span className="rounded-md bg-brand-tint px-2 py-1 text-xs text-brand-tint-text">{match.shared_genre_count} shared genre{match.shared_genre_count === 1 ? '' : 's'}</span>}
                     </div>
                   </div>
                 </Link>
@@ -160,9 +160,9 @@ export default async function DashboardBandsPage({ searchParams }: { searchParam
       )}
       {!hasError && totalPages > 1 && (
         <nav aria-label="Artist directory pages" className="mt-8 flex items-center justify-center gap-4 text-sm">
-          {page > 1 && <Link href={directoryHref(filters, { page: String(page - 1) })} className="font-semibold text-[#FD6A2F]">Previous</Link>}
-          <span className="text-[#777777]">Page {page} of {totalPages}</span>
-          {page < totalPages && <Link href={directoryHref(filters, { page: String(page + 1) })} className="font-semibold text-[#FD6A2F]">Next</Link>}
+          {page > 1 && <Link href={directoryHref(filters, { page: String(page - 1) })} className="font-semibold text-brand-text">Previous</Link>}
+          <span className="text-text-secondary">Page {page} of {totalPages}</span>
+          {page < totalPages && <Link href={directoryHref(filters, { page: String(page + 1) })} className="font-semibold text-brand-text">Next</Link>}
         </nav>
       )}
     </div>

@@ -23,7 +23,7 @@ export function ArtistConnectionActions({ identity, targetId, targetName, follow
 
   return (
     <div className="space-y-2">
-      {followsYou && <p className="text-xs font-semibold text-[#A84216]">{following ? 'Following each other' : 'Follows you'}</p>}
+      {followsYou && <p className="text-xs font-semibold text-brand-tint-text">{following ? 'Following each other' : 'Follows you'}</p>}
       <div className="flex flex-wrap gap-2">
         {identity.kind === 'band' && (
           <button type="button" aria-pressed={following} aria-label={`${following ? 'Unfollow' : 'Follow'} ${targetName}`} disabled={isPending || !followAvailable} className={buttonBaseClass(following ? 'secondary' : 'primary')} onClick={() => {
@@ -40,7 +40,7 @@ export function ArtistConnectionActions({ identity, targetId, targetName, follow
         )}
         <PrivateChatRequestButton senderIdentity={identity} targetKind="band" targetId={targetId} targetName={targetName} />
       </div>
-      {!followAvailable && identity.kind === 'band' && <p className="text-xs text-[#777777]">Following is temporarily unavailable.</p>}
+      {!followAvailable && identity.kind === 'band' && <p className="text-xs text-text-secondary">Following is temporarily unavailable.</p>}
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
     </div>
   )

@@ -157,7 +157,7 @@ export async function loadDockPrivateChats(
   ]
   const [bands, venues] = await Promise.all([
     bandIds.length
-      ? supabase.from('bands').select('id, name, slug, user_id, profile_photo_url').in('id', bandIds)
+      ? supabase.from('bands').select('id, name, slug, user_id, profile_photo_url, page_published').in('id', bandIds)
       : Promise.resolve({ data: [], error: null }),
     venueIds.length
       ? supabase
@@ -181,7 +181,7 @@ export async function loadDockPrivateChats(
         thread,
         partner: {
           ...partner,
-          href: partner.href ?? '/dashboard/profiles',
+          href: partner.href,
           photo: photos.get(partner.id) ?? null,
         },
         preview: row.private_chat_messages?.[0]?.body ?? '',

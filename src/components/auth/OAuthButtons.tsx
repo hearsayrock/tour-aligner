@@ -189,7 +189,7 @@ function LegacyGoogleButton({ next }: OAuthButtonsProps) {
       <button
         onClick={handleGoogleOAuth}
         disabled={loading}
-        className="relative flex w-full items-center justify-center gap-2.5 rounded-lg border border-[#E8E8E8] bg-[#F5F5F5] px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors hover:border-[#CCCCCC] disabled:cursor-not-allowed disabled:opacity-50"
+        className="relative flex w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-surface-2 px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-border-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
         <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -228,12 +228,12 @@ export function OAuthButtons({ next }: OAuthButtonsProps) {
           key={id}
           onClick={() => handleOAuth(id)}
           disabled={loading !== null}
-          className="relative w-full flex items-center justify-center gap-2.5 bg-[#F5F5F5] border border-[#E8E8E8] hover:border-[#CCCCCC] rounded-lg px-4 py-2.5 text-sm font-medium text-[#252525] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative w-full flex items-center justify-center gap-2.5 bg-surface-2 border border-border hover:border-border-strong rounded-lg px-4 py-2.5 text-sm font-medium text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {icon}
           <span>{loading === id ? 'Redirecting…' : label}</span>
           {lastProvider === id && (
-            <span className="absolute right-0 top-0 text-[11px] font-normal text-[#888888] bg-[#EBEBEB] rounded-tr-lg rounded-bl-lg px-1.5 py-0.5 leading-none">
+            <span className="absolute right-0 top-0 text-[11px] font-normal text-muted bg-surface-2 rounded-tr-lg rounded-bl-lg px-1.5 py-0.5 leading-none">
               Last used
             </span>
           )}
