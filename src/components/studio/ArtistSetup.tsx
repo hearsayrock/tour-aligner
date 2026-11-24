@@ -6,7 +6,13 @@ import { buttonBaseClass, inputClass } from '@/components/ui/primitives'
 import { THEME_PRESETS, getPreset } from '@/lib/studio/presets'
 import { createStudioArtist, studioWrite } from '@/app/actions/studio'
 import { uploadStudioPhoto } from '@/lib/studio/upload'
-import { musicServices, spotifyEmbed, urlValue, type Changes } from '@/lib/studio/model'
+import {
+  musicServices,
+  spotifyEmbed,
+  urlValue,
+  type Changes,
+  type MusicService,
+} from '@/lib/studio/model'
 import { StudioSheet } from './StudioSheet'
 import './studio.css'
 export function ArtistSetup({ returnTo }: { returnTo: string | null }) {
@@ -17,7 +23,7 @@ export function ArtistSetup({ returnTo }: { returnTo: string | null }) {
     [city, setCity] = useState(''),
     [region, setRegion] = useState('')
   const [preset, setPreset] = useState('basement'),
-    [service, setService] = useState('spotify_url'),
+    [service, setService] = useState<MusicService>('spotify_url'),
     [url, setUrl] = useState(''),
     [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState(''),
@@ -62,7 +68,7 @@ export function ArtistSetup({ returnTo }: { returnTo: string | null }) {
     setBusy(true)
     try {
       const patch: Changes = {
-        look: { preset },
+        look: { preset, ...(url.trim() && { musicSource: service }) },
         fields: {
           artist_type: type,
           location_city: city.trim(),
@@ -79,7 +85,10 @@ export function ArtistSetup({ returnTo }: { returnTo: string | null }) {
       setCreated(result.slug)
       if (file) {
         const cover = await uploadStudioPhoto(file, 'artist', id)
-        const saved = await studioWrite('artist', id, 1, 'save', { ...patch, look: { preset, cover } })
+        const saved = await studioWrite('artist', id, 1, 'save', {
+          ...patch,
+          look: { ...patch.look, cover },
+        })
         if (saved.error) throw Error(saved.error)
       }
       router.push(returnTo || '/bands/' + result.slug + '?edit=1')
@@ -188,7 +197,7 @@ export function ArtistSetup({ returnTo }: { returnTo: string | null }) {
                     <select
                       className={inputClass}
                       value={service}
-                      onChange={(e) => setService(e.target.value)}
+                      onChange={(e) => setService(e.target.value as MusicService)}
                     >
                       {Object.entries(musicServices).map(([k, v]) => (
                         <option key={k} value={k}>

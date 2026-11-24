@@ -15,7 +15,6 @@ import {
 } from '@/components/events/EventOverview'
 import {
   DEFAULT_EVENT_BACKGROUND_COLOR,
-  DEFAULT_EVENT_BACKGROUND_OPACITY,
   normalizeEventPageLayout,
 } from '@/components/events/event-page-config'
 import { EventProfileSwitcher } from '@/components/events/EventProfileSwitcher'
@@ -193,10 +192,9 @@ export default async function EventDetailPage({
     const { data } = await supabase.storage.from('event-covers').createSignedUrl(path, 900)
     return data?.signedUrl ?? null
   }
-  const [cover, backgroundUrl, { data: publishedArtists }, { data: logistics, error: logisticsError }] =
+  const [cover, { data: publishedArtists }, { data: logistics, error: logisticsError }] =
     await Promise.all([
       signImage(event.cover_photo_path),
-      signImage(event.background_photo_path),
       event.is_public && event.lineup_published
         ? supabase.rpc('get_public_event_lineup', { p_event_id: event.id })
         : { data: null },
@@ -236,7 +234,7 @@ export default async function EventDetailPage({
       )
   const studioDocument = initialDocument(
     'event',
-    { ...event, cover_photo_url: cover, profile_background_url: backgroundUrl },
+    { ...event, cover_photo_url: cover },
     { genres: genres.map((g) => g.id) }
   )
   const inheritedAccent = getVenueProfileAppearance(
@@ -244,7 +242,6 @@ export default async function EventDetailPage({
   ).accent
   const layout = normalizeEventPageLayout(event.page_layout)
   const backgroundColor = event.page_background_color ?? DEFAULT_EVENT_BACKGROUND_COLOR
-  const backgroundOpacity = event.background_photo_opacity ?? DEFAULT_EVENT_BACKGROUND_OPACITY
   const showArtistNeed =
     eventIsAvailable(event) ||
     Boolean(viewerMembership) ||
@@ -375,7 +372,11 @@ export default async function EventDetailPage({
         </>
       }
       style={{
-        ...eventFrameStyle(backgroundColor, studioDocument.look.wallpaper || null, backgroundOpacity),
+        ...eventFrameStyle(
+          backgroundColor,
+          studioDocument.look.cover || null,
+          studioDocument.look.coverOpacity
+        ),
         minHeight: 0,
       }}
     >

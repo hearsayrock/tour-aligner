@@ -14,6 +14,7 @@ import {
   type Look,
 } from '@/lib/studio/model'
 import { uploadStudioPhoto } from '@/lib/studio/upload'
+import { ArtistSongsEditor } from './ArtistSongsEditor'
 import {
   createProfilePageBlock,
   PROFILE_PAGE_BLOCK_REGISTRY,
@@ -26,6 +27,13 @@ const choices: Record<string, string[]> = {
   touring_radius: ['local', 'regional', 'national', 'international'],
   age_requirement: ['all_ages', '18_plus', '21_plus'],
   is_public: ['true', 'false'],
+}
+export const artistSettings = ['Pages', 'Look', 'Layout', 'Fonts', 'Links']
+const sectionFields: Record<string, string[]> = {
+  Tagline: ['tagline'],
+  Description: ['description'],
+  Details: ['artist_type', 'location_city', 'location_state', 'touring_radius', 'set_length_min'],
+  Members: ['members'],
 }
 type Props = {
   kind: StudioKind
@@ -43,7 +51,7 @@ export function StudioFields({
   id,
   name,
   doc,
-  panel,
+  panel: selectedPanel,
   setPanel,
   genres,
   change,
@@ -77,6 +85,8 @@ export function StudioFields({
       return { ...d, blocks }
     })
   }
+  const artist = kind === 'artist'
+  const panel = artist && selectedPanel === 'Settings' ? 'Pages' : selectedPanel
   let content
   if (panel === 'Settings')
     content = (
@@ -100,7 +110,13 @@ export function StudioFields({
     )
   else if (panel === 'Pages')
     content = pageTabs[kind].map((t) => (
-      <label key={t} className="studio-check">
+      <label key={t} className={artist ? 'artist-page-switch' : 'studio-check'}>
+        {artist && (
+          <span>
+            <strong>{tabNames[t]}</strong>
+            {t === 'home' && <small>Always on</small>}
+          </span>
+        )}
         <input
           type="checkbox"
           checked={doc.look.tabs.includes(t)}
@@ -111,21 +127,40 @@ export function StudioFields({
             })
           }
         />
-        {tabNames[t]}
+        {!artist && tabNames[t]}
       </label>
     ))
   else if (panel === 'Layout')
     content = (
-      <div className="studio-picks">
-        {layouts.map((l) => (
-          <button aria-pressed={doc.look.layout === l} key={l} onClick={() => look({ layout: l })}>
-            <span className={'layout-swatch ' + l} aria-hidden>
-              <i />
-            </span>
-            {l}
-          </button>
-        ))}
-      </div>
+      <>
+        {artist && (
+          <div
+            className="artist-layout-preview"
+            data-placement={doc.look.layout}
+            style={{
+              backgroundImage:
+                'url(' +
+                JSON.stringify(
+                  doc.look.cover || THEME_PRESETS.find((p) => p.id === doc.look.preset)?.heroArt
+                ) +
+                ')',
+            }}
+          >
+            <strong>{name}</strong>
+          </div>
+        )}
+        {artist && <p>Choose where your photo and name sit on Home.</p>}
+        <div className="studio-picks">
+          {layouts.map((l) => (
+            <button aria-pressed={doc.look.layout === l} key={l} onClick={() => look({ layout: l })}>
+              <span className={'layout-swatch ' + l} aria-hidden>
+                <i />
+              </span>
+              {l}
+            </button>
+          ))}
+        </div>
+      </>
     )
   else if (panel === 'Fonts')
     content = (['name', 'heading', 'body'] as const).map((key) => (
@@ -167,14 +202,15 @@ export function StudioFields({
             onChange={(e) => look({ accent: e.target.value })}
           />
         </label>
-        {(['cover', 'avatar', 'wallpaper'] as const).map((key) => (
-          <div key={key}>
+        {(['cover', 'avatar'] as const).map((key) => (
+          <div key={key} className="studio-photo-field">
             <label>
-              {key === 'cover' ? 'Cover photo' : key === 'avatar' ? 'Profile photo' : 'Wallpaper'}
+              {key === 'cover' ? 'Cover photo' : 'Profile photo'}
               <input
                 className={inputClass}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                aria-describedby={key === 'cover' ? 'studio-cover-help' : undefined}
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   if (f)
@@ -183,6 +219,31 @@ export function StudioFields({
               />
             </label>
             {doc.look[key] && <button onClick={() => look({ [key]: '' })}>Remove {key}</button>}
+            {key === 'cover' && (
+              <>
+                <p id="studio-cover-help" className="text-sm text-text-secondary">
+                  Background for every tab. A theme overlay keeps text readable.
+                </p>
+                <label htmlFor="studio-cover-opacity">
+                  <span className="studio-range-label">
+                    Cover photo opacity
+                    <output htmlFor="studio-cover-opacity" aria-hidden="true">
+                      {doc.look.coverOpacity}%
+                    </output>
+                  </span>
+                  <input
+                    id="studio-cover-opacity"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={doc.look.coverOpacity}
+                    aria-valuetext={doc.look.coverOpacity + '%'}
+                    onChange={(e) => look({ coverOpacity: Number(e.target.value) })}
+                  />
+                </label>
+              </>
+            )}
           </div>
         ))}
         <StudioPhotoLibrary kind={kind} id={id} choose={(slot, url) => look({ [slot]: url })} />
@@ -391,7 +452,21 @@ export function StudioFields({
           }
         />
       )
-  } else
+  } else if (artist && panel === 'Story')
+    content = (
+      <label>
+        Story
+        <textarea
+          className={inputClass}
+          rows={8}
+          maxLength={30000}
+          value={doc.look.story ?? ''}
+          onChange={(e) => look({ story: e.target.value })}
+        />
+      </label>
+    )
+  else if (artist && panel === 'Music') content = <ArtistSongsEditor doc={doc} change={change} />
+  else
     content = (
       <>
         {panel === 'Identity' && (
@@ -400,7 +475,7 @@ export function StudioFields({
             <input className={inputClass} value={name} disabled />
           </label>
         )}
-        {(fieldGroups[kind][panel] ?? []).map((key) => {
+        {((artist && sectionFields[panel]) || fieldGroups[kind][panel] || []).map((key) => {
           const value = doc.fields[key] ?? ''
           const set = (v: string) => change((d) => ({ ...d, fields: { ...d.fields, [key]: v } }))
           return (
@@ -454,12 +529,26 @@ export function StudioFields({
     )
   return (
     <fieldset className="studio-fields" disabled={busy}>
-      {panel !== 'Settings' && (
+      {artist && artistSettings.includes(panel) && (
+        <nav className="artist-settings-tabs" aria-label="Settings categories">
+          {artistSettings.map((tab) => (
+            <button type="button" key={tab} aria-pressed={panel === tab} onClick={() => setPanel(tab)}>
+              {tab}
+            </button>
+          ))}
+        </nav>
+      )}
+      {!artist && panel !== 'Settings' && (
         <button className="text-left text-sm font-semibold" onClick={() => setPanel('Settings')}>
           ← Settings
         </button>
       )}
       {content}
+      {artist && panel === 'Pages' && (
+        <button className={buttonBaseClass('secondary')} onClick={() => setPanel('Sections')}>
+          Edit sections
+        </button>
+      )}
       {busy && <p role="status">Uploading photo…</p>}
       {error && <p role="alert">{error}</p>}
     </fieldset>

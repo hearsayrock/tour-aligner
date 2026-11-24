@@ -26,6 +26,11 @@ export const musicServices = {
   youtube_url: 'YouTube',
   bandcamp_url: 'Bandcamp',
 }
+export type MusicService = keyof typeof musicServices
+export const musicServiceKeys = Object.keys(musicServices) as MusicService[]
+export function isMusicService(value: unknown): value is MusicService {
+  return typeof value === 'string' && Object.hasOwn(musicServices, value)
+}
 export const socialServices = {
   website_url: 'Website',
   instagram_url: 'Instagram',
@@ -95,16 +100,66 @@ export const labels: Record<string, string> = {
   ...socialServices,
 }
 export type Look = {
+  songs?: ArtistSong[]
+  featuredMusic?: string[]
+  musicSource?: MusicService
+  story?: string
   preset: string
   layout: (typeof layouts)[number]
   fonts: ArtistFonts
   tabs: StudioTab[]
   cover: string
+  coverOpacity: number
   avatar: string
-  wallpaper: string
   accent: string
   focus: string
   treatment: string
+}
+export type ArtistSong = {
+  id: string
+  title: string
+  links: Partial<Record<MusicService, string>>
+  bandcampPlayer?: string
+  kind?: 'spotify-embed'
+  playFrom?: MusicService
+}
+export function isMusicItemId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    (uuidPattern.test(value) || value === 'featured' || value === 'featured-spotify')
+  )
+}
+export function isArtistSong(value: unknown): value is ArtistSong {
+  if (!value || typeof value !== 'object') return false
+  const song = value as Partial<ArtistSong>
+  return (
+    isMusicItemId(song.id) &&
+    (song.kind === undefined || song.kind === 'spotify-embed') &&
+    (song.playFrom === undefined || isMusicService(song.playFrom)) &&
+    typeof song.title === 'string' &&
+    song.title.length <= 160 &&
+    (song.bandcampPlayer === undefined ||
+      (typeof song.bandcampPlayer === 'string' && song.bandcampPlayer.length <= 2048)) &&
+    !!song.links &&
+    typeof song.links === 'object' &&
+    !Array.isArray(song.links) &&
+    Object.entries(song.links).every(
+      ([key, link]) =>
+        Object.hasOwn(musicServices, key) && typeof link === 'string' && link.length <= 2048
+    )
+  )
+}
+function readSongs(value: unknown): ArtistSong[] {
+  if (!Array.isArray(value)) return []
+  // Older drafts and published songs may still contain local clip metadata.
+  return value.filter(isArtistSong).map(({ id, title, links, bandcampPlayer, kind, playFrom }) => ({
+    id,
+    title,
+    links,
+    ...(bandcampPlayer && { bandcampPlayer }),
+    ...(kind && { kind }),
+    ...(playFrom && { playFrom }),
+  }))
 }
 export type Lyric = { id: string; title: string; body: string }
 export type Show = { id: string; date: string; venue: string; city: string; state: string; url: string }
@@ -123,6 +178,11 @@ export type Changes = Partial<Omit<StudioDoc, 'fields' | 'look'>> & {
 export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const mediaPattern =
   /^\/studio-media\/(artist|venue|event)\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/
+export function normalizeCoverOpacity(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.round(Math.min(100, Math.max(0, value)))
+    : 40
+}
 export function urlValue(value: unknown, image = false) {
   if (typeof value !== 'string') return ''
   if (image && (mediaPattern.test(value) || /^\/touraligner\/samples\/[a-z]+\.svg$/.test(value)))
@@ -138,7 +198,9 @@ export function spotifyEmbed(value: string) {
   const match = urlValue(value).match(
     /^https:\/\/open\.spotify\.com\/(?:intl-[a-z]+\/)?(?:embed\/)?(artist|album|playlist|track)\/([a-zA-Z0-9]+)(?:[?#/]|$)/
   )
-  return match ? 'https://open.spotify.com/embed/' + match[1] + '/' + match[2] : ''
+  if (!match) return ''
+  const theme = new URL(value).searchParams.get('theme') === '0' ? '?theme=0' : ''
+  return 'https://open.spotify.com/embed/' + match[1] + '/' + match[2] + theme
 }
 export function initialDocument(
   kind: StudioKind,
@@ -156,6 +218,14 @@ export function initialDocument(
     THEME_PRESETS.find((p) => p.id === stored.preset)?.id ??
     (kind === 'artist' ? 'basement' : kind === 'event' ? 'desert' : 'paper')
   const look: Look = {
+    ...(kind === 'artist' && {
+      songs: readSongs(stored.songs),
+      ...(Array.isArray(stored.featuredMusic) && {
+        featuredMusic: stored.featuredMusic.filter(isMusicItemId),
+      }),
+      ...(isMusicService(stored.musicSource) && { musicSource: stored.musicSource }),
+      story: typeof stored.story === 'string' ? stored.story : '',
+    }),
     preset,
     layout: layouts.includes(stored.layout!) ? stored.layout! : 'poster',
     fonts: stored.fonts ?? DEFAULT_FONTS,
@@ -163,8 +233,8 @@ export function initialDocument(
       (tab) => tab === 'home' || !Array.isArray(stored.tabs) || stored.tabs.includes(tab)
     ),
     cover: urlValue(stored.cover ?? row.cover_photo_url, true),
+    coverOpacity: normalizeCoverOpacity(stored.coverOpacity),
     avatar: urlValue(stored.avatar ?? row.profile_photo_url, true),
-    wallpaper: urlValue(stored.wallpaper ?? row.profile_background_url, true),
     accent:
       typeof (stored.accent ?? raw.accent) === 'string' &&
       /^#[a-f0-9]{6}$/i.test(String(stored.accent ?? raw.accent))
@@ -186,7 +256,12 @@ export function applyChanges(base: StudioDoc, changes: Changes): StudioDoc {
     ...base,
     ...changes,
     fields: { ...base.fields, ...changes.fields },
-    look: { ...base.look, ...changes.look },
+    look: {
+      ...base.look,
+      ...changes.look,
+      ...(changes.look?.songs !== undefined && { songs: readSongs(changes.look.songs) }),
+      coverOpacity: normalizeCoverOpacity(changes.look?.coverOpacity ?? base.look.coverOpacity),
+    },
   }
 }
 export function changedValues(base: StudioDoc, doc: StudioDoc): Changes {
@@ -198,6 +273,11 @@ export function changedValues(base: StudioDoc, doc: StudioDoc): Changes {
       ([k, v]) => JSON.stringify(v) !== JSON.stringify(base.look[k as keyof Look])
     )
   )
+  // Selection and items form one playlist. Publish validation needs both, including an empty selection.
+  if (doc.look.featuredMusic !== undefined && ('songs' in look || 'featuredMusic' in look)) {
+    look.songs = doc.look.songs ?? []
+    look.featuredMusic = doc.look.featuredMusic
+  }
   if (Object.keys(look).length) result.look = look
   for (const key of ['genres', 'shows', 'lyrics', 'blocks'] as const)
     if (JSON.stringify(doc[key]) !== JSON.stringify(base[key]))

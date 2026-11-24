@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 export function StudioSheet({
   title,
@@ -11,6 +11,7 @@ export function StudioSheet({
   children: ReactNode
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
     const dialog = ref.current!
     const prior = document.activeElement
@@ -25,7 +26,7 @@ export function StudioSheet({
       data-theme="light"
       className="studio-sheet"
       ref={ref}
-      aria-labelledby="studio-sheet-title"
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault()
         close()
@@ -39,7 +40,7 @@ export function StudioSheet({
       }}
     >
       <header>
-        <h2 id="studio-sheet-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button className="studio-icon" aria-label="Close" onClick={close}>
           <X size={20} />
         </button>

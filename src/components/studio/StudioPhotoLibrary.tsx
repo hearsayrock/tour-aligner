@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { mediaPattern, type StudioKind } from '@/lib/studio/model'
 
-type Slot = 'cover' | 'avatar' | 'wallpaper'
+type Slot = 'cover' | 'avatar'
 
 export function StudioPhotoLibrary({
   kind,
@@ -62,7 +62,6 @@ export function StudioPhotoLibrary({
             <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
               <option value="cover">Cover photo</option>
               <option value="avatar">Profile photo</option>
-              <option value="wallpaper">Wallpaper</option>
             </select>
           </label>
           <div className="grid grid-cols-3 gap-2">

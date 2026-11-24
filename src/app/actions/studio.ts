@@ -6,6 +6,9 @@ import { ACTIVE_IDENTITY_COOKIE, resolveActiveIdentity } from '@/lib/managed-ide
 import { normalizeProfilePageBlockDraft } from '@/components/profile-page/blocks/profile-page-blocks'
 import {
   fieldGroups,
+  isArtistSong,
+  isMusicItemId,
+  isMusicService,
   mediaPattern,
   spotifyEmbed,
   uuidPattern,
@@ -15,6 +18,7 @@ import {
   type Changes,
   type StudioKind,
 } from '@/lib/studio/model'
+import { bandcampEmbed, playableServices } from '@/lib/studio/songs'
 import { THEME_PRESETS } from '@/lib/studio/presets'
 import type { Json } from '@/types/database'
 
@@ -58,14 +62,57 @@ function check(kind: StudioKind, id: string, patch: Changes, publishing: boolean
   const look = patch.look
   if (look) {
     if (
+      look.featuredMusic !== undefined &&
+      (kind !== 'artist' ||
+        !Array.isArray(look.featuredMusic) ||
+        !look.featuredMusic.every(isMusicItemId) ||
+        new Set(look.featuredMusic).size !== look.featuredMusic.length)
+    )
+      return 'Check the music selected for the player.'
+    if (look.musicSource !== undefined && (kind !== 'artist' || !isMusicService(look.musicSource)))
+      return 'Choose a featured streaming service.'
+    if (
+      look.story !== undefined &&
+      (kind !== 'artist' || typeof look.story !== 'string' || look.story.length > 30000)
+    )
+      return 'Keep your story under 30,000 characters.'
+    if (look.songs !== undefined) {
+      if (kind !== 'artist' || !Array.isArray(look.songs) || !look.songs.every(isArtistSong))
+        return 'Check the song details.'
+      const ids = new Set<string>()
+      for (const song of look.songs) {
+        if (ids.has(song.id)) return 'Each song needs its own entry.'
+        ids.add(song.id)
+        const links = Object.values(song.links).filter(Boolean)
+        if (!publishing) continue
+        if (song.kind === 'spotify-embed' && !spotifyEmbed(song.links.spotify_url ?? ''))
+          return 'Paste a Spotify artist, album, playlist, or track link for the embed.'
+        if (song.bandcampPlayer && !bandcampEmbed(song.bandcampPlayer))
+          return 'Paste the Bandcamp embed code for the track or clear the player field.'
+        if (
+          !song.title.trim() ||
+          (!song.bandcampPlayer && !links.length) ||
+          links.some((link) => !urlValue(link))
+        )
+          return 'Give each song a title and a listening link or Bandcamp track player.'
+      }
+    }
+    if (publishing && look.featuredMusic?.length) {
+      const playable = new Set(look.songs?.filter((item) => playableServices(item).length).map((item) => item.id))
+      if (look.featuredMusic.some((id) => !playable.has(id)))
+        return 'Each featured item needs a playable link or embed. Update the item or uncheck Feature in Music Player.'
+    }
+    if (
       (look.layout && !layouts.includes(look.layout)) ||
       (look.preset && !THEME_PRESETS.some((p) => p.id === look.preset)) ||
-      (look.accent && !/^#[a-f0-9]{6}$/i.test(look.accent))
+      (look.accent && !/^#[a-f0-9]{6}$/i.test(look.accent)) ||
+      (look.coverOpacity !== undefined &&
+        (!Number.isInteger(look.coverOpacity) || look.coverOpacity < 0 || look.coverOpacity > 100))
     )
       return 'Choose a valid look.'
     if (look.tabs && (!Array.isArray(look.tabs) || look.tabs.some((t) => !pageTabs[kind].includes(t))))
       return 'Choose valid page tabs.'
-    for (const value of [look.cover, look.avatar, look.wallpaper]) {
+    for (const value of [look.cover, look.avatar]) {
       if (
         value &&
         !(mediaPattern.test(value) && value.startsWith('/studio-media/' + kind + '/' + id + '/')) &&

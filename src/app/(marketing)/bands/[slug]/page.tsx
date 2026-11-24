@@ -8,7 +8,7 @@ import { StudioPage } from '@/components/studio/StudioPage'
 import { ArtistConnectionActions } from '@/components/bands/ArtistConnectionActions'
 import { initialDocument } from '@/lib/studio/model'
 import { loadDraft } from '@/lib/studio/server'
-import type { Band, Event } from '@/types/database'
+import type { Band, Event, Venue } from '@/types/database'
 import type { ProfilePageBlock } from '@/types/database'
 import { parseProfilePageBlock } from '@/components/profile-page/blocks/profile-page-blocks'
 import {
@@ -82,7 +82,7 @@ export default async function BandProfilePage({
     supabase
       .from('bookings')
       .select(
-        'id, show_date, event_id, venues(name, location_city, location_state), events(is_public, lineup_published, status)'
+        'id, show_date, event_id, venues(name, location_city, location_state, age_requirement), events(is_public, lineup_published, status)'
       )
       .eq('band_id', band.id)
       .in('status', ['confirmed', 'cancellation_requested'])
@@ -160,11 +160,7 @@ export default async function BandProfilePage({
       )
     )
       return []
-    const venue = show.venues as unknown as {
-      name: string
-      location_city: string
-      location_state: string
-    } | null
+    const venue = show.venues as unknown as Pick<Venue, 'name' | 'location_city' | 'location_state' | 'age_requirement'> | null
     return [
       {
         id: show.id,
@@ -172,6 +168,7 @@ export default async function BandProfilePage({
         venue: venue?.name ?? 'TBA',
         city: venue?.location_city ?? '',
         state: venue?.location_state ?? '',
+        ageRequirement: venue?.age_requirement,
         url: '',
       },
     ]
@@ -206,7 +203,7 @@ export default async function BandProfilePage({
         signedIn: !!user,
         profiles: identities,
         active: contactIdentity ? identityValue(contactIdentity) : 'all',
-        open: inquire === '1',
+        open: inquire === '1' ? 'booking' : inquire === 'message' ? 'message' : false,
         date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '',
       }}
       actions={
