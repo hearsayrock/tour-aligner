@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Pencil } from 'lucide-react'
 
-export function ArtistEditSection({
+export function StudioEditSection({
   label,
   onEdit,
   children,
@@ -13,7 +13,7 @@ export function ArtistEditSection({
   if (!onEdit) return <>{children}</>
   return (
     <div
-      className="artist-edit-section"
+      className="studio-edit-section"
       onClick={(event) => {
         if (
           event.target instanceof Element &&
@@ -24,7 +24,7 @@ export function ArtistEditSection({
           onEdit()
       }}
     >
-      <button type="button" className="artist-edit-tag" onClick={onEdit}>
+      <button type="button" className="studio-edit-tag" onClick={onEdit}>
         <Pencil size={12} />
         {label}
       </button>

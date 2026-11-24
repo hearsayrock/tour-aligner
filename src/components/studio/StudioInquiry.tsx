@@ -38,8 +38,10 @@ export function StudioInquiry(
     : p.href + '?inquire=message#shows'
   const query = '?redirectTo=' + encodeURIComponent(dest)
   const profile = p.profiles.find((x) => identityValue(x) === sender)
+  const previewOnly = booking ? profile?.kind === 'band' && profile.id === p.id : p.ownerPreview
+  const canSend = !!profile && !previewOnly && !!message.trim() && !busy
   async function send() {
-    if (p.ownerPreview || !profile || !message.trim()) return
+    if (!canSend) return
     setBusy(true)
     setError('')
     try {
@@ -148,18 +150,18 @@ export function StudioInquiry(
                 onChange={(e) => setMessage(e.target.value)}
               />
             </label>
-            {(booking || p.ownerPreview) && (
+            {(booking || previewOnly) && (
               <p className="text-sm">
-                {p.ownerPreview
+                {previewOnly
                   ? booking
-                    ? 'Visitors can send you a booking inquiry here.'
+                    ? 'Send booking inquiries from a different profile.'
                     : 'Visitors can message you here.'
                   : 'The date stays open until a booking is confirmed.'}
               </p>
             )}
             <button
               className={buttonBaseClass()}
-              disabled={p.ownerPreview || !profile || !message.trim() || busy}
+              disabled={!canSend}
               onClick={() => void send()}
             >
               {busy ? 'Sending…' : booking ? 'Send inquiry' : 'Send message'}

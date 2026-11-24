@@ -28,7 +28,10 @@ const choices: Record<string, string[]> = {
   age_requirement: ['all_ages', '18_plus', '21_plus'],
   is_public: ['true', 'false'],
 }
-export const artistSettings = ['Pages', 'Look', 'Layout', 'Fonts', 'Links']
+export function settingsTabs(kind: StudioKind) {
+  const fields = kind === 'artist' ? ['Links'] : [...Object.keys(fieldGroups[kind]), 'Genres']
+  return ['Pages', 'Look', 'Layout', 'Fonts', ...fields]
+}
 const sectionFields: Record<string, string[]> = {
   Tagline: ['tagline'],
   Description: ['description'],
@@ -51,7 +54,7 @@ export function StudioFields({
   id,
   name,
   doc,
-  panel: selectedPanel,
+  panel,
   setPanel,
   genres,
   change,
@@ -86,37 +89,15 @@ export function StudioFields({
     })
   }
   const artist = kind === 'artist'
-  const panel = artist && selectedPanel === 'Settings' ? 'Pages' : selectedPanel
+  const categories = settingsTabs(kind)
   let content
-  if (panel === 'Settings')
-    content = (
-      <div className="studio-menu">
-        {[
-          'Pages',
-          'Look',
-          'Layout',
-          'Fonts',
-          ...Object.keys(fieldGroups[kind]),
-          'Genres',
-          ...(kind === 'artist' ? ['Shows', 'Lyrics'] : []),
-          ...(kind === 'event' ? [] : ['Sections']),
-        ].map((k) => (
-          <button key={k} onClick={() => setPanel(k)}>
-            {k}
-            <span aria-hidden>↗</span>
-          </button>
-        ))}
-      </div>
-    )
-  else if (panel === 'Pages')
+  if (panel === 'Pages')
     content = pageTabs[kind].map((t) => (
-      <label key={t} className={artist ? 'artist-page-switch' : 'studio-check'}>
-        {artist && (
-          <span>
-            <strong>{tabNames[t]}</strong>
-            {t === 'home' && <small>Always on</small>}
-          </span>
-        )}
+      <label key={t} className="studio-page-switch">
+        <span>
+          <strong>{tabNames[t]}</strong>
+          {t === 'home' && <small>Always on</small>}
+        </span>
         <input
           type="checkbox"
           checked={doc.look.tabs.includes(t)}
@@ -127,29 +108,26 @@ export function StudioFields({
             })
           }
         />
-        {!artist && tabNames[t]}
       </label>
     ))
   else if (panel === 'Layout')
     content = (
       <>
-        {artist && (
-          <div
-            className="artist-layout-preview"
-            data-placement={doc.look.layout}
-            style={{
-              backgroundImage:
-                'url(' +
-                JSON.stringify(
-                  doc.look.cover || THEME_PRESETS.find((p) => p.id === doc.look.preset)?.heroArt
-                ) +
-                ')',
-            }}
-          >
-            <strong>{name}</strong>
-          </div>
-        )}
-        {artist && <p>Choose where your photo and name sit on Home.</p>}
+        <div
+          className="studio-layout-preview"
+          data-placement={doc.look.layout}
+          style={{
+            backgroundImage:
+              'url(' +
+              JSON.stringify(
+                doc.look.cover || THEME_PRESETS.find((p) => p.id === doc.look.preset)?.heroArt
+              ) +
+              ')',
+          }}
+        >
+          <strong>{kind === 'event' ? doc.fields.title : name}</strong>
+        </div>
+        <p>Choose where your photo and {kind === 'event' ? 'title' : 'name'} sit on Home.</p>
         <div className="studio-picks">
           {layouts.map((l) => (
             <button aria-pressed={doc.look.layout === l} key={l} onClick={() => look({ layout: l })}>
@@ -529,22 +507,31 @@ export function StudioFields({
     )
   return (
     <fieldset className="studio-fields" disabled={busy}>
-      {artist && artistSettings.includes(panel) && (
-        <nav className="artist-settings-tabs" aria-label="Settings categories">
-          {artistSettings.map((tab) => (
+      {categories.includes(panel) && (
+        <nav className="studio-settings-tabs" aria-label="Settings categories">
+          {categories.map((tab) => (
             <button type="button" key={tab} aria-pressed={panel === tab} onClick={() => setPanel(tab)}>
               {tab}
             </button>
           ))}
         </nav>
       )}
-      {!artist && panel !== 'Settings' && (
-        <button className="text-left text-sm font-semibold" onClick={() => setPanel('Settings')}>
+      {panel === 'Sections' && (
+        <button className="text-left text-sm font-semibold" onClick={() => setPanel('Pages')}>
           ← Settings
         </button>
       )}
+      {panel.startsWith('block:') && kind !== 'event' && (
+        <button
+          type="button"
+          className="text-left text-sm font-semibold"
+          onClick={() => setPanel('Sections')}
+        >
+          ← Sections
+        </button>
+      )}
       {content}
-      {artist && panel === 'Pages' && (
+      {kind !== 'event' && panel === 'Pages' && (
         <button className={buttonBaseClass('secondary')} onClick={() => setPanel('Sections')}>
           Edit sections
         </button>

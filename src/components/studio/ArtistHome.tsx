@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import type { StudioDoc } from '@/lib/studio/model'
-import { ArtistEditSection } from './ArtistEditSection'
+import { StudioEditSection } from './StudioEditSection'
 
 export function ArtistHome({
   doc,
@@ -24,9 +24,9 @@ export function ArtistHome({
 }) {
   function section(panel: string, label: string, child: ReactNode) {
     return (
-      <ArtistEditSection label={label} onEdit={onEdit && (() => onEdit(panel))}>
+      <StudioEditSection label={label} onEdit={onEdit && (() => onEdit(panel))}>
         {child}
-      </ArtistEditSection>
+      </StudioEditSection>
     )
   }
   return (

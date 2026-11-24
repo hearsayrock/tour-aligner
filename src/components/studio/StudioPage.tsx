@@ -16,9 +16,9 @@ import {
 } from 'lucide-react'
 import { ArtistShows, type ListedShow } from './ArtistShows'
 import { StudioSheet } from './StudioSheet'
-import { StudioFields, artistSettings } from './StudioFields'
+import { StudioFields, settingsTabs } from './StudioFields'
 import { ArtistHome } from './ArtistHome'
-import { ArtistEditSection } from './ArtistEditSection'
+import { StudioEditSection } from './StudioEditSection'
 import { artistMusic, listeningLinks } from '@/lib/studio/songs'
 import { StudioInquiry, type InquiryProps } from './StudioInquiry'
 import { buttonBaseClass } from '@/components/ui/primitives'
@@ -291,14 +291,6 @@ export function StudioPage(p: Props) {
     window.scrollTo({ top: 0, behavior: 'instant' })
     if (phone) canvas.current?.scrollTo({ top: 0, behavior: 'instant' })
   }
-  function editButton(target: string, label: string) {
-    return edit ? (
-      <button className="studio-edit" onClick={() => setPanel(target)}>
-        <Pencil size={13} />
-        {label}
-      </button>
-    ) : null
-  }
   function section(target: string, label: string, children: ReactNode) {
     function openSection() {
       if (target === 'new:video' || target === 'new:gallery') {
@@ -308,9 +300,9 @@ export function StudioPage(p: Props) {
       } else setPanel(target)
     }
     return (
-      <ArtistEditSection label={label} onEdit={artist && edit ? openSection : undefined}>
+      <StudioEditSection label={label} onEdit={edit ? openSection : undefined}>
         {children}
-      </ArtistEditSection>
+      </StudioEditSection>
     )
   }
   const idea = !look.cover
@@ -414,34 +406,37 @@ export function StudioPage(p: Props) {
             {renderLinks(social)}
           </div>
         )}
-      {!artist && social.length > 0 && (
-        <div className="studio-fact">
-          <small>Find the venue</small>
-          {renderLinks(social)}
-        </div>
-      )}
-      {p.kind === 'event' && (
-        <div className="studio-fact">
-          <small>Show details</small>
-          <strong>{f.event_date && niceDate(f.event_date)}</strong>
-          {f.start_time?.slice(0, 5)}
-          {place && <p>{place}</p>}
-        </div>
-      )}
-      {p.kind === 'venue' && (
-        <div className="studio-fact">
-          <small>Room details</small>
-          <strong>{place || p.name}</strong>
-          {f.capacity && <p>{f.capacity} capacity</p>}
-        </div>
-      )}
-      {edit && !artist && (
-        <div className="studio-fact studio-page-tools">
-          <small>Edit page</small>
-          {editButton('Settings', 'Page settings')}
-          {editButton('Look', 'Edit look')}
-        </div>
-      )}
+      {p.kind === 'venue' &&
+        (social.length > 0 || edit) &&
+        section(
+          'Links',
+          'Edit links',
+          <div className="studio-fact">
+            <small>Find the venue</small>
+            {renderLinks(social)}
+          </div>
+        )}
+      {p.kind === 'event' &&
+        section(
+          'Details',
+          'Edit details',
+          <div className="studio-fact">
+            <small>Show details</small>
+            <strong>{f.event_date && niceDate(f.event_date)}</strong>
+            {f.start_time?.slice(0, 5)}
+            {place && <p>{place}</p>}
+          </div>
+        )}
+      {p.kind === 'venue' &&
+        section(
+          'About',
+          'Edit details',
+          <div className="studio-fact">
+            <small>Room details</small>
+            <strong>{place || p.name}</strong>
+            {f.capacity && <p>{f.capacity} capacity</p>}
+          </div>
+        )}
     </aside>
   )
   const detailKeys =
@@ -495,7 +490,7 @@ export function StudioPage(p: Props) {
     <div
       className="studio-root"
       data-kind={p.kind}
-      style={artist ? variables : undefined}
+      style={variables}
       data-editing={draft || undefined}
       onChangeCapture={(event) => {
         const field = event.target
@@ -543,7 +538,7 @@ export function StudioPage(p: Props) {
           >
             {phone ? <Monitor /> : <Smartphone />}
           </button>
-          <button onClick={() => setPanel('Settings')}>
+          <button onClick={() => setPanel('Pages')}>
             <Settings />
             Settings
           </button>
@@ -607,7 +602,6 @@ export function StudioPage(p: Props) {
       <div
         className={'studio-frame' + (phone && draft ? ' studio-phone' : '')}
         data-dock={hasDock || undefined}
-        style={variables}
       >
         <div
           className="studio-canvas"
@@ -676,48 +670,47 @@ export function StudioPage(p: Props) {
               {artwork}
               <div className="studio-hero-body">
                 <div className="studio-story">
-                  <div className="studio-photo-row">
-                    {look.avatar && (
-                      <Image
-                        unoptimized
-                        className="studio-avatar"
-                        width={68}
-                        height={68}
-                        alt=""
-                        src={look.avatar}
-                      />
-                    )}
-                    {editButton('Look', 'Change photo')}
-                  </div>
-                  <p className="studio-kicker">
-                    {p.kind === 'venue' ? 'Venue' : f.event_date ? niceDate(f.event_date) : 'Event'}
-                  </p>
-                  <h1>
-                    {edit ? (
-                      <button
-                        className="studio-title-target"
-                        aria-label="Edit profile details"
-                        onClick={() => setPanel(p.kind === 'event' ? 'Details' : 'About')}
-                      >
-                        {title}
-                        <Pencil size={20} />
-                      </button>
-                    ) : (
-                      title
-                    )}
-                  </h1>
-                  {f.tagline && <p className="studio-tagline">{f.tagline}</p>}
-                  {place && <p>{place}</p>}
-                  <div className="studio-genre-row">
-                    <ul className="studio-chips">
-                      {p.genres
-                        .filter((g) => doc.genres.includes(g.id))
-                        .map((g) => (
-                          <li key={g.id}>{g.name}</li>
-                        ))}
-                    </ul>
-                    {editButton('Genres', 'Genres')}
-                  </div>
+                  {section(
+                    'Look',
+                    'Change photo',
+                    look.avatar && (
+                      <div className="studio-photo-row">
+                        <Image
+                          unoptimized
+                          className="studio-avatar"
+                          width={68}
+                          height={68}
+                          alt=""
+                          src={look.avatar}
+                        />
+                      </div>
+                    )
+                  )}
+                  {section(
+                    p.kind === 'event' ? 'Details' : 'About',
+                    'Edit profile details',
+                    <>
+                      <p className="studio-kicker">
+                        {p.kind === 'venue' ? 'Venue' : f.event_date ? niceDate(f.event_date) : 'Event'}
+                      </p>
+                      <h1>{title}</h1>
+                      {f.tagline && <p className="studio-tagline">{f.tagline}</p>}
+                      {place && <p>{place}</p>}
+                    </>
+                  )}
+                  {section(
+                    'Genres',
+                    'Edit genres',
+                    <div className="studio-genre-row">
+                      <ul className="studio-chips">
+                        {p.genres
+                          .filter((g) => doc.genres.includes(g.id))
+                          .map((g) => (
+                            <li key={g.id}>{g.name}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                   <div className="studio-actions">
                     {bookButton}
                     {!draft && p.actions}
@@ -805,7 +798,6 @@ export function StudioPage(p: Props) {
                   )}
                   {tab === 'about' && (
                     <>
-                      {!artist && editButton(p.kind === 'event' ? 'Details' : 'About', 'Edit details')}
                       {artist ? (
                         <>
                           {section(
@@ -859,31 +851,40 @@ export function StudioPage(p: Props) {
                         </>
                       ) : (
                         <>
-                          {f.description && <p className="studio-description">{f.description}</p>}
-                          <dl className="studio-details">
-                            {detailKeys
-                              .filter((k) => f[k])
-                              .map((k) => (
-                                <div key={k}>
-                                  <dt>{k === 'members' ? 'Members' : labels[k]}</dt>
-                                  <dd>{f[k].replaceAll('_', ' ')}</dd>
-                                </div>
-                              ))}
-                          </dl>
-                          {renderLinks(social)}
+                          {section(
+                            p.kind === 'event' ? 'Details' : 'About',
+                            'Edit details',
+                            <>
+                              {f.description && <p className="studio-description">{f.description}</p>}
+                              <dl className="studio-details">
+                                {detailKeys
+                                  .filter((k) => f[k])
+                                  .map((k) => (
+                                    <div key={k}>
+                                      <dt>{k === 'members' ? 'Members' : labels[k]}</dt>
+                                      <dd>{f[k].replaceAll('_', ' ')}</dd>
+                                    </div>
+                                  ))}
+                              </dl>
+                            </>
+                          )}
+                          {p.kind === 'venue' &&
+                            (social.length > 0 || edit) &&
+                            section('Links', 'Edit links', renderLinks(social))}
                         </>
                       )}
                       {p.aboutExtras}
-                      {section(
-                        'Lyrics',
-                        'Edit lyrics',
-                        doc.lyrics.map((l) => (
-                          <details key={l.id}>
-                            <summary>{l.title}</summary>
-                            <p className="whitespace-pre-wrap">{l.body}</p>
-                          </details>
-                        ))
-                      )}
+                      {artist &&
+                        section(
+                          'Lyrics',
+                          'Edit lyrics',
+                          doc.lyrics.map((l) => (
+                            <details key={l.id}>
+                              <summary>{l.title}</summary>
+                              <p className="whitespace-pre-wrap">{l.body}</p>
+                            </details>
+                          ))
+                        )}
                       <div data-theme="light" className="studio-blocks">
                         {doc.blocks
                           .filter(
@@ -893,7 +894,6 @@ export function StudioPage(p: Props) {
                           )
                           .map((b) => (
                             <div key={b.id}>
-                              {!artist && editButton('block:' + b.id, 'Edit section')}
                               {section(
                                 'block:' + b.id,
                                 b.blockType === 'gallery' ? 'Edit photos' : 'Edit section',
@@ -910,12 +910,10 @@ export function StudioPage(p: Props) {
                         edit &&
                         !doc.blocks.some((b) => b.blockType === 'gallery') &&
                         section('new:gallery', 'Add photos', null)}
-                      {artist && edit && section('Sections', 'Add a section', null)}
-                      {p.kind === 'venue' && editButton('Sections', 'Edit sections')}
+                      {p.kind !== 'event' && edit && section('Sections', 'Add a section', null)}
                     </>
                   )}
                 </div>
-                {edit && !artist && facts}
               </div>
             </section>
           )}
@@ -959,7 +957,7 @@ export function StudioPage(p: Props) {
           title={
             artist && panel === 'Music'
               ? 'Edit music'
-              : artist && artistSettings.includes(panel)
+              : settingsTabs(p.kind).includes(panel)
                 ? 'Settings'
                 : panel.startsWith('block:')
                   ? 'Edit section'
@@ -1051,10 +1049,10 @@ export function StudioPage(p: Props) {
               />
             )
           )}
-          {artist && draft && !['Share', 'Publish', 'Discard draft'].includes(panel) && (
+          {draft && !['Share', 'Publish', 'Discard draft'].includes(panel) && (
             <button
               type="button"
-              className={buttonBaseClass() + ' artist-sheet-done'}
+              className={buttonBaseClass() + ' studio-sheet-done'}
               disabled={uploading || working}
               onClick={() => setPanel('')}
             >
